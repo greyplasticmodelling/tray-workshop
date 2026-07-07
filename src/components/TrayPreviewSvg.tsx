@@ -108,7 +108,11 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </marker>
         </defs>
 
-        {!isLanceFormation && !hasCharacterBay && (
+        {isSkirmish && (
+          <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="skirmish-floor" />
+        )}
+
+        {!isLanceFormation && !isSkirmish && !hasCharacterBay && (
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
         )}
         {!isLanceWedge && hasCharacterBay && (

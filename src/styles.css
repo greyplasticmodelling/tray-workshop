@@ -560,6 +560,12 @@ h1 {
   stroke-width: 0.45;
 }
 
+.skirmish-floor {
+  fill: var(--preview-floor);
+  stroke: var(--footprint-stroke);
+  stroke-width: 0.18;
+}
+
 .rail {
   fill: var(--preview-rail);
   stroke: var(--accent-strong);
