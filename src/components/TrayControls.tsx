@@ -122,7 +122,7 @@ export function TrayControls({
             return null;
           }
 
-          if (isAdapterTray && (field.key === 'railThicknessMm' || field.key === 'railHeightMm')) {
+          if ((isAdapterTray || isSkirmish) && (field.key === 'railThicknessMm' || field.key === 'railHeightMm')) {
             return null;
           }
 
@@ -240,6 +240,18 @@ export function TrayControls({
                 onChange={(event) => updateNumber('skirmishDistributionChancePercent', event.target.value)}
               />
             </label>
+
+            <label className="field" title="Overall height of the solid skirmish tray, including the bottom floor.">
+              <span>Overall tray height (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                title="Overall height of the solid skirmish tray, including the bottom floor."
+                value={settings.skirmishTrayHeightMm}
+                onChange={(event) => updateNumber('skirmishTrayHeightMm', event.target.value)}
+              />
+            </label>
           </div>
 
           <button
@@ -296,7 +308,7 @@ export function TrayControls({
         </fieldset>
       )}
 
-      {!isAdapterTray && (
+      {!isAdapterTray && !isSkirmish && (
       <fieldset className="rail-options">
         <legend>Rails</legend>
         {railToggles.map((toggle) => (

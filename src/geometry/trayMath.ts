@@ -19,6 +19,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
   skirmishMaxOffsetMm: { min: 0, max: 3, label: 'Skirmish max offset', unit: 'mm' },
   skirmishDistributionChancePercent: { min: 0, max: 100, label: 'Skirmish distribution chance', unit: '%' },
+  skirmishTrayHeightMm: { min: 1, max: 12, label: 'Skirmish tray height', unit: 'mm' },
   magnetDiameterMm: { min: 1, max: 15, label: 'Magnet diameter', unit: 'mm' },
   magnetCutoutDepthMm: { min: 0.1, max: 8, label: 'Magnet cutout depth', unit: 'mm' },
   lanceMagnetOffsetMm: { min: 0, max: 40, label: 'Lance magnet offset', unit: 'mm' },
@@ -113,10 +114,10 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
-  const leftRailMm = !isAdapter && settings.leftRailEnabled ? settings.railThicknessMm : 0;
-  const rightRailMm = !isAdapter && settings.rightRailEnabled ? settings.railThicknessMm : 0;
-  const frontRailMm = !isAdapter && settings.frontRailEnabled ? settings.railThicknessMm : 0;
-  const rearRailMm = !isAdapter && settings.rearRailEnabled ? settings.railThicknessMm : 0;
+  const leftRailMm = !isAdapter && !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
+  const rightRailMm = !isAdapter && !isSkirmish && settings.rightRailEnabled ? settings.railThicknessMm : 0;
+  const frontRailMm = !isAdapter && !isSkirmish && settings.frontRailEnabled ? settings.railThicknessMm : 0;
+  const rearRailMm = !isAdapter && !isSkirmish && settings.rearRailEnabled ? settings.railThicknessMm : 0;
 
   return {
     slotWidthMm,
@@ -289,6 +290,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (settings.template === 'skirmish' && (key === 'railThicknessMm' || key === 'railHeightMm')) {
+      return;
+    }
+
     const value = settings[key as keyof TraySettings];
     if (typeof value !== 'number') {
       return;
@@ -315,6 +320,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   }
 
   const dimensions = calculateTrayDimensions(settings);
+  if (settings.template === 'skirmish' && settings.skirmishTrayHeightMm <= settings.floorThicknessMm) {
+    messages.push('Skirmish tray height must be greater than floor thickness.');
+  }
+
   if (settings.template === 'adapter' || settings.template === 'adapterLance') {
     if (dimensions.adapterCutoutWidthMm > dimensions.slotWidthMm) {
       messages.push('Adapter cutout width must fit inside the target base width.');

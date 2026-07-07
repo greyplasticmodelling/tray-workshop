@@ -130,9 +130,10 @@ function createSkirmishFloorLayer(
   height: number,
   holes: Array<{ x: number; y: number; rotationDeg: number }>,
   settings: TraySettings,
+  z = 0,
 ) {
   if (holes.length === 0) {
-    return createBox(name, width, depth, height, 0, 0, height / 2);
+    return createBox(name, width, depth, height, 0, 0, z + height / 2);
   }
 
   const shape = new THREE.Shape();
@@ -181,7 +182,7 @@ function createSkirmishFloorLayer(
   const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = name;
-  mesh.position.set(0, 0, 0);
+  mesh.position.set(0, 0, z);
   return mesh;
 }
 
@@ -243,29 +244,22 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       y: placement.y + innerCenterOffsetY,
       rotationDeg: placement.rotationDeg,
     }));
-    const railHeight = settings.railHeightMm;
-    const railCenterZ = settings.floorThicknessMm + railHeight / 2;
-    const leftX = -dimensions.outerWidthMm / 2 + settings.railThicknessMm / 2;
-    const rightX = dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
-    const frontY = -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2;
-    const rearY = dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2;
+    const cutoutLayerHeight = Math.max(0, settings.skirmishTrayHeightMm - settings.floorThicknessMm);
 
-    group.add(createSkirmishFloorLayer('skirmish-floor', dimensions.outerWidthMm, dimensions.outerDepthMm, settings.floorThicknessMm, skirmishHoles, settings));
+    group.add(createBox('skirmish-floor', dimensions.outerWidthMm, dimensions.outerDepthMm, settings.floorThicknessMm, 0, 0, settings.floorThicknessMm / 2));
 
-    if (settings.leftRailEnabled) {
-      group.add(createBox('left-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, leftX, 0, railCenterZ));
-    }
-
-    if (settings.rightRailEnabled) {
-      group.add(createBox('right-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, rightX, 0, railCenterZ));
-    }
-
-    if (settings.frontRailEnabled) {
-      group.add(createBox('front-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, frontY, railCenterZ));
-    }
-
-    if (settings.rearRailEnabled) {
-      group.add(createBox('rear-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, rearY, railCenterZ));
+    if (cutoutLayerHeight > 0) {
+      group.add(
+        createSkirmishFloorLayer(
+          'skirmish-cutout-layer',
+          dimensions.outerWidthMm,
+          dimensions.outerDepthMm,
+          cutoutLayerHeight,
+          skirmishHoles,
+          settings,
+          settings.floorThicknessMm,
+        ),
+      );
     }
 
     return group;

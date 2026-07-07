@@ -30,6 +30,7 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
       : settings.template === 'skirmish'
         ? [
             ['Skirmish base size (mm)', formatMm(settings.skirmishBaseSizeMm)],
+            ['Overall tray height (mm)', formatMm(settings.skirmishTrayHeightMm)],
             ['Max offset (mm)', formatMm(settings.skirmishMaxOffsetMm)],
             ['Max rotation (degrees)', `${settings.skirmishMaxRotationDeg.toFixed(1)} degrees`],
           ]

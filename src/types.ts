@@ -19,6 +19,7 @@ export type TraySettings = {
   skirmishMaxRotationDeg: number;
   skirmishMaxOffsetMm: number;
   skirmishDistributionChancePercent: number;
+  skirmishTrayHeightMm: number;
   magnetCutoutsEnabled: boolean;
   magnetDiameterMm: number;
   magnetCutoutDepthMm: number;
