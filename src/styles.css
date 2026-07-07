@@ -325,13 +325,16 @@ h1 {
 .preview-panel {
   min-width: 0;
   display: grid;
-  grid-template-rows: minmax(260px, 1fr) auto;
+  grid-template-rows: auto auto;
   gap: 14px;
   padding: 22px;
+  align-content: start;
 }
 
 .preview-frame {
-  min-height: 300px;
+  width: min(100%, 980px);
+  height: clamp(260px, 42vw, 560px);
+  justify-self: center;
   border: 1px solid var(--border);
   border-radius: 8px;
   background:
@@ -345,7 +348,6 @@ h1 {
 .preview-frame svg {
   width: 100%;
   height: 100%;
-  min-height: 300px;
   display: block;
 }
 
@@ -547,6 +549,6 @@ footer {
 
   .preview-frame,
   .preview-frame svg {
-    min-height: 260px;
+    height: 260px;
   }
 }
