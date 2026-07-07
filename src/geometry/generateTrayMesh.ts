@@ -71,6 +71,56 @@ function createPerforatedFloorLayer(
   return group;
 }
 
+function createRectCutoutLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  z: number,
+) {
+  if (holes.length === 0) {
+    return createBox(name, width, depth, height, 0, 0, z + height / 2);
+  }
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-width / 2, -depth / 2);
+  shape.lineTo(width / 2, -depth / 2);
+  shape.lineTo(width / 2, depth / 2);
+  shape.lineTo(-width / 2, depth / 2);
+  shape.lineTo(-width / 2, -depth / 2);
+
+  holes.forEach((hole) => {
+    const halfWidth = hole.width / 2;
+    const halfDepth = hole.depth / 2;
+
+    if (
+      hole.x - halfWidth >= -width / 2 &&
+      hole.x + halfWidth <= width / 2 &&
+      hole.y - halfDepth >= -depth / 2 &&
+      hole.y + halfDepth <= depth / 2
+    ) {
+      const path = new THREE.Path();
+      path.moveTo(hole.x - halfWidth, hole.y - halfDepth);
+      path.lineTo(hole.x - halfWidth, hole.y + halfDepth);
+      path.lineTo(hole.x + halfWidth, hole.y + halfDepth);
+      path.lineTo(hole.x + halfWidth, hole.y - halfDepth);
+      path.lineTo(hole.x - halfWidth, hole.y - halfDepth);
+      shape.holes.push(path);
+    }
+  });
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false,
+  });
+  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name;
+  mesh.position.set(0, 0, z);
+  return mesh;
+}
+
 function getHolesInRect(
   holes: Array<{ x: number; y: number }>,
   centerX: number,
@@ -98,6 +148,48 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   group.name = 'movement-tray';
   const rankCounts = getRankCounts(settings);
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
+
+  if (settings.template === 'adapter') {
+    group.add(
+      createBox(
+        'adapter-floor',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        settings.floorThicknessMm,
+        0,
+        0,
+        settings.floorThicknessMm / 2,
+      ),
+    );
+
+    const adapterHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
+    const leftX = -dimensions.outerWidthMm / 2;
+    const frontY = -dimensions.outerDepthMm / 2;
+
+    rankCounts.forEach((rankCount, rowIndex) => {
+      for (let columnIndex = 0; columnIndex < rankCount; columnIndex += 1) {
+        adapterHoles.push({
+          x: leftX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
+          y: frontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2,
+          width: dimensions.adapterCutoutWidthMm,
+          depth: dimensions.adapterCutoutDepthMm,
+        });
+      }
+    });
+
+    group.add(
+      createRectCutoutLayer(
+        'adapter-block',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        settings.adapterBaseHeightMm,
+        adapterHoles,
+        settings.floorThicknessMm,
+      ),
+    );
+
+    return group;
+  }
 
   if (settings.template === 'lanceWedge') {
     const railHeight = settings.railHeightMm;

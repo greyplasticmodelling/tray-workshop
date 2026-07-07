@@ -15,8 +15,16 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
     ['Outer width (mm)', formatMm(dimensions.outerWidthMm)],
     ['Outer depth (mm)', formatMm(dimensions.outerDepthMm)],
     ['Floor thickness (mm)', formatMm(settings.floorThicknessMm)],
-    ['Rail height (mm)', formatMm(settings.railHeightMm)],
-    ['Rail thickness (mm)', formatMm(settings.railThicknessMm)],
+    ...(settings.template === 'adapter'
+      ? [
+          ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
+          ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
+          ['Adapter cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
+        ]
+      : [
+          ['Rail height (mm)', formatMm(settings.railHeightMm)],
+          ['Rail thickness (mm)', formatMm(settings.railThicknessMm)],
+        ]),
   ];
   const fitsOnPlate = buildPlateFit.fits || buildPlateFit.fitsRotated;
   const fitText = buildPlateFit.fits

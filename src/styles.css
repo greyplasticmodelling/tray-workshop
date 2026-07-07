@@ -586,6 +586,12 @@ h1 {
   stroke-width: 0.45;
 }
 
+.adapter-cutout {
+  fill: rgba(166, 61, 45, 0.24);
+  stroke: #a63d2d;
+  stroke-width: 0.45;
+}
+
 .dimension-line,
 .dimension-tick {
   stroke: var(--accent-strong);

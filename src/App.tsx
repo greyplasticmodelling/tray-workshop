@@ -16,6 +16,9 @@ const standardDefaults: TraySettings = {
   floorThicknessMm: 1.6,
   railThicknessMm: 2,
   railHeightMm: 2,
+  adapterCutoutWidthMm: 20,
+  adapterCutoutDepthMm: 20,
+  adapterBaseHeightMm: 3,
   magnetCutoutsEnabled: false,
   magnetDiameterMm: 5,
   magnetCutoutDepthMm: 1,
@@ -41,9 +44,29 @@ const lanceWedgeDefaults: TraySettings = {
   rows: 3,
 };
 
+const adapterDefaults: TraySettings = {
+  ...standardDefaults,
+  template: 'adapter',
+  baseWidthMm: 30,
+  baseDepthMm: 30,
+  columns: 4,
+  rows: 5,
+  toleranceMm: 0.2,
+  adapterCutoutWidthMm: 20,
+  adapterCutoutDepthMm: 20,
+  adapterBaseHeightMm: 3,
+  magnetCutoutsEnabled: false,
+  characterBayEnabled: false,
+  frontRailEnabled: false,
+  rearRailEnabled: false,
+  leftRailEnabled: false,
+  rightRailEnabled: false,
+};
+
 const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
   standard: standardDefaults,
   lanceWedge: lanceWedgeDefaults,
+  adapter: adapterDefaults,
 };
 
 const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
@@ -144,7 +167,9 @@ export default function App() {
 
   const saveCurrentTray = () => {
     const defaultName =
-      settings.template === 'lanceWedge'
+      settings.template === 'adapter'
+        ? `Adapter ${settings.columns} x ${settings.rows}`
+        : settings.template === 'lanceWedge'
         ? `Lance Wedge ${settings.rows} rows`
         : `Standard ${settings.columns} x ${settings.rows}`;
     const name = window.prompt('Save tray as:', defaultName);

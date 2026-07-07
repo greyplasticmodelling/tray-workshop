@@ -9,6 +9,9 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   floorThicknessMm: { min: 0.6, max: 8, label: 'Floor thickness', unit: 'mm' },
   railThicknessMm: { min: 0.6, max: 8, label: 'Rail thickness', unit: 'mm' },
   railHeightMm: { min: 0.5, max: 12, label: 'Rail height', unit: 'mm' },
+  adapterCutoutWidthMm: { min: 10, max: 60, label: 'Adapter cutout width', unit: 'mm' },
+  adapterCutoutDepthMm: { min: 10, max: 80, label: 'Adapter cutout depth', unit: 'mm' },
+  adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
   magnetDiameterMm: { min: 1, max: 15, label: 'Magnet diameter', unit: 'mm' },
   magnetCutoutDepthMm: { min: 0.1, max: 8, label: 'Magnet cutout depth', unit: 'mm' },
   lanceMagnetOffsetMm: { min: 0, max: 40, label: 'Lance magnet offset', unit: 'mm' },
@@ -39,6 +42,11 @@ export const trayTemplates: Array<{ value: TraySettings['template']; label: stri
     label: 'Lance Wedge Movement Tray',
     description: 'A wedge formation starting at one model and widening by one model for each row.',
   },
+  {
+    value: 'adapter',
+    label: 'Adapter Movement Tray',
+    description: 'A solid larger-base tray with smaller centred base cutouts.',
+  },
 ];
 
 export function getRankCounts(settings: TraySettings): number[] {
@@ -56,8 +64,11 @@ export function getBuildPlate(size: BuildPlateSize): BuildPlate {
 
 export function calculateTrayDimensions(settings: TraySettings): TrayDimensions {
   const rankCounts = getRankCounts(settings);
-  const slotWidthMm = settings.baseWidthMm + settings.toleranceMm;
-  const slotDepthMm = settings.baseDepthMm + settings.toleranceMm;
+  const isAdapter = settings.template === 'adapter';
+  const slotWidthMm = isAdapter ? settings.baseWidthMm : settings.baseWidthMm + settings.toleranceMm;
+  const slotDepthMm = isAdapter ? settings.baseDepthMm : settings.baseDepthMm + settings.toleranceMm;
+  const adapterCutoutWidthMm = settings.adapterCutoutWidthMm + settings.toleranceMm;
+  const adapterCutoutDepthMm = settings.adapterCutoutDepthMm + settings.toleranceMm;
   const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm;
   const mainInnerDepthMm = rankCounts.length * slotDepthMm;
   const hasCharacterBay = settings.template === 'standard' && settings.characterBayEnabled;
@@ -66,14 +77,16 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
-  const leftRailMm = settings.leftRailEnabled ? settings.railThicknessMm : 0;
-  const rightRailMm = settings.rightRailEnabled ? settings.railThicknessMm : 0;
-  const frontRailMm = settings.frontRailEnabled ? settings.railThicknessMm : 0;
-  const rearRailMm = settings.rearRailEnabled ? settings.railThicknessMm : 0;
+  const leftRailMm = !isAdapter && settings.leftRailEnabled ? settings.railThicknessMm : 0;
+  const rightRailMm = !isAdapter && settings.rightRailEnabled ? settings.railThicknessMm : 0;
+  const frontRailMm = !isAdapter && settings.frontRailEnabled ? settings.railThicknessMm : 0;
+  const rearRailMm = !isAdapter && settings.rearRailEnabled ? settings.railThicknessMm : 0;
 
   return {
     slotWidthMm,
     slotDepthMm,
+    adapterCutoutWidthMm,
+    adapterCutoutDepthMm,
     mainInnerWidthMm,
     mainInnerDepthMm,
     characterSlotWidthMm,
@@ -97,7 +110,7 @@ export type MagnetCutoutCenter = {
 };
 
 export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): MagnetCutoutCenter[] {
-  if (!settings.magnetCutoutsEnabled) {
+  if (!settings.magnetCutoutsEnabled || settings.template === 'adapter') {
     return [];
   }
 
@@ -170,6 +183,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (settings.template === 'adapter' && (key === 'railThicknessMm' || key === 'railHeightMm')) {
+      return;
+    }
+
     const value = settings[key as keyof TraySettings];
     if (typeof value !== 'number') {
       return;
@@ -185,7 +202,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   });
 
-  if (settings.template === 'standard' && !Number.isInteger(settings.columns)) {
+  if (settings.template !== 'lanceWedge' && !Number.isInteger(settings.columns)) {
     messages.push('Columns must be a positive whole number.');
   }
 
@@ -194,6 +211,16 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   }
 
   const dimensions = calculateTrayDimensions(settings);
+  if (settings.template === 'adapter') {
+    if (dimensions.adapterCutoutWidthMm > dimensions.slotWidthMm) {
+      messages.push('Adapter cutout width must fit inside the target base width.');
+    }
+
+    if (dimensions.adapterCutoutDepthMm > dimensions.slotDepthMm) {
+      messages.push('Adapter cutout depth must fit inside the target base depth.');
+    }
+  }
+
   if (settings.magnetCutoutsEnabled) {
     if (settings.magnetCutoutDepthMm > settings.floorThicknessMm) {
       messages.push('Magnet cutout depth cannot be greater than floor thickness.');

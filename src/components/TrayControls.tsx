@@ -69,13 +69,14 @@ export function TrayControls({
   const updateToggle = (key: keyof TraySettings, checked: boolean) => {
     onChange({ ...settings, [key]: checked });
   };
+  const isAdapter = settings.template === 'adapter';
 
   return (
     <aside className="controls" aria-label="Tray settings">
       <div>
         <p className="eyebrow">Tray Workshop</p>
         <h1>Build a square-base tray</h1>
-        <p className="intro">Set the base size, formation, clearances, and rails, then download a browser-generated STL.</p>
+        <p className="intro">Set the base size, formation, clearances, and tray style, then download a browser-generated STL.</p>
       </div>
 
       <label className="field">
@@ -114,14 +115,31 @@ export function TrayControls({
             return null;
           }
 
+          if (isAdapter && (field.key === 'railThicknessMm' || field.key === 'railHeightMm')) {
+            return null;
+          }
+
+          const adapterLabels: Partial<Record<typeof field.key, string>> = {
+            baseWidthMm: 'Target base width (mm)',
+            baseDepthMm: 'Target base depth (mm)',
+            toleranceMm: 'Cutout tolerance (mm)',
+          };
+          const adapterTooltips: Partial<Record<typeof field.key, string>> = {
+            baseWidthMm: 'Width of the larger base footprint this adapter represents.',
+            baseDepthMm: 'Depth of the larger base footprint this adapter represents.',
+            toleranceMm: 'Extra clearance added to the smaller adapter cutout.',
+          };
           const tooltip =
-            settings.template === 'lanceWedge' && field.key === 'rows'
+            isAdapter && adapterTooltips[field.key]
+              ? adapterTooltips[field.key]
+              : settings.template === 'lanceWedge' && field.key === 'rows'
               ? 'Number of wedge ranks. The rear rank will contain the same number of models as the row count.'
               : field.tooltip;
+          const label = isAdapter && adapterLabels[field.key] ? adapterLabels[field.key] : field.label;
 
           return (
           <label className="field" key={field.key} title={tooltip}>
-            <span>{field.label}</span>
+            <span>{label}</span>
             <input
               type="number"
               min="0"
@@ -135,6 +153,50 @@ export function TrayControls({
         })}
       </div>
 
+      {isAdapter && (
+        <fieldset className="character-options">
+          <legend>Adapter cutouts</legend>
+          <div className="field-grid">
+            <label className="field" title="Width of the smaller base recess centred inside each target base footprint.">
+              <span>Cutout base width (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                title="Width of the smaller base recess centred inside each target base footprint."
+                value={settings.adapterCutoutWidthMm}
+                onChange={(event) => updateNumber('adapterCutoutWidthMm', event.target.value)}
+              />
+            </label>
+
+            <label className="field" title="Depth of the smaller base recess centred inside each target base footprint.">
+              <span>Cutout base depth (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                title="Depth of the smaller base recess centred inside each target base footprint."
+                value={settings.adapterCutoutDepthMm}
+                onChange={(event) => updateNumber('adapterCutoutDepthMm', event.target.value)}
+              />
+            </label>
+
+            <label className="field" title="Height of the solid adapter block above the floor.">
+              <span>Adapter block height (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                title="Height of the solid adapter block above the floor."
+                value={settings.adapterBaseHeightMm}
+                onChange={(event) => updateNumber('adapterBaseHeightMm', event.target.value)}
+              />
+            </label>
+          </div>
+        </fieldset>
+      )}
+
+      {!isAdapter && (
       <fieldset className="rail-options">
         <legend>Rails</legend>
         {railToggles.map((toggle) => (
@@ -149,6 +211,7 @@ export function TrayControls({
           </label>
         ))}
       </fieldset>
+      )}
 
       {settings.template === 'standard' && (
         <fieldset className="character-options">
@@ -203,6 +266,7 @@ export function TrayControls({
         </fieldset>
       )}
 
+      {!isAdapter && (
       <fieldset className="magnet-options">
         <legend>Magnet cutouts</legend>
         <label className="toggle" title="Add circular top-side magnet recesses centred in each base space.">
@@ -268,6 +332,7 @@ export function TrayControls({
           </>
         )}
       </fieldset>
+      )}
 
       {validationMessages.length > 0 && (
         <div className="validation" role="alert">

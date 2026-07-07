@@ -23,7 +23,12 @@ export function downloadStl(settings: TraySettings): void {
     settings.baseWidthMm === settings.baseDepthMm
       ? `${settings.baseWidthMm}mm`
       : `${settings.baseWidthMm}x${settings.baseDepthMm}mm`;
-  const formation = settings.template === 'lanceWedge' ? `lance-wedge-${settings.rows}-rows` : `${settings.columns}x${settings.rows}`;
+  const formation =
+    settings.template === 'adapter'
+      ? `adapter-${settings.columns}x${settings.rows}`
+      : settings.template === 'lanceWedge'
+        ? `lance-wedge-${settings.rows}-rows`
+        : `${settings.columns}x${settings.rows}`;
   const name = `movement-tray-${baseSize}-${formation}`;
   const stl = exportAsciiStl(generateTrayMesh(settings), name);
   const blob = new Blob([stl], { type: 'model/stl;charset=utf-8' });

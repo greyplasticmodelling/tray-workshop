@@ -8,6 +8,9 @@ export type TraySettings = {
   floorThicknessMm: number;
   railThicknessMm: number;
   railHeightMm: number;
+  adapterCutoutWidthMm: number;
+  adapterCutoutDepthMm: number;
+  adapterBaseHeightMm: number;
   magnetCutoutsEnabled: boolean;
   magnetDiameterMm: number;
   magnetCutoutDepthMm: number;
@@ -24,7 +27,7 @@ export type TraySettings = {
   buildPlateSize: BuildPlateSize;
 };
 
-export type TrayTemplate = 'standard' | 'lanceWedge';
+export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter';
 
 export type SavedTray = {
   id: string;
@@ -53,6 +56,8 @@ export type ThemeName = 'darkGrey' | 'workshop' | 'forest' | 'slate' | 'parchmen
 export type TrayDimensions = {
   slotWidthMm: number;
   slotDepthMm: number;
+  adapterCutoutWidthMm: number;
+  adapterCutoutDepthMm: number;
   mainInnerWidthMm: number;
   mainInnerDepthMm: number;
   characterSlotWidthMm: number;

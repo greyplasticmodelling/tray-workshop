@@ -27,7 +27,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
 
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
-  const hasCharacterBay = !isLanceWedge && settings.characterBayEnabled;
+  const isAdapter = settings.template === 'adapter';
+  const hasCharacterBay = settings.template === 'standard' && settings.characterBayEnabled;
   const characterBayX =
     settings.characterBaySide === 'left'
       ? innerX
@@ -63,8 +64,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
     const rowWidth = rankCount * dimensions.slotWidthMm;
-    const rowX = isLanceWedge ? centerX - rowWidth / 2 : mainAreaX;
-    const rowY = (isLanceWedge ? innerY : mainAreaY) + row * dimensions.slotDepthMm;
+    const rowX = isLanceWedge ? centerX - rowWidth / 2 : isAdapter ? outerX : mainAreaX;
+    const rowY = (isLanceWedge ? innerY : isAdapter ? outerY : mainAreaY) + row * dimensions.slotDepthMm;
 
     for (let column = 0; column < rankCount; column += 1) {
       footprints.push(
@@ -158,10 +159,40 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
 
-        {settings.frontRailEnabled && !isLanceWedge && (
+        {isAdapter &&
+          rankCounts.map((rankCount, rowIndex) => {
+            const rowY = outerY + rowIndex * dimensions.slotDepthMm;
+
+            return Array.from({ length: rankCount }, (_, columnIndex) => {
+              const cellX = outerX + columnIndex * dimensions.slotWidthMm;
+              const cellCenterX = cellX + dimensions.slotWidthMm / 2;
+              const cellCenterY = rowY + dimensions.slotDepthMm / 2;
+
+              return (
+                <g key={`adapter-cell-${columnIndex}-${rowIndex}`}>
+                  <rect
+                    x={cellX}
+                    y={rowY}
+                    width={dimensions.slotWidthMm}
+                    height={dimensions.slotDepthMm}
+                    className="inner-area"
+                  />
+                  <rect
+                    x={cellCenterX - dimensions.adapterCutoutWidthMm / 2}
+                    y={cellCenterY - dimensions.adapterCutoutDepthMm / 2}
+                    width={dimensions.adapterCutoutWidthMm}
+                    height={dimensions.adapterCutoutDepthMm}
+                    className="adapter-cutout"
+                  />
+                </g>
+              );
+            });
+          })}
+
+        {settings.frontRailEnabled && !isLanceWedge && !isAdapter && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
         )}
-        {settings.rearRailEnabled && !isLanceWedge && !hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceWedge && !isAdapter && !hasCharacterBay && (
           <rect
             x={innerX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -170,7 +201,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.rearRailEnabled && !isLanceWedge && hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceWedge && !isAdapter && hasCharacterBay && (
           <rect
             x={mainAreaX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -179,10 +210,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.leftRailEnabled && !isLanceWedge && !hasCharacterBay && (
+        {settings.leftRailEnabled && !isLanceWedge && !isAdapter && !hasCharacterBay && (
           <rect x={outerX} y={outerY} width={settings.railThicknessMm} height={dimensions.outerDepthMm} className="rail" />
         )}
-        {settings.rightRailEnabled && !isLanceWedge && !hasCharacterBay && (
+        {settings.rightRailEnabled && !isLanceWedge && !isAdapter && !hasCharacterBay && (
           <rect
             x={outerX + dimensions.outerWidthMm - settings.railThicknessMm}
             y={outerY}
@@ -336,7 +367,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
 
-        {!isLanceWedge && (
+        {!isLanceWedge && !isAdapter && (
           <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
         )}
         {hasCharacterBay && (
@@ -362,7 +393,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               />
             );
           })}
-        {footprints}
+        {!isAdapter && footprints}
 
         {settings.magnetCutoutsEnabled &&
           magnetCenters.map((center, index) => (
