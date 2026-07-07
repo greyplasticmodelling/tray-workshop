@@ -302,5 +302,53 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     group.add(createBox('rear-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, rearY, railCenterZ));
   }
 
+  if (settings.characterBayEnabled) {
+    const innerLeftX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm;
+    const innerCenterY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
+    const characterBayDepth = dimensions.characterSlotDepthMm + dimensions.characterDividerMm * 2;
+    const characterCenterX =
+      settings.characterBaySide === 'left'
+        ? innerLeftX + dimensions.characterSlotWidthMm / 2
+        : innerLeftX + dimensions.mainInnerWidthMm + dimensions.characterDividerMm + dimensions.characterSlotWidthMm / 2;
+    const dividerCenterX =
+      settings.characterBaySide === 'left'
+        ? innerLeftX + dimensions.characterSlotWidthMm + dimensions.characterDividerMm / 2
+        : innerLeftX + dimensions.mainInnerWidthMm + dimensions.characterDividerMm / 2;
+
+    group.add(
+      createBox(
+        'character-bay-divider-rail',
+        dimensions.characterDividerMm,
+        characterBayDepth,
+        railHeight,
+        dividerCenterX,
+        innerCenterY,
+        railCenterZ,
+      ),
+    );
+    group.add(
+      createBox(
+        'character-bay-front-rail',
+        dimensions.characterSlotWidthMm,
+        dimensions.characterDividerMm,
+        railHeight,
+        characterCenterX,
+        innerCenterY - dimensions.characterSlotDepthMm / 2 - dimensions.characterDividerMm / 2,
+        railCenterZ,
+      ),
+    );
+    group.add(
+      createBox(
+        'character-bay-rear-rail',
+        dimensions.characterSlotWidthMm,
+        dimensions.characterDividerMm,
+        railHeight,
+        characterCenterX,
+        innerCenterY + dimensions.characterSlotDepthMm / 2 + dimensions.characterDividerMm / 2,
+        railCenterZ,
+      ),
+    );
+  }
+
   return group;
 }

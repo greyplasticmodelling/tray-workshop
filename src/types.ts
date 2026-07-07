@@ -13,6 +13,10 @@ export type TraySettings = {
   magnetCutoutDepthMm: number;
   lanceDoubleMagnetsEnabled: boolean;
   lanceMagnetOffsetMm: number;
+  characterBayEnabled: boolean;
+  characterBaySide: 'left' | 'right';
+  characterBaseWidthMm: number;
+  characterBaseDepthMm: number;
   frontRailEnabled: boolean;
   rearRailEnabled: boolean;
   leftRailEnabled: boolean;
@@ -49,6 +53,11 @@ export type ThemeName = 'darkGrey' | 'workshop' | 'forest' | 'slate' | 'parchmen
 export type TrayDimensions = {
   slotWidthMm: number;
   slotDepthMm: number;
+  mainInnerWidthMm: number;
+  mainInnerDepthMm: number;
+  characterSlotWidthMm: number;
+  characterSlotDepthMm: number;
+  characterDividerMm: number;
   innerWidthMm: number;
   innerDepthMm: number;
   outerWidthMm: number;

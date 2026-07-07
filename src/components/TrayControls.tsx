@@ -150,12 +150,65 @@ export function TrayControls({
         ))}
       </fieldset>
 
+      {settings.template === 'standard' && (
+        <fieldset className="character-options">
+          <legend>Character bay</legend>
+          <label className="toggle" title="Add one custom base space on a flank of the standard tray.">
+            <input
+              type="checkbox"
+              title="Add one custom base space on a flank of the standard tray."
+              checked={settings.characterBayEnabled}
+              onChange={(event) => updateToggle('characterBayEnabled', event.target.checked)}
+            />
+            <span>Enable flank slot</span>
+          </label>
+
+          <label className="field" title="Choose which side of the movement tray gets the custom base space.">
+            <span>Flank side</span>
+            <select
+              value={settings.characterBaySide}
+              title="Choose which side of the movement tray gets the custom base space."
+              onChange={(event) => onChange({ ...settings, characterBaySide: event.target.value as TraySettings['characterBaySide'] })}
+            >
+              <option value="left">Left flank</option>
+              <option value="right">Right flank</option>
+            </select>
+          </label>
+
+          <div className="field-grid">
+            <label className="field" title="Width of the custom character base space from left to right.">
+              <span>Character width (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                title="Width of the custom character base space from left to right."
+                value={settings.characterBaseWidthMm}
+                onChange={(event) => updateNumber('characterBaseWidthMm', event.target.value)}
+              />
+            </label>
+
+            <label className="field" title="Depth of the custom character base space from front to back.">
+              <span>Character depth (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                title="Depth of the custom character base space from front to back."
+                value={settings.characterBaseDepthMm}
+                onChange={(event) => updateNumber('characterBaseDepthMm', event.target.value)}
+              />
+            </label>
+          </div>
+        </fieldset>
+      )}
+
       <fieldset className="magnet-options">
         <legend>Magnet cutouts</legend>
-        <label className="toggle" title="Add circular bottom-side magnet recesses centred in each base space.">
+        <label className="toggle" title="Add circular top-side magnet recesses centred in each base space.">
           <input
             type="checkbox"
-            title="Add circular bottom-side magnet recesses centred in each base space."
+            title="Add circular top-side magnet recesses centred in each base space."
             checked={settings.magnetCutoutsEnabled}
             onChange={(event) => updateToggle('magnetCutoutsEnabled', event.target.checked)}
           />
@@ -176,13 +229,13 @@ export function TrayControls({
             />
           </label>
 
-          <label className="field" title="Depth of the recess from the bottom. Set equal to floor thickness for a through-hole.">
+          <label className="field" title="Depth of the recess from the top surface. Set equal to floor thickness for a through-hole.">
             <span>Cutout depth (mm)</span>
             <input
               type="number"
               min="0"
               step="0.1"
-              title="Depth of the recess from the bottom. Set equal to floor thickness for a through-hole."
+              title="Depth of the recess from the top surface. Set equal to floor thickness for a through-hole."
               value={settings.magnetCutoutDepthMm}
               onChange={(event) => updateNumber('magnetCutoutDepthMm', event.target.value)}
             />

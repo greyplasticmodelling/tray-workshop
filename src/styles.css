@@ -282,6 +282,7 @@ h1 {
 }
 
 .rail-options,
+.character-options,
 .magnet-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -292,11 +293,13 @@ h1 {
   border-radius: 8px;
 }
 
+.character-options,
 .magnet-options {
   grid-template-columns: 1fr;
 }
 
 .rail-options legend,
+.character-options legend,
 .magnet-options legend {
   padding: 0 6px;
   color: var(--heading);

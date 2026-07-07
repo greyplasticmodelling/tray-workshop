@@ -27,25 +27,49 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
 
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
+  const hasCharacterBay = !isLanceWedge && settings.characterBayEnabled;
+  const characterBayDepth = dimensions.characterSlotDepthMm + dimensions.characterDividerMm * 2;
+  const characterBayX =
+    settings.characterBaySide === 'left'
+      ? innerX
+      : innerX + dimensions.mainInnerWidthMm + dimensions.characterDividerMm;
+  const characterBayY = innerY + (dimensions.innerDepthMm - characterBayDepth) / 2;
+  const characterSlotY = characterBayY + dimensions.characterDividerMm;
+  const mainAreaX =
+    innerX + (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm + dimensions.characterDividerMm : 0);
+  const mainAreaY = innerY + (dimensions.innerDepthMm - dimensions.mainInnerDepthMm) / 2;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const footprints = [];
   for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
     const rowWidth = rankCount * dimensions.slotWidthMm;
-    const rowX = isLanceWedge ? centerX - rowWidth / 2 : innerX;
+    const rowX = isLanceWedge ? centerX - rowWidth / 2 : mainAreaX;
+    const rowY = (isLanceWedge ? innerY : mainAreaY) + row * dimensions.slotDepthMm;
 
     for (let column = 0; column < rankCount; column += 1) {
       footprints.push(
         <rect
           key={`${column}-${row}`}
           x={rowX + column * dimensions.slotWidthMm}
-          y={innerY + row * dimensions.slotDepthMm}
+          y={rowY}
           width={dimensions.slotWidthMm}
           height={dimensions.slotDepthMm}
           className="footprint"
         />,
       );
     }
+  }
+  if (hasCharacterBay) {
+    footprints.push(
+      <rect
+        key="character-bay"
+        x={characterBayX}
+        y={characterSlotY}
+        width={dimensions.characterSlotWidthMm}
+        height={dimensions.characterSlotDepthMm}
+        className="footprint"
+      />,
+    );
   }
 
   return (
@@ -225,7 +249,43 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         )}
 
         {!isLanceWedge && (
-          <rect x={innerX} y={innerY} width={dimensions.innerWidthMm} height={dimensions.innerDepthMm} className="inner-area" />
+          <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
+        )}
+        {hasCharacterBay && (
+          <>
+            <rect
+              x={characterBayX}
+              y={characterSlotY}
+              width={dimensions.characterSlotWidthMm}
+              height={dimensions.characterSlotDepthMm}
+              className="inner-area"
+            />
+            <rect
+              x={
+                settings.characterBaySide === 'left'
+                  ? characterBayX + dimensions.characterSlotWidthMm
+                  : characterBayX - dimensions.characterDividerMm
+              }
+              y={characterBayY}
+              width={dimensions.characterDividerMm}
+              height={characterBayDepth}
+              className="rail"
+            />
+            <rect
+              x={characterBayX}
+              y={characterBayY}
+              width={dimensions.characterSlotWidthMm}
+              height={dimensions.characterDividerMm}
+              className="rail"
+            />
+            <rect
+              x={characterBayX}
+              y={characterBayY + characterBayDepth - dimensions.characterDividerMm}
+              width={dimensions.characterSlotWidthMm}
+              height={dimensions.characterDividerMm}
+              className="rail"
+            />
+          </>
         )}
         {isLanceWedge &&
           rankCounts.map((rankCount, rowIndex) => {

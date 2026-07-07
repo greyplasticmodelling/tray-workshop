@@ -12,6 +12,8 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   magnetDiameterMm: { min: 1, max: 15, label: 'Magnet diameter', unit: 'mm' },
   magnetCutoutDepthMm: { min: 0.1, max: 8, label: 'Magnet cutout depth', unit: 'mm' },
   lanceMagnetOffsetMm: { min: 0, max: 40, label: 'Lance magnet offset', unit: 'mm' },
+  characterBaseWidthMm: { min: 10, max: 80, label: 'Character base width', unit: 'mm' },
+  characterBaseDepthMm: { min: 10, max: 100, label: 'Character base depth', unit: 'mm' },
   frontRailEnabled: { min: 0, max: 1, label: 'Front rail' },
   rearRailEnabled: { min: 0, max: 1, label: 'Rear rail' },
   leftRailEnabled: { min: 0, max: 1, label: 'Left rail' },
@@ -56,8 +58,15 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const rankCounts = getRankCounts(settings);
   const slotWidthMm = settings.baseWidthMm + settings.toleranceMm;
   const slotDepthMm = settings.baseDepthMm + settings.toleranceMm;
-  const innerWidthMm = Math.max(...rankCounts) * slotWidthMm;
-  const innerDepthMm = rankCounts.length * slotDepthMm;
+  const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm;
+  const mainInnerDepthMm = rankCounts.length * slotDepthMm;
+  const hasCharacterBay = settings.template === 'standard' && settings.characterBayEnabled;
+  const characterSlotWidthMm = hasCharacterBay ? settings.characterBaseWidthMm + settings.toleranceMm : 0;
+  const characterSlotDepthMm = hasCharacterBay ? settings.characterBaseDepthMm + settings.toleranceMm : 0;
+  const characterDividerMm = hasCharacterBay ? settings.railThicknessMm : 0;
+  const characterBayDepthMm = characterSlotDepthMm + characterDividerMm * 2;
+  const innerWidthMm = mainInnerWidthMm + characterDividerMm + characterSlotWidthMm;
+  const innerDepthMm = Math.max(mainInnerDepthMm, characterBayDepthMm);
   const leftRailMm = settings.leftRailEnabled ? settings.railThicknessMm : 0;
   const rightRailMm = settings.rightRailEnabled ? settings.railThicknessMm : 0;
   const frontRailMm = settings.frontRailEnabled ? settings.railThicknessMm : 0;
@@ -66,6 +75,11 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   return {
     slotWidthMm,
     slotDepthMm,
+    mainInnerWidthMm,
+    mainInnerDepthMm,
+    characterSlotWidthMm,
+    characterSlotDepthMm,
+    characterDividerMm,
     innerWidthMm,
     innerDepthMm,
     outerWidthMm: innerWidthMm + leftRailMm + rightRailMm,
@@ -95,8 +109,17 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
 
   rankCounts.forEach((rankCount, rowIndex) => {
     const rowWidth = rankCount * dimensions.slotWidthMm;
-    const rowStartX = settings.template === 'lanceWedge' ? -rowWidth / 2 : -dimensions.innerWidthMm / 2;
-    const rowY = -dimensions.innerDepthMm / 2 + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+    const standardMainOffsetX =
+      settings.characterBayEnabled && settings.characterBaySide === 'left'
+        ? dimensions.characterSlotWidthMm + dimensions.characterDividerMm
+        : 0;
+    const rowStartX =
+      settings.template === 'lanceWedge'
+        ? -rowWidth / 2
+        : -dimensions.innerWidthMm / 2 + standardMainOffsetX;
+    const standardMainOffsetY = settings.template === 'standard' ? (dimensions.innerDepthMm - dimensions.mainInnerDepthMm) / 2 : 0;
+    const rowY =
+      -dimensions.innerDepthMm / 2 + standardMainOffsetY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
 
     for (let columnIndex = 0; columnIndex < rankCount; columnIndex += 1) {
       const x = rowStartX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2;
@@ -109,6 +132,19 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
       });
     }
   });
+
+  if (settings.template === 'standard' && settings.characterBayEnabled) {
+    const characterX =
+      settings.characterBaySide === 'left'
+        ? -dimensions.innerWidthMm / 2 + dimensions.characterSlotWidthMm / 2
+        : dimensions.innerWidthMm / 2 - dimensions.characterSlotWidthMm / 2;
+
+    centers.push({
+      x: characterX,
+      y: 0,
+      rowIndex: 0,
+    });
+  }
 
   return centers;
 }
@@ -166,6 +202,14 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
     if (settings.magnetDiameterMm > Math.min(dimensions.slotWidthMm, dimensions.slotDepthMm)) {
       messages.push('Magnet diameter must fit inside each base space.');
+    }
+
+    if (
+      settings.template === 'standard' &&
+      settings.characterBayEnabled &&
+      settings.magnetDiameterMm > Math.min(dimensions.characterSlotWidthMm, dimensions.characterSlotDepthMm)
+    ) {
+      messages.push('Magnet diameter must fit inside the character bay.');
     }
 
     if (
