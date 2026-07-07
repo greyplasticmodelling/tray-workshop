@@ -18,7 +18,7 @@ const numberFields: Array<{
 }> = [
   { key: 'baseWidthMm', label: 'Base width (mm)', step: 1, tooltip: 'Width of each model base from left to right.' },
   { key: 'baseDepthMm', label: 'Base depth (mm)', step: 1, tooltip: 'Depth of each model base from front to back.' },
-  { key: 'columns', label: 'Columns', step: 1, tooltip: 'Standard: bases across the tray. Lance Wedge: maximum rear-rank width.' },
+  { key: 'columns', label: 'Columns', step: 1, tooltip: 'Number of bases across the tray frontage.' },
   { key: 'rows', label: 'Rows', step: 1, tooltip: 'Number of ranks from front to back.' },
   { key: 'toleranceMm', label: 'Tolerance (mm)', step: 0.1, tooltip: 'Extra clearance added to each base slot.' },
   { key: 'floorThicknessMm', label: 'Floor thickness (mm)', step: 0.1, tooltip: 'Thickness of the flat bottom plate.' },
@@ -110,9 +110,13 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
 
       <div className="field-grid">
         {numberFields.map((field) => {
+          if (settings.template === 'lanceWedge' && field.key === 'columns') {
+            return null;
+          }
+
           const tooltip =
-            settings.template === 'lanceWedge' && field.key === 'columns'
-              ? 'Maximum model count in the widest rear rank.'
+            settings.template === 'lanceWedge' && field.key === 'rows'
+              ? 'Number of wedge ranks. The rear rank will contain the same number of models as the row count.'
               : field.tooltip;
 
           return (
