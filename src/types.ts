@@ -39,7 +39,7 @@ export type BuildPlateFit = {
   overDepthMm: number;
 };
 
-export type ThemeName = 'workshop' | 'forest' | 'slate' | 'parchment';
+export type ThemeName = 'darkGrey' | 'workshop' | 'forest' | 'slate' | 'parchment';
 
 export type TrayDimensions = {
   slotWidthMm: number;

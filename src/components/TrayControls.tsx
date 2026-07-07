@@ -40,6 +40,7 @@ const railToggles: Array<{ key: keyof TraySettings; label: string; tooltip: stri
 ];
 
 const themes: Array<{ value: ThemeName; label: string }> = [
+  { value: 'darkGrey', label: 'Dark Grey' },
   { value: 'workshop', label: 'Workshop' },
   { value: 'forest', label: 'Forest' },
   { value: 'slate', label: 'Slate' },

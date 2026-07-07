@@ -53,7 +53,7 @@ export default function App() {
   const [settingsByTemplate, setSettingsByTemplate] =
     useState<Record<TrayTemplate, TraySettings>>(defaultSettingsByTemplate);
   const [savedTrays, setSavedTrays] = useState<SavedTray[]>(() => readSavedTrays());
-  const [theme, setTheme] = useState<ThemeName>('workshop');
+  const [theme, setTheme] = useState<ThemeName>('darkGrey');
   const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
   const buildPlateFit = useMemo(() => calculateBuildPlateFit(settings, dimensions), [settings, dimensions]);
