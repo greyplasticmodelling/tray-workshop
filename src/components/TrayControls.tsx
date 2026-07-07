@@ -49,7 +49,7 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
         baseWidthMm: 30,
         baseDepthMm: 60,
         columns: 5,
-        rows: 5,
+        rows: 3,
         frontRailEnabled: true,
         rearRailEnabled: false,
         leftRailEnabled: true,
