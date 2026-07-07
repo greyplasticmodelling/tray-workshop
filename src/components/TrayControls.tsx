@@ -18,7 +18,7 @@ const numberFields: Array<{
 }> = [
   { key: 'baseWidthMm', label: 'Base width (mm)', step: 1, tooltip: 'Width of each model base from left to right.' },
   { key: 'baseDepthMm', label: 'Base depth (mm)', step: 1, tooltip: 'Depth of each model base from front to back.' },
-  { key: 'columns', label: 'Columns', step: 1, tooltip: 'Number of bases across the tray frontage.' },
+  { key: 'columns', label: 'Columns', step: 1, tooltip: 'Standard: bases across the tray. Lance Wedge: maximum rear-rank width.' },
   { key: 'rows', label: 'Rows', step: 1, tooltip: 'Number of ranks from front to back.' },
   { key: 'toleranceMm', label: 'Tolerance (mm)', step: 0.1, tooltip: 'Extra clearance added to each base slot.' },
   { key: 'floorThicknessMm', label: 'Floor thickness (mm)', step: 0.1, tooltip: 'Thickness of the flat bottom plate.' },
@@ -48,6 +48,8 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
         template,
         baseWidthMm: 30,
         baseDepthMm: 60,
+        columns: 5,
+        rows: 5,
         frontRailEnabled: true,
         rearRailEnabled: false,
         leftRailEnabled: true,
@@ -108,11 +110,10 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
 
       <div className="field-grid">
         {numberFields.map((field) => {
-          const isFixedForTemplate = settings.template === 'lanceWedge' && (field.key === 'columns' || field.key === 'rows');
-          const fixedValue = field.key === 'columns' ? 5 : field.key === 'rows' ? 5 : settings[field.key];
-          const tooltip = isFixedForTemplate
-            ? 'Lance Wedge uses a fixed five-rank 1, 2, 3, 4, 5 formation.'
-            : field.tooltip;
+          const tooltip =
+            settings.template === 'lanceWedge' && field.key === 'columns'
+              ? 'Maximum model count in the widest rear rank.'
+              : field.tooltip;
 
           return (
           <label className="field" key={field.key} title={tooltip}>
@@ -122,8 +123,7 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
               min="0"
               step={field.step}
               title={tooltip}
-              disabled={isFixedForTemplate}
-              value={fixedValue as number}
+              value={settings[field.key] as number}
               onChange={(event) => updateNumber(field.key, event.target.value)}
             />
           </label>

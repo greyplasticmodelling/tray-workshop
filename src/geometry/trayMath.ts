@@ -32,13 +32,15 @@ export const trayTemplates: Array<{ value: TraySettings['template']; label: stri
   {
     value: 'lanceWedge',
     label: 'Lance Wedge Movement Tray',
-    description: 'A fixed five-rank wedge with 1, 2, 3, 4, then 5 models per rank.',
+    description: 'A wedge formation starting at one model and widening by rank up to the selected column count.',
   },
 ];
 
 export function getRankCounts(settings: TraySettings): number[] {
   if (settings.template === 'lanceWedge') {
-    return [1, 2, 3, 4, 5];
+    const rankCount = Math.max(1, Math.floor(settings.rows));
+    const maxRankWidth = Math.max(1, Math.floor(settings.columns));
+    return Array.from({ length: rankCount }, (_, index) => Math.min(index + 1, maxRankWidth));
   }
 
   return Array.from({ length: settings.rows }, () => settings.columns);
@@ -91,10 +93,6 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   const messages: string[] = [];
 
   Object.entries(bounds).forEach(([key, rule]) => {
-    if (settings.template === 'lanceWedge' && (key === 'columns' || key === 'rows')) {
-      return;
-    }
-
     const value = settings[key as keyof TraySettings];
     if (typeof value !== 'number') {
       return;
@@ -110,11 +108,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   });
 
-  if (settings.template === 'standard' && !Number.isInteger(settings.columns)) {
+  if (!Number.isInteger(settings.columns)) {
     messages.push('Columns must be a positive whole number.');
   }
 
-  if (settings.template === 'standard' && !Number.isInteger(settings.rows)) {
+  if (!Number.isInteger(settings.rows)) {
     messages.push('Rows must be a positive whole number.');
   }
 

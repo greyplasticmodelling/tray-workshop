@@ -16,7 +16,7 @@ const defaultSettings: TraySettings = {
   floorThicknessMm: 1.6,
   railThicknessMm: 2,
   railHeightMm: 2,
-  frontRailEnabled: false,
+  frontRailEnabled: true,
   rearRailEnabled: false,
   leftRailEnabled: true,
   rightRailEnabled: true,
