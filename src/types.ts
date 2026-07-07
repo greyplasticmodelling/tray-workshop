@@ -14,7 +14,7 @@ export type TraySettings = {
   buildPlateSize: BuildPlateSize;
 };
 
-export type BuildPlateSize = '180x180' | '235x235' | '256x256' | '300x300' | '350x250';
+export type BuildPlateSize = '180x180' | '235x235' | '256x256' | '300x300' | '350x350';
 
 export type BuildPlate = {
   value: BuildPlateSize;

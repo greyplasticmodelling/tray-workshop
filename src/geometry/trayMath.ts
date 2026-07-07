@@ -20,7 +20,7 @@ export const buildPlates: BuildPlate[] = [
   { value: '235x235', widthMm: 235, depthMm: 235 },
   { value: '256x256', widthMm: 256, depthMm: 256 },
   { value: '300x300', widthMm: 300, depthMm: 300 },
-  { value: '350x250', widthMm: 350, depthMm: 250 },
+  { value: '350x350', widthMm: 350, depthMm: 350 },
 ];
 
 export function getBuildPlate(size: BuildPlateSize): BuildPlate {
