@@ -208,7 +208,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       settings.characterBayEnabled &&
       settings.magnetDiameterMm > Math.min(dimensions.characterSlotWidthMm, dimensions.characterSlotDepthMm)
     ) {
-      messages.push('Magnet diameter must fit inside the character bay.');
+      messages.push('Magnet diameter must fit inside the character flank slot.');
     }
 
     if (

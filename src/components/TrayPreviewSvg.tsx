@@ -40,13 +40,14 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const mainFloorX = hasCharacterBay && settings.characterBaySide === 'left' ? outerX + dimensions.characterSlotWidthMm : outerX;
   const characterFloorX =
     settings.characterBaySide === 'left' ? outerX : innerX + dimensions.mainInnerWidthMm;
-  const characterFloorWidth =
-    dimensions.characterSlotWidthMm + (settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm);
-  const characterFloorHeight = dimensions.frontRailMm + dimensions.characterSlotDepthMm;
   const baySideRailEnabled =
     hasCharacterBay &&
     (settings.characterBaySide === 'left' ? settings.leftRailEnabled : settings.rightRailEnabled);
   const baySideRailMm = settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm;
+  const hasCharacterReturnRail = baySideRailEnabled && dimensions.characterSlotDepthMm < dimensions.mainInnerDepthMm;
+  const characterFloorWidth = dimensions.characterSlotWidthMm + baySideRailMm;
+  const characterFloorHeight =
+    dimensions.frontRailMm + dimensions.characterSlotDepthMm + (hasCharacterReturnRail ? settings.railThicknessMm : 0);
   const baySideRailX =
     settings.characterBaySide === 'left' ? outerX : outerX + dimensions.outerWidthMm - baySideRailMm;
   const mainSideRailX =
@@ -54,9 +55,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
       ? outerX + dimensions.characterSlotWidthMm
       : innerX + dimensions.mainInnerWidthMm;
   const stepRailX = settings.characterBaySide === 'left' ? outerX : innerX + dimensions.mainInnerWidthMm;
-  const stepRailY = innerY + dimensions.characterSlotDepthMm - settings.railThicknessMm;
+  const stepRailY = innerY + dimensions.characterSlotDepthMm;
   const stepRailWidth = dimensions.characterSlotWidthMm + baySideRailMm;
-  const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm + settings.railThicknessMm;
+  const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const footprints = [];
   for (let row = 0; row < rankCounts.length; row += 1) {
@@ -211,7 +212,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               height={characterFloorHeight}
               className="rail"
             />
-            {dimensions.characterSlotDepthMm < dimensions.mainInnerDepthMm && (
+            {hasCharacterReturnRail && (
               <>
                 <rect
                   x={stepRailX}

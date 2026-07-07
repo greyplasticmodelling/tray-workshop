@@ -299,8 +299,11 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     dimensions.mainInnerWidthMm / 2;
   const characterSideRailMm =
     settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm;
+  const hasCharacterReturnRail =
+    hasCharacterBay && characterSideRailMm > 0 && dimensions.characterSlotDepthMm < dimensions.mainInnerDepthMm;
   const characterFloorWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
-  const characterFloorDepth = dimensions.frontRailMm + dimensions.characterSlotDepthMm;
+  const characterFloorDepth =
+    dimensions.frontRailMm + dimensions.characterSlotDepthMm + (hasCharacterReturnRail ? settings.railThicknessMm : 0);
   const characterFloorX =
     settings.characterBaySide === 'left' ? outerLeftX : innerLeftX + dimensions.mainInnerWidthMm;
   const characterFloorCenterX = characterFloorX + characterFloorWidth / 2;
@@ -405,21 +408,21 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       ),
     );
 
-    if (dimensions.characterSlotDepthMm < dimensions.mainInnerDepthMm) {
+    if (hasCharacterReturnRail) {
       const stepRailWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
       const stepRailCenterX =
         settings.characterBaySide === 'left'
           ? outerLeftX + stepRailWidth / 2
           : innerLeftX + dimensions.mainInnerWidthMm + stepRailWidth / 2;
-      const stepRailCenterY = innerFrontY + dimensions.characterSlotDepthMm - settings.railThicknessMm / 2;
+      const stepRailCenterY = innerFrontY + dimensions.characterSlotDepthMm + settings.railThicknessMm / 2;
       const mainSideRailDepth =
-        dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm + settings.railThicknessMm;
+        dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
       const mainSideRailCenterX =
         settings.characterBaySide === 'left'
           ? outerLeftX + dimensions.characterSlotWidthMm + settings.railThicknessMm / 2
           : innerLeftX + dimensions.mainInnerWidthMm + settings.railThicknessMm / 2;
       const mainSideRailCenterY =
-        innerFrontY + dimensions.characterSlotDepthMm - settings.railThicknessMm + mainSideRailDepth / 2;
+        innerFrontY + dimensions.characterSlotDepthMm + mainSideRailDepth / 2;
 
       group.add(
         createBox(

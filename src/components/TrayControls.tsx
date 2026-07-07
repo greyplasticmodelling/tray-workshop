@@ -152,22 +152,22 @@ export function TrayControls({
 
       {settings.template === 'standard' && (
         <fieldset className="character-options">
-          <legend>Character bay</legend>
-          <label className="toggle" title="Add one custom base space on a flank of the standard tray.">
+          <legend>Character Flank Slot</legend>
+          <label className="toggle" title="Add one custom character flank slot to the standard tray.">
             <input
               type="checkbox"
-              title="Add one custom base space on a flank of the standard tray."
+              title="Add one custom character flank slot to the standard tray."
               checked={settings.characterBayEnabled}
               onChange={(event) => updateToggle('characterBayEnabled', event.target.checked)}
             />
-            <span>Enable flank slot</span>
+            <span>Enable character flank slot</span>
           </label>
 
-          <label className="field" title="Choose which side of the movement tray gets the custom base space.">
+          <label className="field" title="Choose which side of the movement tray gets the character flank slot.">
             <span>Flank side</span>
             <select
               value={settings.characterBaySide}
-              title="Choose which side of the movement tray gets the custom base space."
+              title="Choose which side of the movement tray gets the character flank slot."
               onChange={(event) => onChange({ ...settings, characterBaySide: event.target.value as TraySettings['characterBaySide'] })}
             >
               <option value="left">Left flank</option>
@@ -176,25 +176,25 @@ export function TrayControls({
           </label>
 
           <div className="field-grid">
-            <label className="field" title="Width of the custom character base space from left to right.">
-              <span>Character width (mm)</span>
+            <label className="field" title="Width of the character flank slot from left to right.">
+              <span>Flank slot width (mm)</span>
               <input
                 type="number"
                 min="0"
                 step="1"
-                title="Width of the custom character base space from left to right."
+                title="Width of the character flank slot from left to right."
                 value={settings.characterBaseWidthMm}
                 onChange={(event) => updateNumber('characterBaseWidthMm', event.target.value)}
               />
             </label>
 
-            <label className="field" title="Depth of the custom character base space from front to back.">
-              <span>Character depth (mm)</span>
+            <label className="field" title="Depth of the character flank slot from front to back.">
+              <span>Flank slot depth (mm)</span>
               <input
                 type="number"
                 min="0"
                 step="1"
-                title="Depth of the custom character base space from front to back."
+                title="Depth of the character flank slot from front to back."
                 value={settings.characterBaseDepthMm}
                 onChange={(event) => updateNumber('characterBaseDepthMm', event.target.value)}
               />
