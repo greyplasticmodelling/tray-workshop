@@ -1,4 +1,5 @@
 import type { ThemeName, TraySettings } from '../types';
+import { buildPlates } from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
@@ -10,18 +11,18 @@ type Props = {
 };
 
 const numberFields: Array<{
-  key: keyof TraySettings;
+  key: keyof Omit<TraySettings, 'buildPlateSize'>;
   label: string;
   step: number;
 }> = [
-  { key: 'baseWidthMm', label: 'Base width', step: 1 },
-  { key: 'baseDepthMm', label: 'Base depth', step: 1 },
+  { key: 'baseWidthMm', label: 'Base width (mm)', step: 1 },
+  { key: 'baseDepthMm', label: 'Base depth (mm)', step: 1 },
   { key: 'columns', label: 'Columns', step: 1 },
   { key: 'rows', label: 'Rows', step: 1 },
-  { key: 'toleranceMm', label: 'Tolerance', step: 0.1 },
-  { key: 'floorThicknessMm', label: 'Floor thickness', step: 0.1 },
-  { key: 'railThicknessMm', label: 'Rail thickness', step: 0.1 },
-  { key: 'railHeightMm', label: 'Rail height', step: 0.1 },
+  { key: 'toleranceMm', label: 'Tolerance (mm)', step: 0.1 },
+  { key: 'floorThicknessMm', label: 'Floor thickness (mm)', step: 0.1 },
+  { key: 'railThicknessMm', label: 'Rail thickness (mm)', step: 0.1 },
+  { key: 'railHeightMm', label: 'Rail height (mm)', step: 0.1 },
 ];
 
 const railToggles: Array<{ key: keyof TraySettings; label: string }> = [
@@ -62,6 +63,20 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
           {themes.map((themeOption) => (
             <option value={themeOption.value} key={themeOption.value}>
               {themeOption.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="field">
+        <span>Build plate size (mm)</span>
+        <select
+          value={settings.buildPlateSize}
+          onChange={(event) => onChange({ ...settings, buildPlateSize: event.target.value as TraySettings['buildPlateSize'] })}
+        >
+          {buildPlates.map((plate) => (
+            <option value={plate.value} key={plate.value}>
+              {plate.widthMm} x {plate.depthMm}
             </option>
           ))}
         </select>

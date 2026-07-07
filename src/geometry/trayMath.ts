@@ -1,6 +1,6 @@
-import type { TrayDimensions, TraySettings, ValidationResult } from '../types';
+import type { BuildPlate, BuildPlateFit, BuildPlateSize, TrayDimensions, TraySettings, ValidationResult } from '../types';
 
-const bounds: Record<keyof TraySettings, { min: number; max: number; label: string; unit?: string }> = {
+const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; label: string; unit?: string }>> = {
   baseWidthMm: { min: 10, max: 60, label: 'Base width', unit: 'mm' },
   baseDepthMm: { min: 10, max: 80, label: 'Base depth', unit: 'mm' },
   columns: { min: 1, max: 20, label: 'Columns' },
@@ -14,6 +14,18 @@ const bounds: Record<keyof TraySettings, { min: number; max: number; label: stri
   leftRailEnabled: { min: 0, max: 1, label: 'Left rail' },
   rightRailEnabled: { min: 0, max: 1, label: 'Right rail' },
 };
+
+export const buildPlates: BuildPlate[] = [
+  { value: '180x180', widthMm: 180, depthMm: 180 },
+  { value: '235x235', widthMm: 235, depthMm: 235 },
+  { value: '256x256', widthMm: 256, depthMm: 256 },
+  { value: '300x300', widthMm: 300, depthMm: 300 },
+  { value: '350x250', widthMm: 350, depthMm: 250 },
+];
+
+export function getBuildPlate(size: BuildPlateSize): BuildPlate {
+  return buildPlates.find((plate) => plate.value === size) ?? buildPlates[2];
+}
 
 export function calculateTrayDimensions(settings: TraySettings): TrayDimensions {
   const slotWidthMm = settings.baseWidthMm + settings.toleranceMm;
@@ -36,6 +48,20 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
     rightRailMm,
     frontRailMm,
     rearRailMm,
+  };
+}
+
+export function calculateBuildPlateFit(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): BuildPlateFit {
+  const plate = getBuildPlate(settings.buildPlateSize);
+  const fits = dimensions.outerWidthMm <= plate.widthMm && dimensions.outerDepthMm <= plate.depthMm;
+  const fitsRotated = dimensions.outerWidthMm <= plate.depthMm && dimensions.outerDepthMm <= plate.widthMm;
+
+  return {
+    plate,
+    fits,
+    fitsRotated,
+    overWidthMm: Math.max(0, dimensions.outerWidthMm - plate.widthMm),
+    overDepthMm: Math.max(0, dimensions.outerDepthMm - plate.depthMm),
   };
 }
 

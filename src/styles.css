@@ -317,6 +317,45 @@ h1 {
   stroke-width: 0.25;
 }
 
+.output-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.plate-fit {
+  min-height: 72px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+}
+
+.plate-fit[data-fit='no'] {
+  border-left-color: #a63d2d;
+  background: #fff1ed;
+}
+
+.plate-fit span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.plate-fit strong {
+  color: var(--heading);
+  font-size: 1.05rem;
+  line-height: 1.1;
+}
+
+.plate-fit p {
+  margin: 0;
+  color: var(--label);
+  font-size: 0.9rem;
+}
+
 .dimensions {
   display: grid;
   grid-template-columns: repeat(7, minmax(110px, 1fr));

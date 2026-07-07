@@ -11,6 +11,23 @@ export type TraySettings = {
   rearRailEnabled: boolean;
   leftRailEnabled: boolean;
   rightRailEnabled: boolean;
+  buildPlateSize: BuildPlateSize;
+};
+
+export type BuildPlateSize = '180x180' | '235x235' | '256x256' | '300x300' | '350x250';
+
+export type BuildPlate = {
+  value: BuildPlateSize;
+  widthMm: number;
+  depthMm: number;
+};
+
+export type BuildPlateFit = {
+  plate: BuildPlate;
+  fits: boolean;
+  fitsRotated: boolean;
+  overWidthMm: number;
+  overDepthMm: number;
 };
 
 export type ThemeName = 'workshop' | 'forest' | 'slate' | 'parchment';
