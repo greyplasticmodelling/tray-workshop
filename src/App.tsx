@@ -195,20 +195,19 @@ export default function App() {
             <strong>Tray Workshop</strong>
           </div>
         </div>
-        <SupportButton />
+        <div className="banner-actions" aria-label="Support and feedback">
+          <SupportButton />
+          <a
+            className="feedback-link"
+            href="https://formsubmit.co/el/jukupe"
+            target="_blank"
+            rel="noreferrer"
+            title="Send feedback or a support message through FormSubmit."
+          >
+            Feedback / support contact
+          </a>
+        </div>
       </header>
-
-      <div className="feedback-strip" aria-label="Feedback and support contact">
-        <a
-          className="feedback-link"
-          href="https://formsubmit.co/el/jukupe"
-          target="_blank"
-          rel="noreferrer"
-          title="Send feedback or a support message through FormSubmit."
-        >
-          Feedback / support contact
-        </a>
-      </div>
 
       <main className="app-main">
         <TrayControls

@@ -209,16 +209,23 @@ select {
   text-shadow: 0 3px 0 #000000, 0 0 18px rgba(244, 226, 184, 0.18);
 }
 
-.support-button-slot {
+.banner-actions {
   position: absolute;
   top: 16px;
   right: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.support-button-slot {
   min-width: 172px;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
 }
 
 .support-button-slot > * {
@@ -264,18 +271,8 @@ select {
   white-space: nowrap !important;
 }
 
-.feedback-strip {
-  min-height: 42px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  padding: 6px 22px;
-  background: var(--panel);
-}
-
 .feedback-link {
-  min-height: 30px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -283,11 +280,12 @@ select {
   border-radius: 6px;
   padding: 6px 10px;
   color: var(--heading);
-  background: var(--surface);
-  font-size: 0.84rem;
+  background: rgba(56, 59, 62, 0.92);
+  font-size: 0.78rem;
   font-weight: 800;
   line-height: 1;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .feedback-link:hover,
@@ -776,18 +774,21 @@ footer {
     font-size: 2.05rem;
   }
 
-  .support-button-slot {
+  .banner-actions {
     top: 8px;
     right: 8px;
-    min-width: 142px;
-    min-height: 34px;
+    gap: 5px;
     transform: scale(0.82);
     transform-origin: top right;
   }
 
+  .support-button-slot {
+    min-width: 142px;
+    min-height: 34px;
+  }
+
   .controls,
-  .preview-panel,
-  .feedback-strip {
+  .preview-panel {
     padding: 16px;
   }
 
