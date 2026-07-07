@@ -198,6 +198,18 @@ export default function App() {
         <SupportButton />
       </header>
 
+      <div className="feedback-strip" aria-label="Feedback and support contact">
+        <a
+          className="feedback-link"
+          href="https://formsubmit.co/el/jukupe"
+          target="_blank"
+          rel="noreferrer"
+          title="Send feedback or a support message through FormSubmit."
+        >
+          Feedback / support contact
+        </a>
+      </div>
+
       <main className="app-main">
         <TrayControls
           settings={settings}
