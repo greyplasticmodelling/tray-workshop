@@ -1,4 +1,5 @@
 import type { TrayDimensions, TraySettings } from '../types';
+import { getRankCounts } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -16,18 +17,25 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const outerY = padding;
   const innerX = outerX + dimensions.leftRailMm;
   const innerY = outerY + dimensions.frontRailMm;
+  const centerX = outerX + dimensions.outerWidthMm / 2;
   const widthLineY = outerY + dimensions.outerDepthMm + dimensionGap;
   const depthLineX = outerX + dimensions.outerWidthMm + dimensionGap;
   const widthLabel = `${dimensions.outerWidthMm.toFixed(1)} mm exterior width`;
   const depthLabel = `${dimensions.outerDepthMm.toFixed(1)} mm exterior depth`;
 
+  const rankCounts = getRankCounts(settings);
+  const isLanceWedge = settings.template === 'lanceWedge';
   const footprints = [];
-  for (let row = 0; row < settings.rows; row += 1) {
-    for (let column = 0; column < settings.columns; column += 1) {
+  for (let row = 0; row < rankCounts.length; row += 1) {
+    const rankCount = rankCounts[row];
+    const rowWidth = rankCount * dimensions.slotWidthMm;
+    const rowX = isLanceWedge ? centerX - rowWidth / 2 : innerX;
+
+    for (let column = 0; column < rankCount; column += 1) {
       footprints.push(
         <rect
           key={`${column}-${row}`}
-          x={innerX + column * dimensions.slotWidthMm}
+          x={rowX + column * dimensions.slotWidthMm}
           y={innerY + row * dimensions.slotDepthMm}
           width={dimensions.slotWidthMm}
           height={dimensions.slotDepthMm}
@@ -46,12 +54,49 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </marker>
         </defs>
 
-        <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
+        {!isLanceWedge && (
+          <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
+        )}
 
-        {settings.frontRailEnabled && (
+        {isLanceWedge &&
+          rankCounts.map((rankCount, rowIndex) => {
+            const rowWidth = rankCount * dimensions.slotWidthMm;
+            return (
+              <rect
+                key={`floor-rank-${rowIndex}`}
+                x={centerX - rowWidth / 2 - dimensions.leftRailMm}
+                y={innerY + rowIndex * dimensions.slotDepthMm}
+                width={rowWidth + dimensions.leftRailMm + dimensions.rightRailMm}
+                height={dimensions.slotDepthMm}
+                className="floor"
+              />
+            );
+          })}
+
+        {isLanceWedge && settings.frontRailEnabled && (
+          <rect
+            x={centerX - dimensions.slotWidthMm / 2 - dimensions.leftRailMm}
+            y={outerY}
+            width={dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm}
+            height={settings.railThicknessMm}
+            className="floor"
+          />
+        )}
+
+        {isLanceWedge && settings.rearRailEnabled && (
+          <rect
+            x={innerX - dimensions.leftRailMm}
+            y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
+            width={dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm}
+            height={settings.railThicknessMm}
+            className="floor"
+          />
+        )}
+
+        {settings.frontRailEnabled && !isLanceWedge && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
         )}
-        {settings.rearRailEnabled && (
+        {settings.rearRailEnabled && !isLanceWedge && (
           <rect
             x={innerX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -60,10 +105,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.leftRailEnabled && (
+        {settings.leftRailEnabled && !isLanceWedge && (
           <rect x={outerX} y={outerY} width={settings.railThicknessMm} height={dimensions.outerDepthMm} className="rail" />
         )}
-        {settings.rightRailEnabled && (
+        {settings.rightRailEnabled && !isLanceWedge && (
           <rect
             x={outerX + dimensions.outerWidthMm - settings.railThicknessMm}
             y={outerY}
@@ -73,7 +118,106 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
 
-        <rect x={innerX} y={innerY} width={dimensions.innerWidthMm} height={dimensions.innerDepthMm} className="inner-area" />
+        {isLanceWedge &&
+          rankCounts.map((rankCount, rowIndex) => {
+            const rowWidth = rankCount * dimensions.slotWidthMm;
+            const rowY = innerY + rowIndex * dimensions.slotDepthMm;
+            return (
+              <g key={`wedge-rails-${rowIndex}`}>
+                {settings.leftRailEnabled && (
+                  <rect
+                    x={centerX - rowWidth / 2 - settings.railThicknessMm}
+                    y={rowY}
+                    width={settings.railThicknessMm}
+                    height={dimensions.slotDepthMm}
+                    className="rail"
+                  />
+                )}
+                {settings.rightRailEnabled && (
+                  <rect
+                    x={centerX + rowWidth / 2}
+                    y={rowY}
+                    width={settings.railThicknessMm}
+                    height={dimensions.slotDepthMm}
+                    className="rail"
+                  />
+                )}
+              </g>
+            );
+          })}
+
+        {isLanceWedge &&
+          rankCounts.slice(0, -1).map((rankCount, rowIndex) => {
+            const currentWidth = rankCount * dimensions.slotWidthMm;
+            const nextWidth = rankCounts[rowIndex + 1] * dimensions.slotWidthMm;
+            const stepWidth = (nextWidth - currentWidth) / 2;
+            const stepY = innerY + (rowIndex + 1) * dimensions.slotDepthMm;
+
+            if (stepWidth <= 0) {
+              return null;
+            }
+
+            return (
+              <g key={`step-rails-${rowIndex}`}>
+                {settings.leftRailEnabled && (
+                  <rect
+                    x={centerX - currentWidth / 2 - stepWidth}
+                    y={stepY}
+                    width={stepWidth}
+                    height={settings.railThicknessMm}
+                    className="rail"
+                  />
+                )}
+                {settings.rightRailEnabled && (
+                  <rect
+                    x={centerX + currentWidth / 2}
+                    y={stepY}
+                    width={stepWidth}
+                    height={settings.railThicknessMm}
+                    className="rail"
+                  />
+                )}
+              </g>
+            );
+          })}
+
+        {isLanceWedge && settings.frontRailEnabled && (
+          <rect
+            x={centerX - dimensions.slotWidthMm / 2}
+            y={outerY}
+            width={dimensions.slotWidthMm}
+            height={settings.railThicknessMm}
+            className="rail"
+          />
+        )}
+
+        {isLanceWedge && settings.rearRailEnabled && (
+          <rect
+            x={innerX}
+            y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
+            width={dimensions.innerWidthMm}
+            height={settings.railThicknessMm}
+            className="rail"
+          />
+        )}
+
+        {!isLanceWedge && (
+          <rect x={innerX} y={innerY} width={dimensions.innerWidthMm} height={dimensions.innerDepthMm} className="inner-area" />
+        )}
+        {isLanceWedge &&
+          rankCounts.map((rankCount, rowIndex) => {
+            const rowWidth = rankCount * dimensions.slotWidthMm;
+            return (
+              <rect
+                key={`inner-rank-${rowIndex}`}
+                x={centerX - rowWidth / 2}
+                y={innerY + rowIndex * dimensions.slotDepthMm}
+                width={rowWidth}
+                height={dimensions.slotDepthMm}
+                className="inner-area"
+              />
+            );
+          })}
         {footprints}
 
         <g className="dimension-annotations" style={{ fontSize }}>

@@ -1,4 +1,5 @@
 import type { ThemeName, TraySettings } from '../types';
+import { trayTemplates } from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
@@ -10,7 +11,7 @@ type Props = {
 };
 
 const numberFields: Array<{
-  key: keyof Omit<TraySettings, 'buildPlateSize'>;
+  key: keyof Omit<TraySettings, 'buildPlateSize' | 'template'>;
   label: string;
   step: number;
   tooltip: string;
@@ -72,20 +73,44 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
         </select>
       </label>
 
+      <label className="field">
+        <span>Tray template</span>
+        <select
+          value={settings.template}
+          title="Choose the movement tray layout to generate."
+          onChange={(event) => onChange({ ...settings, template: event.target.value as TraySettings['template'] })}
+        >
+          {trayTemplates.map((template) => (
+            <option value={template.value} key={template.value}>
+              {template.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <div className="field-grid">
-        {numberFields.map((field) => (
-          <label className="field" key={field.key} title={field.tooltip}>
+        {numberFields.map((field) => {
+          const isFixedForTemplate = settings.template === 'lanceWedge' && (field.key === 'columns' || field.key === 'rows');
+          const fixedValue = field.key === 'columns' ? 5 : field.key === 'rows' ? 5 : settings[field.key];
+          const tooltip = isFixedForTemplate
+            ? 'Lance Wedge uses a fixed five-rank 1, 2, 3, 4, 5 formation.'
+            : field.tooltip;
+
+          return (
+          <label className="field" key={field.key} title={tooltip}>
             <span>{field.label}</span>
             <input
               type="number"
               min="0"
               step={field.step}
-              title={field.tooltip}
-              value={settings[field.key] as number}
+              title={tooltip}
+              disabled={isFixedForTemplate}
+              value={fixedValue as number}
               onChange={(event) => updateNumber(field.key, event.target.value)}
             />
           </label>
-        ))}
+          );
+        })}
       </div>
 
       <fieldset className="rail-options">

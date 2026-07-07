@@ -7,6 +7,7 @@ import { calculateBuildPlateFit, calculateTrayDimensions, validateTraySettings }
 import type { ThemeName, TraySettings } from './types';
 
 const defaultSettings: TraySettings = {
+  template: 'standard',
   baseWidthMm: 25,
   baseDepthMm: 25,
   columns: 5,

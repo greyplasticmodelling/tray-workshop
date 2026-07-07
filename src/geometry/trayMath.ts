@@ -23,15 +23,37 @@ export const buildPlates: BuildPlate[] = [
   { value: '350x350', widthMm: 350, depthMm: 350 },
 ];
 
+export const trayTemplates: Array<{ value: TraySettings['template']; label: string; description: string }> = [
+  {
+    value: 'standard',
+    label: 'Standard Movement Tray',
+    description: 'A regular rectangular rank-and-file movement tray.',
+  },
+  {
+    value: 'lanceWedge',
+    label: 'Lance Wedge Movement Tray',
+    description: 'A fixed five-rank wedge with 1, 2, 3, 4, then 5 models per rank.',
+  },
+];
+
+export function getRankCounts(settings: TraySettings): number[] {
+  if (settings.template === 'lanceWedge') {
+    return [1, 2, 3, 4, 5];
+  }
+
+  return Array.from({ length: settings.rows }, () => settings.columns);
+}
+
 export function getBuildPlate(size: BuildPlateSize): BuildPlate {
   return buildPlates.find((plate) => plate.value === size) ?? buildPlates[2];
 }
 
 export function calculateTrayDimensions(settings: TraySettings): TrayDimensions {
+  const rankCounts = getRankCounts(settings);
   const slotWidthMm = settings.baseWidthMm + settings.toleranceMm;
   const slotDepthMm = settings.baseDepthMm + settings.toleranceMm;
-  const innerWidthMm = settings.columns * slotWidthMm;
-  const innerDepthMm = settings.rows * slotDepthMm;
+  const innerWidthMm = Math.max(...rankCounts) * slotWidthMm;
+  const innerDepthMm = rankCounts.length * slotDepthMm;
   const leftRailMm = settings.leftRailEnabled ? settings.railThicknessMm : 0;
   const rightRailMm = settings.rightRailEnabled ? settings.railThicknessMm : 0;
   const frontRailMm = settings.frontRailEnabled ? settings.railThicknessMm : 0;
@@ -69,6 +91,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   const messages: string[] = [];
 
   Object.entries(bounds).forEach(([key, rule]) => {
+    if (settings.template === 'lanceWedge' && (key === 'columns' || key === 'rows')) {
+      return;
+    }
+
     const value = settings[key as keyof TraySettings];
     if (typeof value !== 'number') {
       return;
@@ -84,11 +110,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   });
 
-  if (!Number.isInteger(settings.columns)) {
+  if (settings.template === 'standard' && !Number.isInteger(settings.columns)) {
     messages.push('Columns must be a positive whole number.');
   }
 
-  if (!Number.isInteger(settings.rows)) {
+  if (settings.template === 'standard' && !Number.isInteger(settings.rows)) {
     messages.push('Rows must be a positive whole number.');
   }
 

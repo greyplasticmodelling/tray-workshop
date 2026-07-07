@@ -1,4 +1,5 @@
 export type TraySettings = {
+  template: TrayTemplate;
   baseWidthMm: number;
   baseDepthMm: number;
   columns: number;
@@ -13,6 +14,8 @@ export type TraySettings = {
   rightRailEnabled: boolean;
   buildPlateSize: BuildPlateSize;
 };
+
+export type TrayTemplate = 'standard' | 'lanceWedge';
 
 export type BuildPlateSize = '180x180' | '235x235' | '256x256' | '300x300' | '350x350';
 
