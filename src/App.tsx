@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DimensionsPanel } from './components/DimensionsPanel';
 import { TrayControls } from './components/TrayControls';
 import { TrayPreviewSvg } from './components/TrayPreviewSvg';
@@ -47,6 +47,40 @@ const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
 };
 
 const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
+
+function SupportButton() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    container.replaceChildren();
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js';
+    script.dataset.name = 'bmc-button';
+    script.dataset.slug = 'greyplasticmodelling';
+    script.dataset.color = '#110836';
+    script.dataset.emoji = '🐲';
+    script.dataset.font = 'Lato';
+    script.dataset.text = 'Buy me a dragon';
+    script.dataset.outlineColor = '#ffffff';
+    script.dataset.fontColor = '#ffffff';
+    script.dataset.coffeeColor = '#FFDD00';
+    container.appendChild(script);
+
+    return () => {
+      container.replaceChildren();
+    };
+  }, []);
+
+  return <div className="support-button-slot" ref={containerRef} aria-label="Support Tray Workshop" />;
+}
 
 function readSavedTrays(): SavedTray[] {
   try {
@@ -139,15 +173,7 @@ export default function App() {
             <strong>Tray Workshop</strong>
           </div>
         </div>
-        <a
-          className="support-button"
-          href="https://www.buymeacoffee.com/greyplasticmodelling"
-          target="_blank"
-          rel="noreferrer"
-          title="Support Tray Workshop on Buy Me a Coffee."
-        >
-          Buy me a coffee
-        </a>
+        <SupportButton />
       </header>
 
       <main className="app-main">
