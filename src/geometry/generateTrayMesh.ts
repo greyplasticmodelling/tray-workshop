@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { TraySettings } from '../types';
-import { calculateTrayDimensions, getRankCounts } from './trayMath';
+import { calculateTrayDimensions, getMagnetCutoutCenters, getRankCounts } from './trayMath';
 
 function createBox(name: string, width: number, depth: number, height: number, x: number, y: number, z: number) {
   const geometry = new THREE.BoxGeometry(width, depth, height);
@@ -11,11 +11,72 @@ function createBox(name: string, width: number, depth: number, height: number, x
   return mesh;
 }
 
+function createPerforatedFloorLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  x: number,
+  y: number,
+  holes: Array<{ x: number; y: number }>,
+  settings: TraySettings,
+) {
+  if (!settings.magnetCutoutsEnabled || holes.length === 0) {
+    return createBox(name, width, depth, height, x, y, height / 2);
+  }
+
+  const recessDepth = Math.min(settings.magnetCutoutDepthMm, height);
+  const topSkinHeight = height - recessDepth;
+  const group = new THREE.Group();
+  group.name = name;
+
+  if (topSkinHeight > 0) {
+    group.add(createBox(`${name}-top-skin`, width, depth, topSkinHeight, x, y, recessDepth + topSkinHeight / 2));
+  }
+
+  if (recessDepth > 0) {
+    const radius = settings.magnetDiameterMm / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(-width / 2, -depth / 2);
+    shape.lineTo(width / 2, -depth / 2);
+    shape.lineTo(width / 2, depth / 2);
+    shape.lineTo(-width / 2, depth / 2);
+    shape.lineTo(-width / 2, -depth / 2);
+
+    holes.forEach((hole) => {
+      if (
+        hole.x - radius >= -width / 2 &&
+        hole.x + radius <= width / 2 &&
+        hole.y - radius >= -depth / 2 &&
+        hole.y + radius <= depth / 2
+      ) {
+        const path = new THREE.Path();
+        path.absellipse(hole.x, hole.y, radius, radius, 0, Math.PI * 2, true);
+        shape.holes.push(path);
+      }
+    });
+
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: recessDepth,
+      bevelEnabled: false,
+      curveSegments: 32,
+    });
+    const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = `${name}-recess-layer`;
+    mesh.position.set(x, y, 0);
+    group.add(mesh);
+  }
+
+  return group;
+}
+
 export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const dimensions = calculateTrayDimensions(settings);
   const group = new THREE.Group();
   group.name = 'movement-tray';
   const rankCounts = getRankCounts(settings);
+  const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
 
   if (settings.template === 'lanceWedge') {
     const railHeight = settings.railHeightMm;
@@ -27,15 +88,21 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const rowWidth = rankCount * dimensions.slotWidthMm;
       const rowCenterY = innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
 
+      const rowInnerCenterY = -dimensions.innerDepthMm / 2 + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      const rowMagnetCenters = magnetCenters
+        .filter((center) => center.rowIndex === rowIndex)
+        .map((center) => ({ x: center.x, y: center.y - rowInnerCenterY }));
+
       group.add(
-        createBox(
+        createPerforatedFloorLayer(
           `floor-rank-${rowIndex + 1}`,
           rowWidth + dimensions.leftRailMm + dimensions.rightRailMm,
           dimensions.slotDepthMm,
           settings.floorThicknessMm,
           centerX,
           rowCenterY,
-          settings.floorThicknessMm / 2,
+          rowMagnetCenters,
+          settings,
         ),
       );
 
@@ -188,15 +255,23 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     return group;
   }
 
+  const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
+  const innerCenterOffsetY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
+  const standardMagnetCenters = magnetCenters.map((center) => ({
+    x: center.x + innerCenterOffsetX,
+    y: center.y + innerCenterOffsetY,
+  }));
+
   group.add(
-    createBox(
+    createPerforatedFloorLayer(
       'floor',
       dimensions.outerWidthMm,
       dimensions.outerDepthMm,
       settings.floorThicknessMm,
       0,
       0,
-      settings.floorThicknessMm / 2,
+      standardMagnetCenters,
+      settings,
     ),
   );
 

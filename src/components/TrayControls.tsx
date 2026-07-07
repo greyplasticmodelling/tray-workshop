@@ -150,6 +150,72 @@ export function TrayControls({
         ))}
       </fieldset>
 
+      <fieldset className="magnet-options">
+        <legend>Magnet cutouts</legend>
+        <label className="toggle" title="Add circular bottom-side magnet recesses centred in each base space.">
+          <input
+            type="checkbox"
+            title="Add circular bottom-side magnet recesses centred in each base space."
+            checked={settings.magnetCutoutsEnabled}
+            onChange={(event) => updateToggle('magnetCutoutsEnabled', event.target.checked)}
+          />
+          <span>Enable cutouts</span>
+        </label>
+
+        <div className="field-grid">
+          <label className="field" title="Diameter of each magnet recess.">
+            <span>Magnet diameter (mm)</span>
+            <input
+              type="number"
+              min="1"
+              max="15"
+              step="0.1"
+              title="Diameter of each magnet recess."
+              value={settings.magnetDiameterMm}
+              onChange={(event) => updateNumber('magnetDiameterMm', event.target.value)}
+            />
+          </label>
+
+          <label className="field" title="Depth of the recess from the bottom. Set equal to floor thickness for a through-hole.">
+            <span>Cutout depth (mm)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              title="Depth of the recess from the bottom. Set equal to floor thickness for a through-hole."
+              value={settings.magnetCutoutDepthMm}
+              onChange={(event) => updateNumber('magnetCutoutDepthMm', event.target.value)}
+            />
+          </label>
+        </div>
+
+        {settings.template === 'lanceWedge' && (
+          <>
+            <label className="toggle" title="Use two magnet recesses per base space in the Lance Wedge template.">
+              <input
+                type="checkbox"
+                title="Use two magnet recesses per base space in the Lance Wedge template."
+                checked={settings.lanceDoubleMagnetsEnabled}
+                onChange={(event) => updateToggle('lanceDoubleMagnetsEnabled', event.target.checked)}
+              />
+              <span>Two magnets per space</span>
+            </label>
+
+            <label className="field" title="Distance from the base centre to each magnet along the front-to-back centre line.">
+              <span>Magnet offset (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                title="Distance from the base centre to each magnet along the front-to-back centre line."
+                value={settings.lanceMagnetOffsetMm}
+                onChange={(event) => updateNumber('lanceMagnetOffsetMm', event.target.value)}
+              />
+            </label>
+          </>
+        )}
+      </fieldset>
+
       {validationMessages.length > 0 && (
         <div className="validation" role="alert">
           {validationMessages.map((message) => (

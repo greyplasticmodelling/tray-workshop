@@ -281,7 +281,8 @@ h1 {
   border-color: var(--accent);
 }
 
-.rail-options {
+.rail-options,
+.magnet-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -291,7 +292,12 @@ h1 {
   border-radius: 8px;
 }
 
-.rail-options legend {
+.magnet-options {
+  grid-template-columns: 1fr;
+}
+
+.rail-options legend,
+.magnet-options legend {
   padding: 0 6px;
   color: var(--heading);
   font-weight: 750;
@@ -478,6 +484,13 @@ h1 {
   fill: var(--footprint-fill);
   stroke: var(--footprint-stroke);
   stroke-width: 0.25;
+}
+
+.magnet-cutout {
+  fill: rgba(166, 61, 45, 0.18);
+  stroke: #a63d2d;
+  stroke-dasharray: 1.4 1;
+  stroke-width: 0.45;
 }
 
 .dimension-line,
@@ -675,6 +688,7 @@ footer {
 
   .field-grid,
   .rail-options,
+  .magnet-options,
   .plate-summary,
   .dimensions {
     grid-template-columns: 1fr;

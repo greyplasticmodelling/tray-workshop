@@ -8,6 +8,11 @@ export type TraySettings = {
   floorThicknessMm: number;
   railThicknessMm: number;
   railHeightMm: number;
+  magnetCutoutsEnabled: boolean;
+  magnetDiameterMm: number;
+  magnetCutoutDepthMm: number;
+  lanceDoubleMagnetsEnabled: boolean;
+  lanceMagnetOffsetMm: number;
   frontRailEnabled: boolean;
   rearRailEnabled: boolean;
   leftRailEnabled: boolean;

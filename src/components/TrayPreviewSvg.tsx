@@ -1,5 +1,5 @@
 import type { TrayDimensions, TraySettings } from '../types';
-import { getRankCounts } from '../geometry/trayMath';
+import { getMagnetCutoutCenters, getRankCounts } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -22,9 +22,12 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const depthLineX = outerX + dimensions.outerWidthMm + dimensionGap;
   const widthLabel = `${dimensions.outerWidthMm.toFixed(1)} mm exterior width`;
   const depthLabel = `${dimensions.outerDepthMm.toFixed(1)} mm exterior depth`;
+  const innerCenterScreenX = innerX + dimensions.innerWidthMm / 2;
+  const innerCenterScreenY = innerY + dimensions.innerDepthMm / 2;
 
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
+  const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const footprints = [];
   for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
@@ -239,6 +242,17 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             );
           })}
         {footprints}
+
+        {settings.magnetCutoutsEnabled &&
+          magnetCenters.map((center, index) => (
+            <circle
+              key={`magnet-${index}`}
+              cx={innerCenterScreenX + center.x}
+              cy={innerCenterScreenY + center.y}
+              r={settings.magnetDiameterMm / 2}
+              className="magnet-cutout"
+            />
+          ))}
 
         <g className="dimension-annotations" style={{ fontSize }}>
           <line
