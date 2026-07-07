@@ -29,7 +29,7 @@ export type TraySettings = {
   buildPlateSize: BuildPlateSize;
 };
 
-export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter';
+export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter' | 'adapterLance';
 
 export type SavedTray = {
   id: string;

@@ -756,6 +756,10 @@ footer {
 }
 
 @media (max-width: 560px) {
+  .app-shell {
+    padding-bottom: 76px;
+  }
+
   .site-banner {
     min-height: 86px;
   }
@@ -781,16 +785,38 @@ footer {
   }
 
   .banner-actions {
-    top: 8px;
-    right: 8px;
-    gap: 5px;
-    transform: scale(0.82);
-    transform-origin: top right;
+    position: fixed;
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 8px;
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
+    transform: none;
   }
 
   .support-button-slot {
-    min-width: 142px;
+    min-width: 0;
     min-height: 34px;
+  }
+
+  .support-button-fallback,
+  .support-button-slot .bmc-btn,
+  .support-button-slot a[href*='buymeacoffee'],
+  .feedback-link {
+    min-height: 36px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .feedback-link {
+    white-space: normal;
+    text-align: center;
   }
 
   .controls,

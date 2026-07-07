@@ -15,7 +15,7 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
     ['Outer width (mm)', formatMm(dimensions.outerWidthMm)],
     ['Outer depth (mm)', formatMm(dimensions.outerDepthMm)],
     ['Floor thickness (mm)', formatMm(settings.floorThicknessMm)],
-    ...(settings.template === 'adapter'
+    ...(settings.template === 'adapter' || settings.template === 'adapterLance'
       ? [
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
           ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],

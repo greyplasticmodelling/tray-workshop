@@ -49,10 +49,15 @@ export const trayTemplates: Array<{ value: TraySettings['template']; label: stri
     label: 'Adapter Movement Tray',
     description: 'A solid larger-base tray with smaller centred base cutouts.',
   },
+  {
+    value: 'adapterLance',
+    label: 'Adapter Lance Wedge Movement Tray',
+    description: 'A solid lance wedge adapter tray with smaller centred base cutouts.',
+  },
 ];
 
 export function getRankCounts(settings: TraySettings): number[] {
-  if (settings.template === 'lanceWedge') {
+  if (settings.template === 'lanceWedge' || settings.template === 'adapterLance') {
     const rankCount = Math.max(1, Math.floor(settings.rows));
     return Array.from({ length: rankCount }, (_, index) => index + 1);
   }
@@ -66,7 +71,7 @@ export function getBuildPlate(size: BuildPlateSize): BuildPlate {
 
 export function calculateTrayDimensions(settings: TraySettings): TrayDimensions {
   const rankCounts = getRankCounts(settings);
-  const isAdapter = settings.template === 'adapter';
+  const isAdapter = settings.template === 'adapter' || settings.template === 'adapterLance';
   const slotWidthMm = isAdapter ? settings.baseWidthMm : settings.baseWidthMm + settings.toleranceMm;
   const slotDepthMm = isAdapter ? settings.baseDepthMm : settings.baseDepthMm + settings.toleranceMm;
   const adapterCutoutWidthMm = settings.adapterCutoutWidthMm + settings.toleranceMm;
@@ -131,7 +136,8 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
 
   const rankCounts = getRankCounts(settings);
   const centers: MagnetCutoutCenter[] = [];
-  const useDoubleMagnets = settings.template === 'lanceWedge' && settings.lanceDoubleMagnetsEnabled;
+  const useDoubleMagnets =
+    (settings.template === 'lanceWedge' || settings.template === 'adapterLance') && settings.lanceDoubleMagnetsEnabled;
   const yOffsets = useDoubleMagnets ? [-settings.lanceMagnetOffsetMm, settings.lanceMagnetOffsetMm] : [0];
 
   rankCounts.forEach((rankCount, rowIndex) => {
@@ -143,7 +149,7 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
         ? dimensions.characterSlotWidthMm
         : 0;
     const rowStartX =
-      settings.template === 'lanceWedge'
+      settings.template === 'lanceWedge' || settings.template === 'adapterLance'
         ? -rowWidth / 2
         : -dimensions.innerWidthMm / 2 + standardMainOffsetX;
     const standardMainOffsetY = 0;
@@ -196,11 +202,14 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   const messages: string[] = [];
 
   Object.entries(bounds).forEach(([key, rule]) => {
-    if (settings.template === 'lanceWedge' && key === 'columns') {
+    if ((settings.template === 'lanceWedge' || settings.template === 'adapterLance') && key === 'columns') {
       return;
     }
 
-    if (settings.template === 'adapter' && (key === 'railThicknessMm' || key === 'railHeightMm')) {
+    if (
+      (settings.template === 'adapter' || settings.template === 'adapterLance') &&
+      (key === 'railThicknessMm' || key === 'railHeightMm')
+    ) {
       return;
     }
 
@@ -219,7 +228,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   });
 
-  if (settings.template !== 'lanceWedge' && !Number.isInteger(settings.columns)) {
+  if (settings.template !== 'lanceWedge' && settings.template !== 'adapterLance' && !Number.isInteger(settings.columns)) {
     messages.push('Columns must be a positive whole number.');
   }
 
@@ -228,7 +237,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   }
 
   const dimensions = calculateTrayDimensions(settings);
-  if (settings.template === 'adapter') {
+  if (settings.template === 'adapter' || settings.template === 'adapterLance') {
     if (dimensions.adapterCutoutWidthMm > dimensions.slotWidthMm) {
       messages.push('Adapter cutout width must fit inside the target base width.');
     }
@@ -237,7 +246,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       messages.push('Adapter cutout depth must fit inside the target base depth.');
     }
 
-    if (settings.characterBayEnabled) {
+    if (settings.template === 'adapter' && settings.characterBayEnabled) {
       if (dimensions.adapterFlankCutoutWidthMm > dimensions.characterSlotWidthMm) {
         messages.push('Flank adapter cutout width must fit inside the irregular flank base width.');
       }
@@ -254,7 +263,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     const magnetLimit =
-      settings.template === 'adapter'
+      settings.template === 'adapter' || settings.template === 'adapterLance'
         ? Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm)
         : Math.min(dimensions.slotWidthMm, dimensions.slotDepthMm);
 
@@ -274,7 +283,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     if (
-      settings.template === 'lanceWedge' &&
+      (settings.template === 'lanceWedge' || settings.template === 'adapterLance') &&
       settings.lanceDoubleMagnetsEnabled &&
       settings.lanceMagnetOffsetMm * 2 + settings.magnetDiameterMm > dimensions.slotDepthMm
     ) {

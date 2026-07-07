@@ -67,10 +67,23 @@ const adapterDefaults: TraySettings = {
   rightRailEnabled: false,
 };
 
+const adapterLanceDefaults: TraySettings = {
+  ...adapterDefaults,
+  template: 'adapterLance',
+  baseWidthMm: 30,
+  baseDepthMm: 60,
+  columns: 5,
+  rows: 3,
+  adapterCutoutWidthMm: 25,
+  adapterCutoutDepthMm: 50,
+  characterBayEnabled: false,
+};
+
 const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
   standard: standardDefaults,
   lanceWedge: lanceWedgeDefaults,
   adapter: adapterDefaults,
+  adapterLance: adapterLanceDefaults,
 };
 
 const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
@@ -171,7 +184,9 @@ export default function App() {
 
   const saveCurrentTray = () => {
     const defaultName =
-      settings.template === 'adapter'
+      settings.template === 'adapterLance'
+        ? `Adapter Lance ${settings.rows} rows`
+        : settings.template === 'adapter'
         ? `Adapter ${settings.columns} x ${settings.rows}`
         : settings.template === 'lanceWedge'
         ? `Lance Wedge ${settings.rows} rows`

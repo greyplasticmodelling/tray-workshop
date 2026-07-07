@@ -70,6 +70,8 @@ export function TrayControls({
     onChange({ ...settings, [key]: checked });
   };
   const isAdapter = settings.template === 'adapter';
+  const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
+  const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
 
   return (
     <aside className="controls" aria-label="Tray settings">
@@ -111,11 +113,11 @@ export function TrayControls({
 
       <div className="field-grid">
         {numberFields.map((field) => {
-          if (settings.template === 'lanceWedge' && field.key === 'columns') {
+          if (isLanceFormation && field.key === 'columns') {
             return null;
           }
 
-          if (isAdapter && (field.key === 'railThicknessMm' || field.key === 'railHeightMm')) {
+          if (isAdapterTray && (field.key === 'railThicknessMm' || field.key === 'railHeightMm')) {
             return null;
           }
 
@@ -130,12 +132,12 @@ export function TrayControls({
             toleranceMm: 'Extra clearance added to the smaller adapter cutout.',
           };
           const tooltip =
-            isAdapter && adapterTooltips[field.key]
+            isAdapterTray && adapterTooltips[field.key]
               ? adapterTooltips[field.key]
-              : settings.template === 'lanceWedge' && field.key === 'rows'
+              : isLanceFormation && field.key === 'rows'
               ? 'Number of wedge ranks. The rear rank will contain the same number of models as the row count.'
               : field.tooltip;
-          const label = isAdapter && adapterLabels[field.key] ? adapterLabels[field.key] : field.label;
+          const label = isAdapterTray && adapterLabels[field.key] ? adapterLabels[field.key] : field.label;
 
           return (
           <label className="field" key={field.key} title={tooltip}>
@@ -153,9 +155,9 @@ export function TrayControls({
         })}
       </div>
 
-      {isAdapter && (
+      {isAdapterTray && (
         <fieldset className="character-options">
-          <legend>Adapter cutouts</legend>
+          <legend>{settings.template === 'adapterLance' ? 'Lance adapter cutouts' : 'Adapter cutouts'}</legend>
           <div className="field-grid">
             <label className="field" title="Width of the smaller base recess centred inside each target base footprint.">
               <span>Cutout base width (mm)</span>
@@ -196,7 +198,7 @@ export function TrayControls({
         </fieldset>
       )}
 
-      {!isAdapter && (
+      {!isAdapterTray && (
       <fieldset className="rail-options">
         <legend>Rails</legend>
         {railToggles.map((toggle) => (
@@ -377,12 +379,12 @@ export function TrayControls({
           </label>
         </div>
 
-        {settings.template === 'lanceWedge' && (
+        {isLanceFormation && (
           <>
-            <label className="toggle" title="Use two magnet recesses per base space in the Lance Wedge template.">
+            <label className="toggle" title="Use two magnet recesses per base space in the lance wedge templates.">
               <input
                 type="checkbox"
-                title="Use two magnet recesses per base space in the Lance Wedge template."
+                title="Use two magnet recesses per base space in the lance wedge templates."
                 checked={settings.lanceDoubleMagnetsEnabled}
                 onChange={(event) => updateToggle('lanceDoubleMagnetsEnabled', event.target.checked)}
               />

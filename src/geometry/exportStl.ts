@@ -24,7 +24,9 @@ export function downloadStl(settings: TraySettings): void {
       ? `${settings.baseWidthMm}mm`
       : `${settings.baseWidthMm}x${settings.baseDepthMm}mm`;
   const formation =
-    settings.template === 'adapter'
+    settings.template === 'adapterLance'
+      ? `adapter-lance-wedge-${settings.rows}-rows`
+      : settings.template === 'adapter'
       ? `adapter-${settings.columns}x${settings.rows}`
       : settings.template === 'lanceWedge'
         ? `lance-wedge-${settings.rows}-rows`

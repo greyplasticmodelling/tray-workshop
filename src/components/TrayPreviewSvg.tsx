@@ -28,6 +28,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
   const isAdapter = settings.template === 'adapter';
+  const isAdapterLance = settings.template === 'adapterLance';
+  const isAdapterTray = isAdapter || isAdapterLance;
+  const isLanceFormation = isLanceWedge || isAdapterLance;
   const hasCharacterBay =
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
   const characterBayX =
@@ -65,8 +68,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
     const rowWidth = rankCount * dimensions.slotWidthMm;
-    const rowX = isLanceWedge ? centerX - rowWidth / 2 : mainAreaX;
-    const rowY = (isLanceWedge ? innerY : isAdapter ? outerY : mainAreaY) + row * dimensions.slotDepthMm;
+    const rowX = isLanceFormation ? centerX - rowWidth / 2 : mainAreaX;
+    const rowY = (isLanceFormation ? innerY : isAdapter ? outerY : mainAreaY) + row * dimensions.slotDepthMm;
 
     for (let column = 0; column < rankCount; column += 1) {
       footprints.push(
@@ -103,7 +106,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </marker>
         </defs>
 
-        {!isLanceWedge && !hasCharacterBay && (
+        {!isLanceFormation && !hasCharacterBay && (
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
         )}
         {!isLanceWedge && hasCharacterBay && (
@@ -190,6 +193,53 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             });
           })}
 
+        {isAdapterLance &&
+          rankCounts.map((rankCount, rowIndex) => {
+            const rowWidth = rankCount * dimensions.slotWidthMm;
+            return (
+              <rect
+                key={`adapter-lance-floor-${rowIndex}`}
+                x={centerX - rowWidth / 2}
+                y={outerY + rowIndex * dimensions.slotDepthMm}
+                width={rowWidth}
+                height={dimensions.slotDepthMm}
+                className="floor"
+              />
+            );
+          })}
+
+        {isAdapterLance &&
+          rankCounts.map((rankCount, rowIndex) => {
+            const rowWidth = rankCount * dimensions.slotWidthMm;
+            const rowX = centerX - rowWidth / 2;
+            const rowY = outerY + rowIndex * dimensions.slotDepthMm;
+
+            return Array.from({ length: rankCount }, (_, columnIndex) => {
+              const cellX = rowX + columnIndex * dimensions.slotWidthMm;
+              const cellCenterX = cellX + dimensions.slotWidthMm / 2;
+              const cellCenterY = rowY + dimensions.slotDepthMm / 2;
+
+              return (
+                <g key={`adapter-lance-cell-${columnIndex}-${rowIndex}`}>
+                  <rect
+                    x={cellX}
+                    y={rowY}
+                    width={dimensions.slotWidthMm}
+                    height={dimensions.slotDepthMm}
+                    className="inner-area"
+                  />
+                  <rect
+                    x={cellCenterX - dimensions.adapterCutoutWidthMm / 2}
+                    y={cellCenterY - dimensions.adapterCutoutDepthMm / 2}
+                    width={dimensions.adapterCutoutWidthMm}
+                    height={dimensions.adapterCutoutDepthMm}
+                    className="adapter-cutout"
+                  />
+                </g>
+              );
+            });
+          })}
+
         {isAdapter && hasCharacterBay && (
           <g>
             <rect
@@ -209,10 +259,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </g>
         )}
 
-        {settings.frontRailEnabled && !isLanceWedge && !isAdapter && (
+        {settings.frontRailEnabled && !isLanceFormation && !isAdapter && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
         )}
-        {settings.rearRailEnabled && !isLanceWedge && !isAdapter && !hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && !hasCharacterBay && (
           <rect
             x={innerX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -221,7 +271,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.rearRailEnabled && !isLanceWedge && !isAdapter && hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && hasCharacterBay && (
           <rect
             x={mainAreaX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -230,10 +280,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.leftRailEnabled && !isLanceWedge && !isAdapter && !hasCharacterBay && (
+        {settings.leftRailEnabled && !isLanceFormation && !isAdapter && !hasCharacterBay && (
           <rect x={outerX} y={outerY} width={settings.railThicknessMm} height={dimensions.outerDepthMm} className="rail" />
         )}
-        {settings.rightRailEnabled && !isLanceWedge && !isAdapter && !hasCharacterBay && (
+        {settings.rightRailEnabled && !isLanceFormation && !isAdapter && !hasCharacterBay && (
           <rect
             x={outerX + dimensions.outerWidthMm - settings.railThicknessMm}
             y={outerY}
@@ -387,7 +437,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
 
-        {!isLanceWedge && !isAdapter && (
+        {!isLanceFormation && !isAdapter && (
           <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
         )}
         {hasCharacterBay && (
@@ -413,7 +463,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               />
             );
           })}
-        {!isAdapter && footprints}
+        {!isAdapterTray && footprints}
 
         {settings.magnetCutoutsEnabled &&
           magnetCenters.map((center, index) => (

@@ -173,6 +173,52 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const rankCounts = getRankCounts(settings);
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
 
+  if (settings.template === 'adapterLance') {
+    const outerFrontY = -dimensions.outerDepthMm / 2;
+
+    rankCounts.forEach((rankCount, rowIndex) => {
+      const rowWidth = rankCount * dimensions.slotWidthMm;
+      const rowCenterY = outerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      const rowMagnetCenters = magnetCenters
+        .filter((center) => center.rowIndex === rowIndex)
+        .map((center) => ({ x: center.x, y: center.y - rowCenterY }));
+      const rowHoles = Array.from({ length: rankCount }, (_, columnIndex) => ({
+        x: -rowWidth / 2 + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
+        y: rowCenterY,
+        width: dimensions.adapterCutoutWidthMm,
+        depth: dimensions.adapterCutoutDepthMm,
+      }));
+
+      group.add(
+        createPerforatedFloorLayer(
+          `adapter-lance-floor-rank-${rowIndex + 1}`,
+          rowWidth,
+          dimensions.slotDepthMm,
+          settings.floorThicknessMm,
+          0,
+          rowCenterY,
+          rowMagnetCenters,
+          settings,
+        ),
+      );
+
+      group.add(
+        createRectCutoutLayer(
+          `adapter-lance-block-rank-${rowIndex + 1}`,
+          rowWidth,
+          dimensions.slotDepthMm,
+          settings.adapterBaseHeightMm,
+          getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm),
+          0,
+          rowCenterY,
+          settings.floorThicknessMm,
+        ),
+      );
+    });
+
+    return group;
+  }
+
   if (settings.template === 'adapter') {
     const adapterMagnetCenters = magnetCenters.map((center) => ({
       x: center.x,
