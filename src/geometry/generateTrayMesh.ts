@@ -26,12 +26,12 @@ function createPerforatedFloorLayer(
   }
 
   const recessDepth = Math.min(settings.magnetCutoutDepthMm, height);
-  const topSkinHeight = height - recessDepth;
+  const bottomSkinHeight = height - recessDepth;
   const group = new THREE.Group();
   group.name = name;
 
-  if (topSkinHeight > 0) {
-    group.add(createBox(`${name}-top-skin`, width, depth, topSkinHeight, x, y, recessDepth + topSkinHeight / 2));
+  if (bottomSkinHeight > 0) {
+    group.add(createBox(`${name}-bottom-skin`, width, depth, bottomSkinHeight, x, y, bottomSkinHeight / 2));
   }
 
   if (recessDepth > 0) {
@@ -64,7 +64,7 @@ function createPerforatedFloorLayer(
     const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.name = `${name}-recess-layer`;
-    mesh.position.set(x, y, 0);
+    mesh.position.set(x, y, bottomSkinHeight);
     group.add(mesh);
   }
 
