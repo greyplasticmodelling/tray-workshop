@@ -6,6 +6,7 @@ import { validateTraySettings } from './trayMath';
 
 export function exportAsciiStl(meshOrGroup: THREE.Object3D, name: string): string {
   const exporter = new STLExporter();
+  meshOrGroup.updateMatrixWorld(true);
   const output = exporter.parse(meshOrGroup, { binary: false });
   return typeof output === 'string'
     ? output.replace(/^solid exported/, `solid ${name}`).replace(/endsolid exported\s*$/, `endsolid ${name}`)
