@@ -58,7 +58,11 @@ function SupportButton() {
       return;
     }
 
-    container.replaceChildren();
+    Array.from(container.children).forEach((child) => {
+      if (!child.classList.contains('support-button-fallback')) {
+        child.remove();
+      }
+    });
 
     const script = document.createElement('script');
     script.type = 'text/javascript';
@@ -75,11 +79,29 @@ function SupportButton() {
     container.appendChild(script);
 
     return () => {
-      container.replaceChildren();
+      script.remove();
+      Array.from(container.children).forEach((child) => {
+        if (!child.classList.contains('support-button-fallback')) {
+          child.remove();
+        }
+      });
     };
   }, []);
 
-  return <div className="support-button-slot" ref={containerRef} aria-label="Support Tray Workshop" />;
+  return (
+    <div className="support-button-slot" ref={containerRef} aria-label="Support Tray Workshop">
+      <a
+        className="support-button-fallback"
+        href="https://www.buymeacoffee.com/greyplasticmodelling"
+        target="_blank"
+        rel="noreferrer"
+        title="Support Tray Workshop on Buy Me a Coffee."
+      >
+        <span aria-hidden="true">&#128009;</span>
+        <span>Buy me a dragon</span>
+      </a>
+    </div>
+  );
 }
 
 function readSavedTrays(): SavedTray[] {
