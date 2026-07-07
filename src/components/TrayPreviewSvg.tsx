@@ -152,6 +152,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             const nextWidth = rankCounts[rowIndex + 1] * dimensions.slotWidthMm;
             const stepWidth = (nextWidth - currentWidth) / 2;
             const stepY = innerY + (rowIndex + 1) * dimensions.slotDepthMm;
+            const leftStepX = centerX - currentWidth / 2 - dimensions.leftRailMm - stepWidth;
+            const rightStepX = centerX + currentWidth / 2 + dimensions.rightRailMm;
 
             if (stepWidth <= 0) {
               return null;
@@ -161,7 +163,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               <g key={`step-rails-${rowIndex}`}>
                 {settings.leftRailEnabled && (
                   <rect
-                    x={centerX - currentWidth / 2 - stepWidth}
+                    x={leftStepX}
                     y={stepY}
                     width={stepWidth}
                     height={settings.railThicknessMm}
@@ -170,7 +172,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
                 )}
                 {settings.rightRailEnabled && (
                   <rect
-                    x={centerX + currentWidth / 2}
+                    x={rightStepX}
                     y={stepY}
                     width={stepWidth}
                     height={settings.railThicknessMm}
@@ -183,9 +185,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
 
         {isLanceWedge && settings.frontRailEnabled && (
           <rect
-            x={centerX - dimensions.slotWidthMm / 2}
+            x={centerX - dimensions.slotWidthMm / 2 - dimensions.leftRailMm}
             y={outerY}
-            width={dimensions.slotWidthMm}
+            width={dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm}
             height={settings.railThicknessMm}
             className="rail"
           />
@@ -193,9 +195,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
 
         {isLanceWedge && settings.rearRailEnabled && (
           <rect
-            x={innerX}
+            x={innerX - dimensions.leftRailMm}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
-            width={dimensions.innerWidthMm}
+            width={dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm}
             height={settings.railThicknessMm}
             className="rail"
           />
