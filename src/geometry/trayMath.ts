@@ -14,6 +14,11 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterFlankCutoutWidthMm: { min: 10, max: 80, label: 'Flank adapter cutout width', unit: 'mm' },
   adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
+  skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
+  skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
+  skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
+  skirmishMaxOffsetMm: { min: 0, max: 3, label: 'Skirmish max offset', unit: 'mm' },
+  skirmishDistributionChancePercent: { min: 0, max: 100, label: 'Skirmish distribution chance', unit: '%' },
   magnetDiameterMm: { min: 1, max: 15, label: 'Magnet diameter', unit: 'mm' },
   magnetCutoutDepthMm: { min: 0.1, max: 8, label: 'Magnet cutout depth', unit: 'mm' },
   lanceMagnetOffsetMm: { min: 0, max: 40, label: 'Lance magnet offset', unit: 'mm' },
@@ -54,6 +59,11 @@ export const trayTemplates: Array<{ value: TraySettings['template']; label: stri
     label: 'Adapter Lance Wedge Movement Tray',
     description: 'A solid lance wedge adapter tray with smaller centred base cutouts.',
   },
+  {
+    value: 'skirmish',
+    label: 'Skirmish Movement Tray',
+    description: 'A rectangular tray with seeded randomised base placement.',
+  },
 ];
 
 export function getRankCounts(settings: TraySettings): number[] {
@@ -72,8 +82,16 @@ export function getBuildPlate(size: BuildPlateSize): BuildPlate {
 export function calculateTrayDimensions(settings: TraySettings): TrayDimensions {
   const rankCounts = getRankCounts(settings);
   const isAdapter = settings.template === 'adapter' || settings.template === 'adapterLance';
-  const slotWidthMm = isAdapter ? settings.baseWidthMm : settings.baseWidthMm + settings.toleranceMm;
-  const slotDepthMm = isAdapter ? settings.baseDepthMm : settings.baseDepthMm + settings.toleranceMm;
+  const isSkirmish = settings.template === 'skirmish';
+  const maxSkirmishRotationRad =
+    settings.skirmishBaseShape === 'square' ? (Math.min(10, Math.max(0, settings.skirmishMaxRotationDeg)) * Math.PI) / 180 : 0;
+  const skirmishBaseFootprintMm =
+    settings.skirmishBaseShape === 'square'
+      ? settings.skirmishBaseSizeMm * (Math.cos(maxSkirmishRotationRad) + Math.sin(maxSkirmishRotationRad))
+      : settings.skirmishBaseSizeMm;
+  const skirmishCellSizeMm = skirmishBaseFootprintMm + settings.toleranceMm + settings.skirmishMaxOffsetMm * 2;
+  const slotWidthMm = isAdapter ? settings.baseWidthMm : isSkirmish ? skirmishCellSizeMm : settings.baseWidthMm + settings.toleranceMm;
+  const slotDepthMm = isAdapter ? settings.baseDepthMm : isSkirmish ? skirmishCellSizeMm : settings.baseDepthMm + settings.toleranceMm;
   const adapterCutoutWidthMm = settings.adapterCutoutWidthMm + settings.toleranceMm;
   const adapterCutoutDepthMm = settings.adapterCutoutDepthMm + settings.toleranceMm;
   const adapterFlankCutoutWidthMm = settings.adapterFlankCutoutWidthMm + settings.toleranceMm;
@@ -129,9 +147,67 @@ export type MagnetCutoutCenter = {
   rowIndex: number;
 };
 
+export type SkirmishBasePlacement = {
+  x: number;
+  y: number;
+  rotationDeg: number;
+  rowIndex: number;
+  columnIndex: number;
+};
+
+function seededRandom(seed: number) {
+  let state = Math.max(1, Math.floor(seed)) % 2147483647;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return (state - 1) / 2147483646;
+  };
+}
+
+export function getSkirmishPlacements(
+  settings: TraySettings,
+  dimensions = calculateTrayDimensions(settings),
+): SkirmishBasePlacement[] {
+  const random = seededRandom(settings.skirmishSeed);
+  const maxOffset = Math.min(3, Math.max(0, settings.skirmishMaxOffsetMm));
+  const maxRotation = settings.skirmishBaseShape === 'square' ? Math.min(10, Math.max(0, settings.skirmishMaxRotationDeg)) : 0;
+  const chance = Math.min(100, Math.max(0, settings.skirmishDistributionChancePercent)) / 100;
+  const placements: SkirmishBasePlacement[] = [];
+  const startX = -dimensions.innerWidthMm / 2;
+  const startY = -dimensions.innerDepthMm / 2;
+
+  for (let rowIndex = 0; rowIndex < settings.rows; rowIndex += 1) {
+    for (let columnIndex = 0; columnIndex < settings.columns; columnIndex += 1) {
+      const centreX = startX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2;
+      const centreY = startY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      const shouldRandomise = random() <= chance;
+      const offsetX = shouldRandomise ? (random() * 2 - 1) * maxOffset : 0;
+      const offsetY = shouldRandomise ? (random() * 2 - 1) * maxOffset : 0;
+      const rotationDeg = shouldRandomise ? (random() * 2 - 1) * maxRotation : 0;
+
+      placements.push({
+        x: centreX + offsetX,
+        y: centreY + offsetY,
+        rotationDeg,
+        rowIndex,
+        columnIndex,
+      });
+    }
+  }
+
+  return placements;
+}
+
 export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): MagnetCutoutCenter[] {
   if (!settings.magnetCutoutsEnabled) {
     return [];
+  }
+
+  if (settings.template === 'skirmish') {
+    return getSkirmishPlacements(settings, dimensions).map((placement) => ({
+      x: placement.x,
+      y: placement.y,
+      rowIndex: placement.rowIndex,
+    }));
   }
 
   const rankCounts = getRankCounts(settings);
@@ -218,9 +294,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    const allowsZero = key === 'skirmishMaxRotationDeg' || key === 'skirmishMaxOffsetMm' || key === 'skirmishDistributionChancePercent';
+
     if (!Number.isFinite(value)) {
       messages.push(`${rule.label} must be a number.`);
-    } else if (value <= 0) {
+    } else if (allowsZero ? value < 0 : value <= 0) {
       messages.push(`${rule.label} must be greater than zero.`);
     } else if (value < rule.min || value > rule.max) {
       const unit = rule.unit ? ` ${rule.unit}` : '';

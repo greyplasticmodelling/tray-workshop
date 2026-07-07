@@ -26,6 +26,8 @@ export function downloadStl(settings: TraySettings): void {
   const formation =
     settings.template === 'adapterLance'
       ? `adapter-lance-wedge-${settings.rows}-rows`
+      : settings.template === 'skirmish'
+        ? `skirmish-${settings.columns}x${settings.rows}-${settings.skirmishBaseShape}-seed-${settings.skirmishSeed}`
       : settings.template === 'adapter'
       ? `adapter-${settings.columns}x${settings.rows}`
       : settings.template === 'lanceWedge'

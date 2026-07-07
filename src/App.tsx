@@ -21,6 +21,12 @@ const standardDefaults: TraySettings = {
   adapterFlankCutoutWidthMm: 20,
   adapterFlankCutoutDepthMm: 20,
   adapterBaseHeightMm: 3,
+  skirmishBaseShape: 'circle',
+  skirmishBaseSizeMm: 25,
+  skirmishSeed: 12025,
+  skirmishMaxRotationDeg: 6,
+  skirmishMaxOffsetMm: 2,
+  skirmishDistributionChancePercent: 100,
   magnetCutoutsEnabled: false,
   magnetDiameterMm: 5,
   magnetCutoutDepthMm: 1,
@@ -79,11 +85,32 @@ const adapterLanceDefaults: TraySettings = {
   characterBayEnabled: false,
 };
 
+const skirmishDefaults: TraySettings = {
+  ...standardDefaults,
+  template: 'skirmish',
+  baseWidthMm: 31,
+  baseDepthMm: 31,
+  columns: 5,
+  rows: 4,
+  toleranceMm: 0.2,
+  skirmishBaseShape: 'circle',
+  skirmishBaseSizeMm: 25,
+  skirmishSeed: 12025,
+  skirmishMaxRotationDeg: 6,
+  skirmishMaxOffsetMm: 2,
+  skirmishDistributionChancePercent: 100,
+  frontRailEnabled: true,
+  rearRailEnabled: false,
+  leftRailEnabled: true,
+  rightRailEnabled: true,
+};
+
 const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
   standard: standardDefaults,
   lanceWedge: lanceWedgeDefaults,
   adapter: adapterDefaults,
   adapterLance: adapterLanceDefaults,
+  skirmish: skirmishDefaults,
 };
 
 const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
@@ -186,6 +213,8 @@ export default function App() {
     const defaultName =
       settings.template === 'adapterLance'
         ? `Adapter Lance ${settings.rows} rows`
+        : settings.template === 'skirmish'
+        ? `Skirmish ${settings.columns} x ${settings.rows}`
         : settings.template === 'adapter'
         ? `Adapter ${settings.columns} x ${settings.rows}`
         : settings.template === 'lanceWedge'

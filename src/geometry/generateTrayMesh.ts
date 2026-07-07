@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { TraySettings } from '../types';
-import { calculateTrayDimensions, getMagnetCutoutCenters, getRankCounts } from './trayMath';
+import { calculateTrayDimensions, getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from './trayMath';
 
 function createBox(name: string, width: number, depth: number, height: number, x: number, y: number, z: number) {
   const geometry = new THREE.BoxGeometry(width, depth, height);
@@ -123,6 +123,68 @@ function createRectCutoutLayer(
   return mesh;
 }
 
+function createSkirmishFloorLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  holes: Array<{ x: number; y: number; rotationDeg: number }>,
+  settings: TraySettings,
+) {
+  if (holes.length === 0) {
+    return createBox(name, width, depth, height, 0, 0, height / 2);
+  }
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-width / 2, -depth / 2);
+  shape.lineTo(width / 2, -depth / 2);
+  shape.lineTo(width / 2, depth / 2);
+  shape.lineTo(-width / 2, depth / 2);
+  shape.lineTo(-width / 2, -depth / 2);
+
+  holes.forEach((hole) => {
+    const size = settings.skirmishBaseSizeMm + settings.toleranceMm;
+    const halfSize = size / 2;
+
+    if (settings.skirmishBaseShape === 'circle') {
+      const path = new THREE.Path();
+      path.absellipse(hole.x, hole.y, halfSize, halfSize, 0, Math.PI * 2, true);
+      shape.holes.push(path);
+      return;
+    }
+
+    const angle = (hole.rotationDeg * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const corners = [
+      { x: -halfSize, y: -halfSize },
+      { x: -halfSize, y: halfSize },
+      { x: halfSize, y: halfSize },
+      { x: halfSize, y: -halfSize },
+    ].map((corner) => ({
+      x: hole.x + corner.x * cos - corner.y * sin,
+      y: hole.y + corner.x * sin + corner.y * cos,
+    }));
+
+    const path = new THREE.Path();
+    path.moveTo(corners[0].x, corners[0].y);
+    corners.slice(1).forEach((corner) => path.lineTo(corner.x, corner.y));
+    path.lineTo(corners[0].x, corners[0].y);
+    shape.holes.push(path);
+  });
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false,
+    curveSegments: 32,
+  });
+  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name;
+  mesh.position.set(0, 0, 0);
+  return mesh;
+}
+
 function getRectHolesInRect(
   holes: Array<{ x: number; y: number; width: number; depth: number }>,
   centerX: number,
@@ -172,6 +234,42 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   group.name = 'movement-tray';
   const rankCounts = getRankCounts(settings);
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
+
+  if (settings.template === 'skirmish') {
+    const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
+    const innerCenterOffsetY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
+    const skirmishHoles = getSkirmishPlacements(settings, dimensions).map((placement) => ({
+      x: placement.x + innerCenterOffsetX,
+      y: placement.y + innerCenterOffsetY,
+      rotationDeg: placement.rotationDeg,
+    }));
+    const railHeight = settings.railHeightMm;
+    const railCenterZ = settings.floorThicknessMm + railHeight / 2;
+    const leftX = -dimensions.outerWidthMm / 2 + settings.railThicknessMm / 2;
+    const rightX = dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
+    const frontY = -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2;
+    const rearY = dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2;
+
+    group.add(createSkirmishFloorLayer('skirmish-floor', dimensions.outerWidthMm, dimensions.outerDepthMm, settings.floorThicknessMm, skirmishHoles, settings));
+
+    if (settings.leftRailEnabled) {
+      group.add(createBox('left-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, leftX, 0, railCenterZ));
+    }
+
+    if (settings.rightRailEnabled) {
+      group.add(createBox('right-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, rightX, 0, railCenterZ));
+    }
+
+    if (settings.frontRailEnabled) {
+      group.add(createBox('front-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, frontY, railCenterZ));
+    }
+
+    if (settings.rearRailEnabled) {
+      group.add(createBox('rear-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, rearY, railCenterZ));
+    }
+
+    return group;
+  }
 
   if (settings.template === 'adapterLance') {
     const outerFrontY = -dimensions.outerDepthMm / 2;

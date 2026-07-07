@@ -1,5 +1,5 @@
 import type { TrayDimensions, TraySettings } from '../types';
-import { getMagnetCutoutCenters, getRankCounts } from '../geometry/trayMath';
+import { getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -31,6 +31,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const isAdapterLance = settings.template === 'adapterLance';
   const isAdapterTray = isAdapter || isAdapterLance;
   const isLanceFormation = isLanceWedge || isAdapterLance;
+  const isSkirmish = settings.template === 'skirmish';
   const hasCharacterBay =
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
   const characterBayX =
@@ -64,8 +65,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const stepRailWidth = dimensions.characterSlotWidthMm + baySideRailMm;
   const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
+  const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const footprints = [];
-  for (let row = 0; row < rankCounts.length; row += 1) {
+  if (!isSkirmish) for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
     const rowWidth = rankCount * dimensions.slotWidthMm;
     const rowX = isLanceFormation ? centerX - rowWidth / 2 : mainAreaX;
@@ -449,6 +451,28 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="inner-area"
           />
         )}
+        {isSkirmish &&
+          skirmishPlacements.map((placement) => {
+            const x = innerCenterScreenX + placement.x;
+            const y = innerCenterScreenY + placement.y;
+            const size = settings.skirmishBaseSizeMm;
+
+            if (settings.skirmishBaseShape === 'circle') {
+              return <circle key={`${placement.columnIndex}-${placement.rowIndex}`} cx={x} cy={y} r={size / 2} className="footprint" />;
+            }
+
+            return (
+              <rect
+                key={`${placement.columnIndex}-${placement.rowIndex}`}
+                x={x - size / 2}
+                y={y - size / 2}
+                width={size}
+                height={size}
+                className="footprint"
+                transform={`rotate(${placement.rotationDeg} ${x} ${y})`}
+              />
+            );
+          })}
         {isLanceWedge &&
           rankCounts.map((rankCount, rowIndex) => {
             const rowWidth = rankCount * dimensions.slotWidthMm;

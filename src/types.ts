@@ -13,6 +13,12 @@ export type TraySettings = {
   adapterFlankCutoutWidthMm: number;
   adapterFlankCutoutDepthMm: number;
   adapterBaseHeightMm: number;
+  skirmishBaseShape: 'square' | 'circle';
+  skirmishBaseSizeMm: number;
+  skirmishSeed: number;
+  skirmishMaxRotationDeg: number;
+  skirmishMaxOffsetMm: number;
+  skirmishDistributionChancePercent: number;
   magnetCutoutsEnabled: boolean;
   magnetDiameterMm: number;
   magnetCutoutDepthMm: number;
@@ -29,7 +35,7 @@ export type TraySettings = {
   buildPlateSize: BuildPlateSize;
 };
 
-export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter' | 'adapterLance';
+export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter' | 'adapterLance' | 'skirmish';
 
 export type SavedTray = {
   id: string;

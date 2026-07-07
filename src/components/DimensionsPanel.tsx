@@ -27,6 +27,12 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
               ]
             : []),
         ]
+      : settings.template === 'skirmish'
+        ? [
+            ['Skirmish base size (mm)', formatMm(settings.skirmishBaseSizeMm)],
+            ['Max offset (mm)', formatMm(settings.skirmishMaxOffsetMm)],
+            ['Max rotation (degrees)', `${settings.skirmishMaxRotationDeg.toFixed(1)} degrees`],
+          ]
       : [
           ['Rail height (mm)', formatMm(settings.railHeightMm)],
           ['Rail thickness (mm)', formatMm(settings.railThicknessMm)],
