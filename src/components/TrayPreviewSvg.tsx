@@ -261,10 +261,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </g>
         )}
 
-        {settings.frontRailEnabled && !isLanceFormation && !isAdapter && (
+        {settings.frontRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
         )}
-        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && !hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && !hasCharacterBay && (
           <rect
             x={innerX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -273,7 +273,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && hasCharacterBay && (
           <rect
             x={mainAreaX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -282,10 +282,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.leftRailEnabled && !isLanceFormation && !isAdapter && !hasCharacterBay && (
+        {settings.leftRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && !hasCharacterBay && (
           <rect x={outerX} y={outerY} width={settings.railThicknessMm} height={dimensions.outerDepthMm} className="rail" />
         )}
-        {settings.rightRailEnabled && !isLanceFormation && !isAdapter && !hasCharacterBay && (
+        {settings.rightRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && !hasCharacterBay && (
           <rect
             x={outerX + dimensions.outerWidthMm - settings.railThicknessMm}
             y={outerY}
@@ -439,7 +439,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
 
-        {!isLanceFormation && !isAdapter && (
+        {!isLanceFormation && !isAdapter && !isSkirmish && (
           <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
         )}
         {hasCharacterBay && (
@@ -455,7 +455,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           skirmishPlacements.map((placement) => {
             const x = innerCenterScreenX + placement.x;
             const y = innerCenterScreenY + placement.y;
-            const size = settings.skirmishBaseSizeMm;
+            const size = settings.skirmishBaseSizeMm + settings.toleranceMm;
 
             if (settings.skirmishBaseShape === 'circle') {
               return <circle key={`${placement.columnIndex}-${placement.rowIndex}`} cx={x} cy={y} r={size / 2} className="footprint" />;
