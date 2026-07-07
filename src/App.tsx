@@ -32,7 +32,18 @@ export default function App() {
   return (
     <div className="app-shell" data-theme={theme}>
       <header className="site-banner" aria-label="Tray Workshop">
-        <img src={`${import.meta.env.BASE_URL}tray-workshop-banner.png`} alt="Tray Workshop" />
+        <div className="brand-lockup">
+          <img
+            className="brand-mascot"
+            src={`${import.meta.env.BASE_URL}tray-workshop-mascot.png`}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="brand-text">
+            <p>STL movement tray generator</p>
+            <strong>Tray Workshop</strong>
+          </div>
+        </div>
       </header>
 
       <main className="app-main">
