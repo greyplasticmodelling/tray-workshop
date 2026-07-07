@@ -200,10 +200,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               className="inner-area"
             />
             <rect
-              x={characterBayX + dimensions.characterSlotWidthMm / 2 - dimensions.adapterCutoutWidthMm / 2}
-              y={characterSlotY + dimensions.characterSlotDepthMm / 2 - dimensions.adapterCutoutDepthMm / 2}
-              width={dimensions.adapterCutoutWidthMm}
-              height={dimensions.adapterCutoutDepthMm}
+              x={characterBayX + dimensions.characterSlotWidthMm / 2 - dimensions.adapterFlankCutoutWidthMm / 2}
+              y={characterSlotY + dimensions.characterSlotDepthMm / 2 - dimensions.adapterFlankCutoutDepthMm / 2}
+              width={dimensions.adapterFlankCutoutWidthMm}
+              height={dimensions.adapterFlankCutoutDepthMm}
               className="adapter-cutout"
             />
           </g>

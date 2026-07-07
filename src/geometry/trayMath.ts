@@ -11,6 +11,8 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   railHeightMm: { min: 0.5, max: 12, label: 'Rail height', unit: 'mm' },
   adapterCutoutWidthMm: { min: 10, max: 60, label: 'Adapter cutout width', unit: 'mm' },
   adapterCutoutDepthMm: { min: 10, max: 80, label: 'Adapter cutout depth', unit: 'mm' },
+  adapterFlankCutoutWidthMm: { min: 10, max: 80, label: 'Flank adapter cutout width', unit: 'mm' },
+  adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
   magnetDiameterMm: { min: 1, max: 15, label: 'Magnet diameter', unit: 'mm' },
   magnetCutoutDepthMm: { min: 0.1, max: 8, label: 'Magnet cutout depth', unit: 'mm' },
@@ -69,6 +71,8 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const slotDepthMm = isAdapter ? settings.baseDepthMm : settings.baseDepthMm + settings.toleranceMm;
   const adapterCutoutWidthMm = settings.adapterCutoutWidthMm + settings.toleranceMm;
   const adapterCutoutDepthMm = settings.adapterCutoutDepthMm + settings.toleranceMm;
+  const adapterFlankCutoutWidthMm = settings.adapterFlankCutoutWidthMm + settings.toleranceMm;
+  const adapterFlankCutoutDepthMm = settings.adapterFlankCutoutDepthMm + settings.toleranceMm;
   const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm;
   const mainInnerDepthMm = rankCounts.length * slotDepthMm;
   const hasCharacterBay =
@@ -96,6 +100,8 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
     slotDepthMm,
     adapterCutoutWidthMm,
     adapterCutoutDepthMm,
+    adapterFlankCutoutWidthMm,
+    adapterFlankCutoutDepthMm,
     mainInnerWidthMm,
     mainInnerDepthMm,
     characterSlotWidthMm,
@@ -232,12 +238,12 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     if (settings.characterBayEnabled) {
-      if (dimensions.adapterCutoutWidthMm > dimensions.characterSlotWidthMm) {
-        messages.push('Adapter cutout width must fit inside the irregular flank base width.');
+      if (dimensions.adapterFlankCutoutWidthMm > dimensions.characterSlotWidthMm) {
+        messages.push('Flank adapter cutout width must fit inside the irregular flank base width.');
       }
 
-      if (dimensions.adapterCutoutDepthMm > dimensions.characterSlotDepthMm) {
-        messages.push('Adapter cutout depth must fit inside the irregular flank base depth.');
+      if (dimensions.adapterFlankCutoutDepthMm > dimensions.characterSlotDepthMm) {
+        messages.push('Flank adapter cutout depth must fit inside the irregular flank base depth.');
       }
     }
   }
@@ -261,7 +267,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       settings.characterBayEnabled &&
       settings.magnetDiameterMm >
         (settings.template === 'adapter'
-          ? Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm)
+          ? Math.min(dimensions.adapterFlankCutoutWidthMm, dimensions.adapterFlankCutoutDepthMm)
           : Math.min(dimensions.characterSlotWidthMm, dimensions.characterSlotDepthMm))
     ) {
       messages.push('Magnet diameter must fit inside the character flank slot.');

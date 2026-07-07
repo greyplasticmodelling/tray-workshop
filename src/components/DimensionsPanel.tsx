@@ -20,6 +20,12 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
           ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
           ['Adapter cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
+          ...(settings.characterBayEnabled
+            ? [
+                ['Flank cutout width (mm)', formatMm(dimensions.adapterFlankCutoutWidthMm)],
+                ['Flank cutout depth (mm)', formatMm(dimensions.adapterFlankCutoutDepthMm)],
+              ]
+            : []),
         ]
       : [
           ['Rail height (mm)', formatMm(settings.railHeightMm)],

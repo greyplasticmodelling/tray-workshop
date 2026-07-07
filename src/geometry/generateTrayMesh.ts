@@ -208,8 +208,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       adapterHoles.push({
         x: characterFloorCenterX,
         y: characterFloorCenterY,
-        width: dimensions.adapterCutoutWidthMm,
-        depth: dimensions.adapterCutoutDepthMm,
+        width: dimensions.adapterFlankCutoutWidthMm,
+        depth: dimensions.adapterFlankCutoutDepthMm,
       });
     }
 

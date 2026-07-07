@@ -192,6 +192,34 @@ export function TrayControls({
                 onChange={(event) => updateNumber('adapterBaseHeightMm', event.target.value)}
               />
             </label>
+
+            {isAdapter && (
+              <>
+                <label className="field" title="Width of the smaller base recess centred inside the irregular flank target.">
+                  <span>Flank cutout width (mm)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title="Width of the smaller base recess centred inside the irregular flank target."
+                    value={settings.adapterFlankCutoutWidthMm}
+                    onChange={(event) => updateNumber('adapterFlankCutoutWidthMm', event.target.value)}
+                  />
+                </label>
+
+                <label className="field" title="Depth of the smaller base recess centred inside the irregular flank target.">
+                  <span>Flank cutout depth (mm)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title="Depth of the smaller base recess centred inside the irregular flank target."
+                    value={settings.adapterFlankCutoutDepthMm}
+                    onChange={(event) => updateNumber('adapterFlankCutoutDepthMm', event.target.value)}
+                  />
+                </label>
+              </>
+            )}
           </div>
         </fieldset>
       )}

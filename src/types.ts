@@ -10,6 +10,8 @@ export type TraySettings = {
   railHeightMm: number;
   adapterCutoutWidthMm: number;
   adapterCutoutDepthMm: number;
+  adapterFlankCutoutWidthMm: number;
+  adapterFlankCutoutDepthMm: number;
   adapterBaseHeightMm: number;
   magnetCutoutsEnabled: boolean;
   magnetDiameterMm: number;
@@ -58,6 +60,8 @@ export type TrayDimensions = {
   slotDepthMm: number;
   adapterCutoutWidthMm: number;
   adapterCutoutDepthMm: number;
+  adapterFlankCutoutWidthMm: number;
+  adapterFlankCutoutDepthMm: number;
   mainInnerWidthMm: number;
   mainInnerDepthMm: number;
   characterSlotWidthMm: number;
