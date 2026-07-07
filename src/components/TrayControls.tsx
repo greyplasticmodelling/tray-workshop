@@ -213,24 +213,46 @@ export function TrayControls({
       </fieldset>
       )}
 
-      {settings.template === 'standard' && (
+      {(settings.template === 'standard' || isAdapter) && (
         <fieldset className="character-options">
-          <legend>Character Flank Slot</legend>
-          <label className="toggle" title="Add one custom character flank slot to the standard tray.">
+          <legend>{isAdapter ? 'Irregular Flank Adapter' : 'Character Flank Slot'}</legend>
+          <label
+            className="toggle"
+            title={
+              isAdapter
+                ? 'Add one irregular larger-base adapter space on a flank.'
+                : 'Add one custom character flank slot to the standard tray.'
+            }
+          >
             <input
               type="checkbox"
-              title="Add one custom character flank slot to the standard tray."
+              title={
+                isAdapter
+                  ? 'Add one irregular larger-base adapter space on a flank.'
+                  : 'Add one custom character flank slot to the standard tray.'
+              }
               checked={settings.characterBayEnabled}
               onChange={(event) => updateToggle('characterBayEnabled', event.target.checked)}
             />
-            <span>Enable character flank slot</span>
+            <span>{isAdapter ? 'Enable irregular flank adapter' : 'Enable character flank slot'}</span>
           </label>
 
-          <label className="field" title="Choose which side of the movement tray gets the character flank slot.">
+          <label
+            className="field"
+            title={
+              isAdapter
+                ? 'Choose which side of the adapter tray gets the irregular base space.'
+                : 'Choose which side of the movement tray gets the character flank slot.'
+            }
+          >
             <span>Flank side</span>
             <select
               value={settings.characterBaySide}
-              title="Choose which side of the movement tray gets the character flank slot."
+              title={
+                isAdapter
+                  ? 'Choose which side of the adapter tray gets the irregular base space.'
+                  : 'Choose which side of the movement tray gets the character flank slot.'
+              }
               onChange={(event) => onChange({ ...settings, characterBaySide: event.target.value as TraySettings['characterBaySide'] })}
             >
               <option value="left">Left flank</option>
@@ -239,25 +261,47 @@ export function TrayControls({
           </label>
 
           <div className="field-grid">
-            <label className="field" title="Width of the character flank slot from left to right.">
-              <span>Flank slot width (mm)</span>
+            <label
+              className="field"
+              title={
+                isAdapter
+                  ? 'Width of the larger irregular base footprint on the flank.'
+                  : 'Width of the character flank slot from left to right.'
+              }
+            >
+              <span>{isAdapter ? 'Irregular target width (mm)' : 'Flank slot width (mm)'}</span>
               <input
                 type="number"
                 min="0"
                 step="1"
-                title="Width of the character flank slot from left to right."
+                title={
+                  isAdapter
+                    ? 'Width of the larger irregular base footprint on the flank.'
+                    : 'Width of the character flank slot from left to right.'
+                }
                 value={settings.characterBaseWidthMm}
                 onChange={(event) => updateNumber('characterBaseWidthMm', event.target.value)}
               />
             </label>
 
-            <label className="field" title="Depth of the character flank slot from front to back.">
-              <span>Flank slot depth (mm)</span>
+            <label
+              className="field"
+              title={
+                isAdapter
+                  ? 'Depth of the larger irregular base footprint on the flank.'
+                  : 'Depth of the character flank slot from front to back.'
+              }
+            >
+              <span>{isAdapter ? 'Irregular target depth (mm)' : 'Flank slot depth (mm)'}</span>
               <input
                 type="number"
                 min="0"
                 step="1"
-                title="Depth of the character flank slot from front to back."
+                title={
+                  isAdapter
+                    ? 'Depth of the larger irregular base footprint on the flank.'
+                    : 'Depth of the character flank slot from front to back.'
+                }
                 value={settings.characterBaseDepthMm}
                 onChange={(event) => updateNumber('characterBaseDepthMm', event.target.value)}
               />
@@ -266,7 +310,6 @@ export function TrayControls({
         </fieldset>
       )}
 
-      {!isAdapter && (
       <fieldset className="magnet-options">
         <legend>Magnet cutouts</legend>
         <label className="toggle" title="Add circular top-side magnet recesses centred in each base space.">
@@ -332,7 +375,6 @@ export function TrayControls({
           </>
         )}
       </fieldset>
-      )}
 
       {validationMessages.length > 0 && (
         <div className="validation" role="alert">

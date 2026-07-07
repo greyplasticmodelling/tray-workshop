@@ -77,10 +77,12 @@ function createRectCutoutLayer(
   depth: number,
   height: number,
   holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  x: number,
+  y: number,
   z: number,
 ) {
   if (holes.length === 0) {
-    return createBox(name, width, depth, height, 0, 0, z + height / 2);
+    return createBox(name, width, depth, height, x, y, z + height / 2);
   }
 
   const shape = new THREE.Shape();
@@ -117,8 +119,30 @@ function createRectCutoutLayer(
   const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = name;
-  mesh.position.set(0, 0, z);
+  mesh.position.set(x, y, z);
   return mesh;
+}
+
+function getRectHolesInRect(
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  centerX: number,
+  centerY: number,
+  width: number,
+  depth: number,
+) {
+  return holes
+    .filter(
+      (hole) =>
+        hole.x >= centerX - width / 2 &&
+        hole.x <= centerX + width / 2 &&
+        hole.y >= centerY - depth / 2 &&
+        hole.y <= centerY + depth / 2,
+    )
+    .map((hole) => ({
+      ...hole,
+      x: hole.x - centerX,
+      y: hole.y - centerY,
+    }));
 }
 
 function getHolesInRect(
@@ -150,43 +174,122 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
 
   if (settings.template === 'adapter') {
-    group.add(
-      createBox(
-        'adapter-floor',
-        dimensions.outerWidthMm,
-        dimensions.outerDepthMm,
-        settings.floorThicknessMm,
-        0,
-        0,
-        settings.floorThicknessMm / 2,
-      ),
-    );
-
+    const adapterMagnetCenters = magnetCenters.map((center) => ({
+      x: center.x,
+      y: center.y,
+    }));
+    const hasFlankAdapter = settings.characterBayEnabled;
+    const outerLeftX = -dimensions.outerWidthMm / 2;
+    const outerFrontY = -dimensions.outerDepthMm / 2;
+    const mainFloorX =
+      hasFlankAdapter && settings.characterBaySide === 'left'
+        ? outerLeftX + dimensions.characterSlotWidthMm
+        : outerLeftX;
+    const mainFloorCenterX = mainFloorX + dimensions.mainInnerWidthMm / 2;
+    const mainFloorCenterY = outerFrontY + dimensions.mainInnerDepthMm / 2;
+    const characterFloorX =
+      settings.characterBaySide === 'left' ? outerLeftX : outerLeftX + dimensions.mainInnerWidthMm;
+    const characterFloorCenterX = characterFloorX + dimensions.characterSlotWidthMm / 2;
+    const characterFloorCenterY = outerFrontY + dimensions.characterSlotDepthMm / 2;
     const adapterHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
-    const leftX = -dimensions.outerWidthMm / 2;
-    const frontY = -dimensions.outerDepthMm / 2;
 
     rankCounts.forEach((rankCount, rowIndex) => {
       for (let columnIndex = 0; columnIndex < rankCount; columnIndex += 1) {
         adapterHoles.push({
-          x: leftX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
-          y: frontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2,
+          x: mainFloorX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
+          y: outerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2,
           width: dimensions.adapterCutoutWidthMm,
           depth: dimensions.adapterCutoutDepthMm,
         });
       }
     });
 
+    if (hasFlankAdapter) {
+      adapterHoles.push({
+        x: characterFloorCenterX,
+        y: characterFloorCenterY,
+        width: dimensions.adapterCutoutWidthMm,
+        depth: dimensions.adapterCutoutDepthMm,
+      });
+    }
+
+    group.add(
+      createPerforatedFloorLayer(
+        'adapter-floor',
+        dimensions.mainInnerWidthMm,
+        dimensions.mainInnerDepthMm,
+        settings.floorThicknessMm,
+        mainFloorCenterX,
+        mainFloorCenterY,
+        getHolesInRect(
+          adapterMagnetCenters,
+          mainFloorCenterX,
+          mainFloorCenterY,
+          dimensions.mainInnerWidthMm,
+          dimensions.mainInnerDepthMm,
+        ),
+        settings,
+      ),
+    );
+
     group.add(
       createRectCutoutLayer(
         'adapter-block',
-        dimensions.outerWidthMm,
-        dimensions.outerDepthMm,
+        dimensions.mainInnerWidthMm,
+        dimensions.mainInnerDepthMm,
         settings.adapterBaseHeightMm,
-        adapterHoles,
+        getRectHolesInRect(
+          adapterHoles,
+          mainFloorCenterX,
+          mainFloorCenterY,
+          dimensions.mainInnerWidthMm,
+          dimensions.mainInnerDepthMm,
+        ),
+        mainFloorCenterX,
+        mainFloorCenterY,
         settings.floorThicknessMm,
       ),
     );
+
+    if (hasFlankAdapter) {
+      group.add(
+        createPerforatedFloorLayer(
+          'adapter-flank-floor',
+          dimensions.characterSlotWidthMm,
+          dimensions.characterSlotDepthMm,
+          settings.floorThicknessMm,
+          characterFloorCenterX,
+          characterFloorCenterY,
+          getHolesInRect(
+            adapterMagnetCenters,
+            characterFloorCenterX,
+            characterFloorCenterY,
+            dimensions.characterSlotWidthMm,
+            dimensions.characterSlotDepthMm,
+          ),
+          settings,
+        ),
+      );
+
+      group.add(
+        createRectCutoutLayer(
+          'adapter-flank-block',
+          dimensions.characterSlotWidthMm,
+          dimensions.characterSlotDepthMm,
+          settings.adapterBaseHeightMm,
+          getRectHolesInRect(
+            adapterHoles,
+            characterFloorCenterX,
+            characterFloorCenterY,
+            dimensions.characterSlotWidthMm,
+            dimensions.characterSlotDepthMm,
+          ),
+          characterFloorCenterX,
+          characterFloorCenterY,
+          settings.floorThicknessMm,
+        ),
+      );
+    }
 
     return group;
   }

@@ -71,9 +71,18 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const adapterCutoutDepthMm = settings.adapterCutoutDepthMm + settings.toleranceMm;
   const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm;
   const mainInnerDepthMm = rankCounts.length * slotDepthMm;
-  const hasCharacterBay = settings.template === 'standard' && settings.characterBayEnabled;
-  const characterSlotWidthMm = hasCharacterBay ? settings.characterBaseWidthMm + settings.toleranceMm : 0;
-  const characterSlotDepthMm = hasCharacterBay ? settings.characterBaseDepthMm + settings.toleranceMm : 0;
+  const hasCharacterBay =
+    settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
+  const characterSlotWidthMm = hasCharacterBay
+    ? isAdapter
+      ? settings.characterBaseWidthMm
+      : settings.characterBaseWidthMm + settings.toleranceMm
+    : 0;
+  const characterSlotDepthMm = hasCharacterBay
+    ? isAdapter
+      ? settings.characterBaseDepthMm
+      : settings.characterBaseDepthMm + settings.toleranceMm
+    : 0;
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
@@ -110,7 +119,7 @@ export type MagnetCutoutCenter = {
 };
 
 export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): MagnetCutoutCenter[] {
-  if (!settings.magnetCutoutsEnabled || settings.template === 'adapter') {
+  if (!settings.magnetCutoutsEnabled) {
     return [];
   }
 
@@ -122,7 +131,9 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
   rankCounts.forEach((rankCount, rowIndex) => {
     const rowWidth = rankCount * dimensions.slotWidthMm;
     const standardMainOffsetX =
-      settings.characterBayEnabled && settings.characterBaySide === 'left'
+      settings.characterBayEnabled &&
+      (settings.template === 'standard' || settings.template === 'adapter') &&
+      settings.characterBaySide === 'left'
         ? dimensions.characterSlotWidthMm
         : 0;
     const rowStartX =
@@ -145,7 +156,7 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     }
   });
 
-  if (settings.template === 'standard' && settings.characterBayEnabled) {
+  if ((settings.template === 'standard' || settings.template === 'adapter') && settings.characterBayEnabled) {
     const characterX =
       settings.characterBaySide === 'left'
         ? -dimensions.innerWidthMm / 2 + dimensions.characterSlotWidthMm / 2
@@ -219,6 +230,16 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     if (dimensions.adapterCutoutDepthMm > dimensions.slotDepthMm) {
       messages.push('Adapter cutout depth must fit inside the target base depth.');
     }
+
+    if (settings.characterBayEnabled) {
+      if (dimensions.adapterCutoutWidthMm > dimensions.characterSlotWidthMm) {
+        messages.push('Adapter cutout width must fit inside the irregular flank base width.');
+      }
+
+      if (dimensions.adapterCutoutDepthMm > dimensions.characterSlotDepthMm) {
+        messages.push('Adapter cutout depth must fit inside the irregular flank base depth.');
+      }
+    }
   }
 
   if (settings.magnetCutoutsEnabled) {
@@ -226,14 +247,22 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       messages.push('Magnet cutout depth cannot be greater than floor thickness.');
     }
 
-    if (settings.magnetDiameterMm > Math.min(dimensions.slotWidthMm, dimensions.slotDepthMm)) {
+    const magnetLimit =
+      settings.template === 'adapter'
+        ? Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm)
+        : Math.min(dimensions.slotWidthMm, dimensions.slotDepthMm);
+
+    if (settings.magnetDiameterMm > magnetLimit) {
       messages.push('Magnet diameter must fit inside each base space.');
     }
 
     if (
-      settings.template === 'standard' &&
+      (settings.template === 'standard' || settings.template === 'adapter') &&
       settings.characterBayEnabled &&
-      settings.magnetDiameterMm > Math.min(dimensions.characterSlotWidthMm, dimensions.characterSlotDepthMm)
+      settings.magnetDiameterMm >
+        (settings.template === 'adapter'
+          ? Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm)
+          : Math.min(dimensions.characterSlotWidthMm, dimensions.characterSlotDepthMm))
     ) {
       messages.push('Magnet diameter must fit inside the character flank slot.');
     }

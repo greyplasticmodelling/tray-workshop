@@ -28,7 +28,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
   const isAdapter = settings.template === 'adapter';
-  const hasCharacterBay = settings.template === 'standard' && settings.characterBayEnabled;
+  const hasCharacterBay =
+    settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
   const characterBayX =
     settings.characterBaySide === 'left'
       ? innerX
@@ -64,7 +65,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
     const rowWidth = rankCount * dimensions.slotWidthMm;
-    const rowX = isLanceWedge ? centerX - rowWidth / 2 : isAdapter ? outerX : mainAreaX;
+    const rowX = isLanceWedge ? centerX - rowWidth / 2 : mainAreaX;
     const rowY = (isLanceWedge ? innerY : isAdapter ? outerY : mainAreaY) + row * dimensions.slotDepthMm;
 
     for (let column = 0; column < rankCount; column += 1) {
@@ -164,7 +165,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             const rowY = outerY + rowIndex * dimensions.slotDepthMm;
 
             return Array.from({ length: rankCount }, (_, columnIndex) => {
-              const cellX = outerX + columnIndex * dimensions.slotWidthMm;
+              const cellX = mainAreaX + columnIndex * dimensions.slotWidthMm;
               const cellCenterX = cellX + dimensions.slotWidthMm / 2;
               const cellCenterY = rowY + dimensions.slotDepthMm / 2;
 
@@ -188,6 +189,25 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               );
             });
           })}
+
+        {isAdapter && hasCharacterBay && (
+          <g>
+            <rect
+              x={characterBayX}
+              y={characterSlotY}
+              width={dimensions.characterSlotWidthMm}
+              height={dimensions.characterSlotDepthMm}
+              className="inner-area"
+            />
+            <rect
+              x={characterBayX + dimensions.characterSlotWidthMm / 2 - dimensions.adapterCutoutWidthMm / 2}
+              y={characterSlotY + dimensions.characterSlotDepthMm / 2 - dimensions.adapterCutoutDepthMm / 2}
+              width={dimensions.adapterCutoutWidthMm}
+              height={dimensions.adapterCutoutDepthMm}
+              className="adapter-cutout"
+            />
+          </g>
+        )}
 
         {settings.frontRailEnabled && !isLanceWedge && !isAdapter && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
