@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DimensionsPanel } from './components/DimensionsPanel';
 import { TrayControls } from './components/TrayControls';
 import { TrayPreviewSvg } from './components/TrayPreviewSvg';
 import { downloadStl } from './geometry/exportStl';
 import { calculateBuildPlateFit, calculateTrayDimensions, validateTraySettings } from './geometry/trayMath';
-import type { ThemeName, TraySettings } from './types';
+import type { SavedTray, ThemeName, TraySettings, TrayTemplate } from './types';
 
-const defaultSettings: TraySettings = {
+const standardDefaults: TraySettings = {
   template: 'standard',
   baseWidthMm: 25,
   baseDepthMm: 25,
@@ -23,12 +23,97 @@ const defaultSettings: TraySettings = {
   buildPlateSize: '256x256',
 };
 
+const lanceWedgeDefaults: TraySettings = {
+  ...standardDefaults,
+  template: 'lanceWedge',
+  baseWidthMm: 30,
+  baseDepthMm: 60,
+  columns: 5,
+  rows: 3,
+};
+
+const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
+  standard: standardDefaults,
+  lanceWedge: lanceWedgeDefaults,
+};
+
+const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
+
+function readSavedTrays(): SavedTray[] {
+  try {
+    const stored = window.localStorage.getItem(savedTraysStorageKey);
+    return stored ? (JSON.parse(stored) as SavedTray[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function App() {
-  const [settings, setSettings] = useState<TraySettings>(defaultSettings);
+  const [activeTemplate, setActiveTemplate] = useState<TrayTemplate>('standard');
+  const [settingsByTemplate, setSettingsByTemplate] =
+    useState<Record<TrayTemplate, TraySettings>>(defaultSettingsByTemplate);
+  const [savedTrays, setSavedTrays] = useState<SavedTray[]>(() => readSavedTrays());
   const [theme, setTheme] = useState<ThemeName>('workshop');
+  const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
   const buildPlateFit = useMemo(() => calculateBuildPlateFit(settings, dimensions), [settings, dimensions]);
   const validation = useMemo(() => validateTraySettings(settings), [settings]);
+
+  useEffect(() => {
+    window.localStorage.setItem(savedTraysStorageKey, JSON.stringify(savedTrays));
+  }, [savedTrays]);
+
+  const updateSettings = (nextSettings: TraySettings) => {
+    setSettingsByTemplate((current) => ({
+      ...current,
+      [nextSettings.template]: nextSettings,
+    }));
+  };
+
+  const resetCurrentTemplate = () => {
+    updateSettings({
+      ...defaultSettingsByTemplate[activeTemplate],
+      buildPlateSize: settings.buildPlateSize,
+    });
+  };
+
+  const saveCurrentTray = () => {
+    const defaultName =
+      settings.template === 'lanceWedge'
+        ? `Lance Wedge ${settings.rows} rows`
+        : `Standard ${settings.columns} x ${settings.rows}`;
+    const name = window.prompt('Save tray as:', defaultName);
+
+    if (!name?.trim()) {
+      return;
+    }
+
+    setSavedTrays((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        settings,
+      },
+    ]);
+  };
+
+  const loadSavedTray = (id: string) => {
+    const savedTray = savedTrays.find((tray) => tray.id === id);
+    if (!savedTray) {
+      return;
+    }
+
+    setSettingsByTemplate((current) => ({
+      ...current,
+      [savedTray.settings.template]: savedTray.settings,
+    }));
+    setActiveTemplate(savedTray.settings.template);
+  };
+
+  const deleteSavedTray = (id: string) => {
+    setSavedTrays((current) => current.filter((tray) => tray.id !== id));
+  };
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -51,8 +136,14 @@ export default function App() {
         <TrayControls
           settings={settings}
           theme={theme}
-          onChange={setSettings}
+          savedTrays={savedTrays}
+          onChange={updateSettings}
+          onTemplateChange={setActiveTemplate}
           onThemeChange={setTheme}
+          onResetTemplate={resetCurrentTemplate}
+          onSaveTray={saveCurrentTray}
+          onLoadTray={loadSavedTray}
+          onDeleteSavedTray={deleteSavedTray}
           validationMessages={validation.messages}
           onDownload={() => downloadStl(settings)}
         />
@@ -63,7 +154,7 @@ export default function App() {
             settings={settings}
             dimensions={dimensions}
             buildPlateFit={buildPlateFit}
-            onSettingsChange={setSettings}
+            onSettingsChange={updateSettings}
           />
         </section>
       </main>

@@ -17,6 +17,12 @@ export type TraySettings = {
 
 export type TrayTemplate = 'standard' | 'lanceWedge';
 
+export type SavedTray = {
+  id: string;
+  name: string;
+  settings: TraySettings;
+};
+
 export type BuildPlateSize = '180x180' | '235x235' | '256x256' | '300x300' | '350x350';
 
 export type BuildPlate = {

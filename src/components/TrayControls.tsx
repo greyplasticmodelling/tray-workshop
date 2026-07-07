@@ -1,11 +1,17 @@
-import type { ThemeName, TraySettings } from '../types';
+import type { SavedTray, ThemeName, TraySettings } from '../types';
 import { trayTemplates } from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
   theme: ThemeName;
+  savedTrays: SavedTray[];
   onChange: (settings: TraySettings) => void;
+  onTemplateChange: (template: TraySettings['template']) => void;
   onThemeChange: (theme: ThemeName) => void;
+  onResetTemplate: () => void;
+  onSaveTray: () => void;
+  onLoadTray: (id: string) => void;
+  onDeleteSavedTray: (id: string) => void;
   validationMessages: string[];
   onDownload: () => void;
 };
@@ -40,63 +46,20 @@ const themes: Array<{ value: ThemeName; label: string }> = [
   { value: 'parchment', label: 'Parchment' },
 ];
 
-function getTemplateDefaults(template: TraySettings['template'], current: TraySettings): TraySettings {
-  const shared = {
-    toleranceMm: 0.2,
-    floorThicknessMm: 1.6,
-    railThicknessMm: 2,
-    railHeightMm: 2,
-    frontRailEnabled: true,
-    rearRailEnabled: false,
-    leftRailEnabled: true,
-    rightRailEnabled: true,
-    buildPlateSize: current.buildPlateSize,
-  };
-
-  if (template === 'lanceWedge') {
-    return {
-      ...current,
-      ...shared,
-      template,
-      baseWidthMm: 30,
-      baseDepthMm: 60,
-      columns: 5,
-      rows: 3,
-    };
-  }
-
-  return {
-    ...current,
-    ...shared,
-    template,
-    baseWidthMm: 25,
-    baseDepthMm: 25,
-    columns: 5,
-    rows: 4,
-  };
-}
-
-export function TrayControls({ settings, theme, onChange, onThemeChange, validationMessages, onDownload }: Props) {
-  const updateTemplate = (template: TraySettings['template']) => {
-    if (template === 'lanceWedge') {
-      onChange({
-        ...settings,
-        template,
-        baseWidthMm: 30,
-        baseDepthMm: 60,
-        columns: 5,
-        rows: 3,
-        frontRailEnabled: true,
-        rearRailEnabled: false,
-        leftRailEnabled: true,
-        rightRailEnabled: true,
-      });
-      return;
-    }
-
-    onChange({ ...settings, template });
-  };
-
+export function TrayControls({
+  settings,
+  theme,
+  savedTrays,
+  onChange,
+  onTemplateChange,
+  onThemeChange,
+  onResetTemplate,
+  onSaveTray,
+  onLoadTray,
+  onDeleteSavedTray,
+  validationMessages,
+  onDownload,
+}: Props) {
   const updateNumber = (key: keyof TraySettings, value: string) => {
     const nextValue = value === '' ? 0 : Number(value);
     onChange({ ...settings, [key]: nextValue });
@@ -104,10 +67,6 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
 
   const updateToggle = (key: keyof TraySettings, checked: boolean) => {
     onChange({ ...settings, [key]: checked });
-  };
-
-  const resetCurrentTemplate = () => {
-    onChange(getTemplateDefaults(settings.template, settings));
   };
 
   return (
@@ -138,7 +97,7 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
         <select
           value={settings.template}
           title="Choose the movement tray layout to generate."
-          onChange={(event) => updateTemplate(event.target.value as TraySettings['template'])}
+          onChange={(event) => onTemplateChange(event.target.value as TraySettings['template'])}
         >
           {trayTemplates.map((template) => (
             <option value={template.value} key={template.value}>
@@ -202,10 +161,45 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
         className="secondary-button"
         type="button"
         title="Reset the current tray template to its default parameters."
-        onClick={resetCurrentTemplate}
+        onClick={onResetTemplate}
       >
         Reset template defaults
       </button>
+
+      <section className="saved-trays" aria-label="Saved trays">
+        <div className="saved-trays-header">
+          <span>Saved trays</span>
+          <button type="button" className="small-button" title="Save the current tray in this browser." onClick={onSaveTray}>
+            Save
+          </button>
+        </div>
+
+        {savedTrays.length === 0 ? (
+          <p>No saved trays yet.</p>
+        ) : (
+          <div className="saved-tray-list">
+            {savedTrays.map((savedTray) => (
+              <div className="saved-tray-row" key={savedTray.id}>
+                <button
+                  type="button"
+                  title="Load this saved tray."
+                  onClick={() => onLoadTray(savedTray.id)}
+                >
+                  {savedTray.name}
+                </button>
+                <button
+                  type="button"
+                  className="delete-button"
+                  title="Delete this saved tray from this browser."
+                  onClick={() => onDeleteSavedTray(savedTray.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <button
         className="download-button"
