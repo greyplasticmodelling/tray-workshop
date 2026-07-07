@@ -1,13 +1,14 @@
 import type { BuildPlateFit, TrayDimensions, TraySettings } from '../types';
-import { formatMm } from '../geometry/trayMath';
+import { buildPlates, formatMm } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
   settings: TraySettings;
   buildPlateFit: BuildPlateFit;
+  onSettingsChange: (settings: TraySettings) => void;
 };
 
-export function DimensionsPanel({ dimensions, settings, buildPlateFit }: Props) {
+export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSettingsChange }: Props) {
   const items = [
     ['Inner width (mm)', formatMm(dimensions.innerWidthMm)],
     ['Inner depth (mm)', formatMm(dimensions.innerDepthMm)],
@@ -29,11 +30,30 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit }: Props) 
 
   return (
     <div className="output-summary">
-      <section className="plate-fit" data-fit={fitsOnPlate ? 'yes' : 'no'} aria-label="Build plate fit">
-        <span>Build plate check</span>
-        <strong>{fitText}</strong>
-        <p>{fitDetail}</p>
-      </section>
+      <div className="plate-summary">
+        <label className="field plate-select" title="Choose the printer build plate size used for the fit check.">
+          <span>Build plate size (mm)</span>
+          <select
+            value={settings.buildPlateSize}
+            title="Choose the printer build plate size used for the fit check."
+            onChange={(event) =>
+              onSettingsChange({ ...settings, buildPlateSize: event.target.value as TraySettings['buildPlateSize'] })
+            }
+          >
+            {buildPlates.map((plate) => (
+              <option value={plate.value} key={plate.value}>
+                {plate.widthMm} x {plate.depthMm}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <section className="plate-fit" data-fit={fitsOnPlate ? 'yes' : 'no'} aria-label="Build plate fit">
+          <span>Build plate check</span>
+          <strong>{fitText}</strong>
+          <p>{fitDetail}</p>
+        </section>
+      </div>
 
       <section className="dimensions" aria-label="Calculated dimensions">
         {items.map(([label, value]) => (

@@ -334,6 +334,22 @@ h1 {
   gap: 10px;
 }
 
+.plate-summary {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+}
+
+.plate-select {
+  min-height: 72px;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-soft);
+}
+
 .plate-fit {
   min-height: 72px;
   display: grid;
@@ -425,6 +441,10 @@ footer {
   .dimensions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .plate-summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -439,6 +459,7 @@ footer {
 
   .field-grid,
   .rail-options,
+  .plate-summary,
   .dimensions {
     grid-template-columns: 1fr;
   }

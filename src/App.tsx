@@ -11,7 +11,7 @@ const defaultSettings: TraySettings = {
   baseDepthMm: 25,
   columns: 5,
   rows: 4,
-  toleranceMm: 0.5,
+  toleranceMm: 0.2,
   floorThicknessMm: 1.6,
   railThicknessMm: 2,
   railHeightMm: 2,
@@ -47,7 +47,12 @@ export default function App() {
 
         <section className="preview-panel" aria-label="Tray preview and dimensions">
           <TrayPreviewSvg settings={settings} dimensions={dimensions} />
-          <DimensionsPanel settings={settings} dimensions={dimensions} buildPlateFit={buildPlateFit} />
+          <DimensionsPanel
+            settings={settings}
+            dimensions={dimensions}
+            buildPlateFit={buildPlateFit}
+            onSettingsChange={setSettings}
+          />
         </section>
       </main>
 
