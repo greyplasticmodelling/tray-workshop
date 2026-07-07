@@ -41,6 +41,24 @@ const themes: Array<{ value: ThemeName; label: string }> = [
 ];
 
 export function TrayControls({ settings, theme, onChange, onThemeChange, validationMessages, onDownload }: Props) {
+  const updateTemplate = (template: TraySettings['template']) => {
+    if (template === 'lanceWedge') {
+      onChange({
+        ...settings,
+        template,
+        baseWidthMm: 30,
+        baseDepthMm: 60,
+        frontRailEnabled: true,
+        rearRailEnabled: false,
+        leftRailEnabled: true,
+        rightRailEnabled: true,
+      });
+      return;
+    }
+
+    onChange({ ...settings, template });
+  };
+
   const updateNumber = (key: keyof TraySettings, value: string) => {
     const nextValue = value === '' ? 0 : Number(value);
     onChange({ ...settings, [key]: nextValue });
@@ -78,7 +96,7 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
         <select
           value={settings.template}
           title="Choose the movement tray layout to generate."
-          onChange={(event) => onChange({ ...settings, template: event.target.value as TraySettings['template'] })}
+          onChange={(event) => updateTemplate(event.target.value as TraySettings['template'])}
         >
           {trayTemplates.map((template) => (
             <option value={template.value} key={template.value}>

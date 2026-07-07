@@ -17,7 +17,7 @@ const defaultSettings: TraySettings = {
   railThicknessMm: 2,
   railHeightMm: 2,
   frontRailEnabled: false,
-  rearRailEnabled: true,
+  rearRailEnabled: false,
   leftRailEnabled: true,
   rightRailEnabled: true,
   buildPlateSize: '256x256',
