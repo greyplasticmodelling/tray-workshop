@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.local
+*.local
+*.log
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+work/
+outputs/
+.codex/
