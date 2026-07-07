@@ -138,10 +138,9 @@ select {
 
 .site-banner img {
   width: 100%;
-  height: clamp(120px, 17vw, 230px);
+  height: auto;
+  max-height: 320px;
   display: block;
-  object-fit: cover;
-  object-position: center;
 }
 
 .app-main {
@@ -430,8 +429,7 @@ footer {
 
 @media (max-width: 560px) {
   .site-banner img {
-    height: 118px;
-    object-position: center;
+    max-height: none;
   }
 
   .controls,
