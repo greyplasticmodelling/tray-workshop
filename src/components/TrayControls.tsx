@@ -12,6 +12,8 @@ type Props = {
   onSaveTray: () => void;
   onLoadTray: (id: string) => void;
   onDeleteSavedTray: (id: string) => void;
+  onCopyShareLink: () => void;
+  shareStatus: string;
   validationMessages: string[];
   onDownload: () => void;
 };
@@ -58,6 +60,8 @@ export function TrayControls({
   onSaveTray,
   onLoadTray,
   onDeleteSavedTray,
+  onCopyShareLink,
+  shareStatus,
   validationMessages,
   onDownload,
 }: Props) {
@@ -73,6 +77,7 @@ export function TrayControls({
   const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
+  const selectedTemplate = trayTemplates.find((template) => template.value === settings.template);
 
   return (
     <aside className="controls" aria-label="Tray settings">
@@ -111,6 +116,7 @@ export function TrayControls({
           ))}
         </select>
       </label>
+      {selectedTemplate && <p className="template-description">{selectedTemplate.description}</p>}
 
       <div className="field-grid">
         {numberFields.map((field) => {
@@ -532,6 +538,16 @@ export function TrayControls({
       >
         Reset template defaults
       </button>
+
+      <button
+        className="secondary-button"
+        type="button"
+        title="Copy a link that opens this exact tray setup."
+        onClick={onCopyShareLink}
+      >
+        Copy share link
+      </button>
+      {shareStatus && <p className="share-status">{shareStatus}</p>}
 
       <section className="saved-trays" aria-label="Saved trays">
         <div className="saved-trays-header">

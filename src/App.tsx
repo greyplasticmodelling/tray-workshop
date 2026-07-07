@@ -116,6 +116,47 @@ const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
 };
 
 const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
+const sharedSettingsParam = 'settings';
+
+function isTrayTemplate(value: unknown): value is TrayTemplate {
+  return typeof value === 'string' && value in defaultSettingsByTemplate;
+}
+
+function encodeSettings(settings: TraySettings): string {
+  const json = JSON.stringify(settings);
+  return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodeSettings(value: string): TraySettings | null {
+  try {
+    const normalised = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalised.padEnd(Math.ceil(normalised.length / 4) * 4, '=');
+    const parsed = JSON.parse(decodeURIComponent(escape(atob(padded)))) as Partial<TraySettings>;
+
+    if (!isTrayTemplate(parsed.template)) {
+      return null;
+    }
+
+    return {
+      ...defaultSettingsByTemplate[parsed.template],
+      ...parsed,
+      template: parsed.template,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readSharedSettings(): TraySettings | null {
+  const sharedSettings = new URLSearchParams(window.location.search).get(sharedSettingsParam);
+  return sharedSettings ? decodeSettings(sharedSettings) : null;
+}
+
+function createShareUrl(settings: TraySettings): string {
+  const url = new URL(import.meta.env.BASE_URL, window.location.origin);
+  url.searchParams.set(sharedSettingsParam, encodeSettings(settings));
+  return url.toString();
+}
 
 function SupportButton() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -183,11 +224,19 @@ function readSavedTrays(): SavedTray[] {
 }
 
 export default function App() {
-  const [activeTemplate, setActiveTemplate] = useState<TrayTemplate>('standard');
-  const [settingsByTemplate, setSettingsByTemplate] =
-    useState<Record<TrayTemplate, TraySettings>>(defaultSettingsByTemplate);
+  const [activeTemplate, setActiveTemplate] = useState<TrayTemplate>(() => readSharedSettings()?.template ?? 'standard');
+  const [settingsByTemplate, setSettingsByTemplate] = useState<Record<TrayTemplate, TraySettings>>(() => {
+    const sharedSettings = readSharedSettings();
+    return sharedSettings
+      ? {
+          ...defaultSettingsByTemplate,
+          [sharedSettings.template]: sharedSettings,
+        }
+      : defaultSettingsByTemplate;
+  });
   const [savedTrays, setSavedTrays] = useState<SavedTray[]>(() => readSavedTrays());
   const [theme, setTheme] = useState<ThemeName>('darkGrey');
+  const [shareStatus, setShareStatus] = useState('');
   const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
   const buildPlateFit = useMemo(() => calculateBuildPlateFit(settings, dimensions), [settings, dimensions]);
@@ -255,6 +304,18 @@ export default function App() {
     setSavedTrays((current) => current.filter((tray) => tray.id !== id));
   };
 
+  const copyShareLink = async () => {
+    const shareUrl = createShareUrl(settings);
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareStatus('Share link copied');
+      window.setTimeout(() => setShareStatus(''), 2600);
+    } catch {
+      window.prompt('Copy this share link:', shareUrl);
+    }
+  };
+
   return (
     <div className="app-shell" data-theme={theme}>
       <header className="site-banner" aria-label="Tray Workshop">
@@ -296,6 +357,8 @@ export default function App() {
           onSaveTray={saveCurrentTray}
           onLoadTray={loadSavedTray}
           onDeleteSavedTray={deleteSavedTray}
+          onCopyShareLink={copyShareLink}
+          shareStatus={shareStatus}
           validationMessages={validation.messages}
           onDownload={() => downloadStl(settings)}
         />
@@ -311,7 +374,10 @@ export default function App() {
         </section>
       </main>
 
-      <footer>Unofficial fan-made utility. Not affiliated with or endorsed by any tabletop wargame publisher.</footer>
+      <footer>
+        <span>Tray Workshop v1.0</span>
+        <span>Unofficial fan-made utility. Not affiliated with or endorsed by any tabletop wargame publisher.</span>
+      </footer>
     </div>
   );
 }
