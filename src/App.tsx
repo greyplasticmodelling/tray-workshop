@@ -31,6 +31,10 @@ export default function App() {
 
   return (
     <div className="app-shell" data-theme={theme}>
+      <header className="site-banner" aria-label="Tray Workshop">
+        <img src={`${import.meta.env.BASE_URL}tray-workshop-banner.png`} alt="Tray Workshop" />
+      </header>
+
       <main className="app-main">
         <TrayControls
           settings={settings}

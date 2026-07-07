@@ -131,6 +131,19 @@ select {
   flex-direction: column;
 }
 
+.site-banner {
+  border-bottom: 1px solid var(--border);
+  background: #050505;
+}
+
+.site-banner img {
+  width: 100%;
+  height: clamp(120px, 17vw, 230px);
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
 .app-main {
   flex: 1;
   display: grid;
@@ -416,6 +429,11 @@ footer {
 }
 
 @media (max-width: 560px) {
+  .site-banner img {
+    height: 118px;
+    object-position: center;
+  }
+
   .controls,
   .preview-panel {
     padding: 18px;
