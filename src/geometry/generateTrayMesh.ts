@@ -71,6 +71,27 @@ function createPerforatedFloorLayer(
   return group;
 }
 
+function getHolesInRect(
+  holes: Array<{ x: number; y: number }>,
+  centerX: number,
+  centerY: number,
+  width: number,
+  depth: number,
+) {
+  return holes
+    .filter(
+      (hole) =>
+        hole.x >= centerX - width / 2 &&
+        hole.x <= centerX + width / 2 &&
+        hole.y >= centerY - depth / 2 &&
+        hole.y <= centerY + depth / 2,
+    )
+    .map((hole) => ({
+      x: hole.x - centerX,
+      y: hole.y - centerY,
+    }));
+}
+
 export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const dimensions = calculateTrayDimensions(settings);
   const group = new THREE.Group();
@@ -262,33 +283,87 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     y: center.y + innerCenterOffsetY,
   }));
 
-  group.add(
-    createPerforatedFloorLayer(
-      'floor',
-      dimensions.outerWidthMm,
-      dimensions.outerDepthMm,
-      settings.floorThicknessMm,
-      0,
-      0,
-      standardMagnetCenters,
-      settings,
-    ),
-  );
-
   const railHeight = settings.railHeightMm;
   const railCenterZ = settings.floorThicknessMm + railHeight / 2;
+  const hasCharacterBay = settings.characterBayEnabled;
+  const outerLeftX = -dimensions.outerWidthMm / 2;
+  const outerFrontY = -dimensions.outerDepthMm / 2;
+  const innerLeftX = outerLeftX + dimensions.leftRailMm;
+  const innerFrontY = outerFrontY + dimensions.frontRailMm;
+  const mainFloorX = settings.characterBaySide === 'left' ? outerLeftX + dimensions.characterSlotWidthMm : outerLeftX;
+  const mainFloorWidth = dimensions.mainInnerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm;
+  const mainFloorCenterX = mainFloorX + mainFloorWidth / 2;
+  const mainAreaCenterX =
+    innerLeftX +
+    (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm : 0) +
+    dimensions.mainInnerWidthMm / 2;
+  const characterSideRailMm =
+    settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm;
+  const characterFloorWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
+  const characterFloorDepth = dimensions.frontRailMm + dimensions.characterSlotDepthMm;
+  const characterFloorX =
+    settings.characterBaySide === 'left' ? outerLeftX : innerLeftX + dimensions.mainInnerWidthMm;
+  const characterFloorCenterX = characterFloorX + characterFloorWidth / 2;
+  const characterFloorCenterY = outerFrontY + characterFloorDepth / 2;
+
+  if (hasCharacterBay) {
+    group.add(
+      createPerforatedFloorLayer(
+        'main-floor',
+        mainFloorWidth,
+        dimensions.outerDepthMm,
+        settings.floorThicknessMm,
+        mainFloorCenterX,
+        0,
+        getHolesInRect(standardMagnetCenters, mainFloorCenterX, 0, mainFloorWidth, dimensions.outerDepthMm),
+        settings,
+      ),
+    );
+    group.add(
+      createPerforatedFloorLayer(
+        'character-floor',
+        characterFloorWidth,
+        characterFloorDepth,
+        settings.floorThicknessMm,
+        characterFloorCenterX,
+        characterFloorCenterY,
+        getHolesInRect(
+          standardMagnetCenters,
+          characterFloorCenterX,
+          characterFloorCenterY,
+          characterFloorWidth,
+          characterFloorDepth,
+        ),
+        settings,
+      ),
+    );
+  } else {
+    group.add(
+      createPerforatedFloorLayer(
+        'floor',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        settings.floorThicknessMm,
+        0,
+        0,
+        standardMagnetCenters,
+        settings,
+      ),
+    );
+  }
+
   const leftX = -dimensions.outerWidthMm / 2 + settings.railThicknessMm / 2;
   const rightX = dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
   const frontY = -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2;
   const rearY = dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2;
 
-  if (settings.leftRailEnabled) {
+  if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
     group.add(
       createBox('left-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, leftX, 0, railCenterZ),
     );
   }
 
-  if (settings.rightRailEnabled) {
+  if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
     group.add(
       createBox('right-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, rightX, 0, railCenterZ),
     );
@@ -299,7 +374,76 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   }
 
   if (settings.rearRailEnabled) {
-    group.add(createBox('rear-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, rearY, railCenterZ));
+    group.add(
+      createBox(
+        'rear-rail',
+        hasCharacterBay ? dimensions.mainInnerWidthMm : dimensions.innerWidthMm,
+        settings.railThicknessMm,
+        railHeight,
+        hasCharacterBay ? mainAreaCenterX : 0,
+        rearY,
+        railCenterZ,
+      ),
+    );
+  }
+
+  if (hasCharacterBay && characterSideRailMm > 0) {
+    const baySideRailCenterX =
+      settings.characterBaySide === 'left'
+        ? outerLeftX + settings.railThicknessMm / 2
+        : dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
+
+    group.add(
+      createBox(
+        'character-bay-side-rail',
+        settings.railThicknessMm,
+        characterFloorDepth,
+        railHeight,
+        baySideRailCenterX,
+        characterFloorCenterY,
+        railCenterZ,
+      ),
+    );
+
+    if (dimensions.characterSlotDepthMm < dimensions.mainInnerDepthMm) {
+      const stepRailWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
+      const stepRailCenterX =
+        settings.characterBaySide === 'left'
+          ? outerLeftX + stepRailWidth / 2
+          : innerLeftX + dimensions.mainInnerWidthMm + stepRailWidth / 2;
+      const stepRailCenterY = innerFrontY + dimensions.characterSlotDepthMm - settings.railThicknessMm / 2;
+      const mainSideRailDepth =
+        dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm + settings.railThicknessMm;
+      const mainSideRailCenterX =
+        settings.characterBaySide === 'left'
+          ? outerLeftX + dimensions.characterSlotWidthMm + settings.railThicknessMm / 2
+          : innerLeftX + dimensions.mainInnerWidthMm + settings.railThicknessMm / 2;
+      const mainSideRailCenterY =
+        innerFrontY + dimensions.characterSlotDepthMm - settings.railThicknessMm + mainSideRailDepth / 2;
+
+      group.add(
+        createBox(
+          'character-bay-return-rail',
+          stepRailWidth,
+          settings.railThicknessMm,
+          railHeight,
+          stepRailCenterX,
+          stepRailCenterY,
+          railCenterZ,
+        ),
+      );
+      group.add(
+        createBox(
+          'main-side-rail-after-character-bay',
+          settings.railThicknessMm,
+          mainSideRailDepth,
+          railHeight,
+          mainSideRailCenterX,
+          mainSideRailCenterY,
+          railCenterZ,
+        ),
+      );
+    }
   }
 
   return group;
