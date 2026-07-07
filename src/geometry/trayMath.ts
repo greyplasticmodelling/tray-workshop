@@ -64,9 +64,8 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterSlotWidthMm = hasCharacterBay ? settings.characterBaseWidthMm + settings.toleranceMm : 0;
   const characterSlotDepthMm = hasCharacterBay ? settings.characterBaseDepthMm + settings.toleranceMm : 0;
   const characterDividerMm = hasCharacterBay ? settings.railThicknessMm : 0;
-  const characterBayDepthMm = characterSlotDepthMm + characterDividerMm * 2;
   const innerWidthMm = mainInnerWidthMm + characterDividerMm + characterSlotWidthMm;
-  const innerDepthMm = Math.max(mainInnerDepthMm, characterBayDepthMm);
+  const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
   const leftRailMm = settings.leftRailEnabled ? settings.railThicknessMm : 0;
   const rightRailMm = settings.rightRailEnabled ? settings.railThicknessMm : 0;
   const frontRailMm = settings.frontRailEnabled ? settings.railThicknessMm : 0;
@@ -117,7 +116,7 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
       settings.template === 'lanceWedge'
         ? -rowWidth / 2
         : -dimensions.innerWidthMm / 2 + standardMainOffsetX;
-    const standardMainOffsetY = settings.template === 'standard' ? (dimensions.innerDepthMm - dimensions.mainInnerDepthMm) / 2 : 0;
+    const standardMainOffsetY = 0;
     const rowY =
       -dimensions.innerDepthMm / 2 + standardMainOffsetY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
 
@@ -141,7 +140,7 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
 
     centers.push({
       x: characterX,
-      y: 0,
+      y: -dimensions.innerDepthMm / 2 + dimensions.characterSlotDepthMm / 2,
       rowIndex: 0,
     });
   }

@@ -28,16 +28,16 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
   const hasCharacterBay = !isLanceWedge && settings.characterBayEnabled;
-  const characterBayDepth = dimensions.characterSlotDepthMm + dimensions.characterDividerMm * 2;
+  const characterBayDepth = dimensions.characterSlotDepthMm;
   const characterBayX =
     settings.characterBaySide === 'left'
       ? innerX
       : innerX + dimensions.mainInnerWidthMm + dimensions.characterDividerMm;
-  const characterBayY = innerY + (dimensions.innerDepthMm - characterBayDepth) / 2;
-  const characterSlotY = characterBayY + dimensions.characterDividerMm;
+  const characterBayY = innerY;
+  const characterSlotY = characterBayY;
   const mainAreaX =
     innerX + (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm + dimensions.characterDividerMm : 0);
-  const mainAreaY = innerY + (dimensions.innerDepthMm - dimensions.mainInnerDepthMm) / 2;
+  const mainAreaY = innerY;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const footprints = [];
   for (let row = 0; row < rankCounts.length; row += 1) {
@@ -269,20 +269,6 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               y={characterBayY}
               width={dimensions.characterDividerMm}
               height={characterBayDepth}
-              className="rail"
-            />
-            <rect
-              x={characterBayX}
-              y={characterBayY}
-              width={dimensions.characterSlotWidthMm}
-              height={dimensions.characterDividerMm}
-              className="rail"
-            />
-            <rect
-              x={characterBayX}
-              y={characterBayY + characterBayDepth - dimensions.characterDividerMm}
-              width={dimensions.characterSlotWidthMm}
-              height={dimensions.characterDividerMm}
               className="rail"
             />
           </>
