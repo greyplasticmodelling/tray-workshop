@@ -244,9 +244,24 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       y: placement.y + innerCenterOffsetY,
       rotationDeg: placement.rotationDeg,
     }));
+    const skirmishMagnetCenters = magnetCenters.map((center) => ({
+      x: center.x + innerCenterOffsetX,
+      y: center.y + innerCenterOffsetY,
+    }));
     const cutoutLayerHeight = Math.max(0, settings.skirmishTrayHeightMm - settings.floorThicknessMm);
 
-    group.add(createBox('skirmish-floor', dimensions.outerWidthMm, dimensions.outerDepthMm, settings.floorThicknessMm, 0, 0, settings.floorThicknessMm / 2));
+    group.add(
+      createPerforatedFloorLayer(
+        'skirmish-floor',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        settings.floorThicknessMm,
+        0,
+        0,
+        getHolesInRect(skirmishMagnetCenters, 0, 0, dimensions.outerWidthMm, dimensions.outerDepthMm),
+        settings,
+      ),
+    );
 
     if (cutoutLayerHeight > 0) {
       group.add(

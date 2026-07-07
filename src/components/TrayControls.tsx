@@ -450,7 +450,6 @@ export function TrayControls({
         </fieldset>
       )}
 
-      {!isSkirmish && (
       <fieldset className="magnet-options">
         <legend>Magnet cutouts</legend>
         <label className="toggle" title="Add circular top-side magnet recesses centred in each base space.">
@@ -516,7 +515,6 @@ export function TrayControls({
           </>
         )}
       </fieldset>
-      )}
 
       {validationMessages.length > 0 && (
         <div className="validation" role="alert">

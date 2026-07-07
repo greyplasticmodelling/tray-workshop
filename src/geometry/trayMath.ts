@@ -31,6 +31,8 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   rightRailEnabled: { min: 0, max: 1, label: 'Right rail' },
 };
 
+const skirmishMinimumGapMm = 4;
+
 export const buildPlates: BuildPlate[] = [
   { value: '180x180', widthMm: 180, depthMm: 180 },
   { value: '235x235', widthMm: 235, depthMm: 235 },
@@ -86,19 +88,20 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const isSkirmish = settings.template === 'skirmish';
   const maxSkirmishRotationRad =
     settings.skirmishBaseShape === 'square' ? (Math.min(10, Math.max(0, settings.skirmishMaxRotationDeg)) * Math.PI) / 180 : 0;
+  const skirmishCutoutSizeMm = settings.skirmishBaseSizeMm + settings.toleranceMm;
   const skirmishBaseFootprintMm =
     settings.skirmishBaseShape === 'square'
-      ? settings.skirmishBaseSizeMm * (Math.cos(maxSkirmishRotationRad) + Math.sin(maxSkirmishRotationRad))
-      : settings.skirmishBaseSizeMm;
-  const skirmishCellSizeMm = skirmishBaseFootprintMm + settings.toleranceMm + settings.skirmishMaxOffsetMm * 2;
+      ? skirmishCutoutSizeMm * (Math.cos(maxSkirmishRotationRad) + Math.sin(maxSkirmishRotationRad))
+      : skirmishCutoutSizeMm;
+  const skirmishCellSizeMm = skirmishBaseFootprintMm + settings.skirmishMaxOffsetMm * 2 + skirmishMinimumGapMm;
   const slotWidthMm = isAdapter ? settings.baseWidthMm : isSkirmish ? skirmishCellSizeMm : settings.baseWidthMm + settings.toleranceMm;
   const slotDepthMm = isAdapter ? settings.baseDepthMm : isSkirmish ? skirmishCellSizeMm : settings.baseDepthMm + settings.toleranceMm;
   const adapterCutoutWidthMm = settings.adapterCutoutWidthMm + settings.toleranceMm;
   const adapterCutoutDepthMm = settings.adapterCutoutDepthMm + settings.toleranceMm;
   const adapterFlankCutoutWidthMm = settings.adapterFlankCutoutWidthMm + settings.toleranceMm;
   const adapterFlankCutoutDepthMm = settings.adapterFlankCutoutDepthMm + settings.toleranceMm;
-  const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm;
-  const mainInnerDepthMm = rankCounts.length * slotDepthMm;
+  const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
+  const mainInnerDepthMm = rankCounts.length * slotDepthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
   const hasCharacterBay =
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
   const characterSlotWidthMm = hasCharacterBay
@@ -173,8 +176,8 @@ export function getSkirmishPlacements(
   const maxRotation = settings.skirmishBaseShape === 'square' ? Math.min(10, Math.max(0, settings.skirmishMaxRotationDeg)) : 0;
   const chance = Math.min(100, Math.max(0, settings.skirmishDistributionChancePercent)) / 100;
   const placements: SkirmishBasePlacement[] = [];
-  const startX = -dimensions.innerWidthMm / 2;
-  const startY = -dimensions.innerDepthMm / 2;
+  const startX = -dimensions.innerWidthMm / 2 + skirmishMinimumGapMm / 2;
+  const startY = -dimensions.innerDepthMm / 2 + skirmishMinimumGapMm / 2;
 
   for (let rowIndex = 0; rowIndex < settings.rows; rowIndex += 1) {
     for (let columnIndex = 0; columnIndex < settings.columns; columnIndex += 1) {
@@ -350,7 +353,9 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     const magnetLimit =
-      settings.template === 'adapter' || settings.template === 'adapterLance'
+      settings.template === 'skirmish'
+        ? settings.skirmishBaseSizeMm + settings.toleranceMm
+        : settings.template === 'adapter' || settings.template === 'adapterLance'
         ? Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm)
         : Math.min(dimensions.slotWidthMm, dimensions.slotDepthMm);
 
