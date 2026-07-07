@@ -48,6 +48,26 @@ const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
 
 const savedTraysStorageKey = 'tray-workshop.saved-trays.v1';
 
+function loadSupportWidget() {
+  if (document.querySelector('script[data-name="BMC-Widget"]')) {
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.dataset.name = 'BMC-Widget';
+  script.dataset.cfasync = 'false';
+  script.src = 'https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js';
+  script.dataset.id = 'greyplasticmodelling';
+  script.dataset.description = 'Support me on Buy me a coffee!';
+  script.dataset.message =
+    "Thank you for visiting. I hope you find this tool useful for your wargaming needs. I don't need any financial support, but if you wish to donate, it would be truly appreciated.";
+  script.dataset.color = '#5F7FFF';
+  script.dataset.position = 'Right';
+  script.dataset.x_margin = '18';
+  script.dataset.y_margin = '18';
+  document.body.appendChild(script);
+}
+
 function readSavedTrays(): SavedTray[] {
   try {
     const stored = window.localStorage.getItem(savedTraysStorageKey);
@@ -67,6 +87,10 @@ export default function App() {
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
   const buildPlateFit = useMemo(() => calculateBuildPlateFit(settings, dimensions), [settings, dimensions]);
   const validation = useMemo(() => validateTraySettings(settings), [settings]);
+
+  useEffect(() => {
+    loadSupportWidget();
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(savedTraysStorageKey, JSON.stringify(savedTrays));
