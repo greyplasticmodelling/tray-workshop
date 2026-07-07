@@ -28,15 +28,14 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
   const hasCharacterBay = !isLanceWedge && settings.characterBayEnabled;
-  const characterBayDepth = dimensions.characterSlotDepthMm;
   const characterBayX =
     settings.characterBaySide === 'left'
       ? innerX
-      : innerX + dimensions.mainInnerWidthMm + dimensions.characterDividerMm;
+      : innerX + dimensions.mainInnerWidthMm;
   const characterBayY = innerY;
   const characterSlotY = characterBayY;
   const mainAreaX =
-    innerX + (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm + dimensions.characterDividerMm : 0);
+    innerX + (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm : 0);
   const mainAreaY = innerY;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const footprints = [];
@@ -252,26 +251,13 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
         )}
         {hasCharacterBay && (
-          <>
-            <rect
-              x={characterBayX}
-              y={characterSlotY}
-              width={dimensions.characterSlotWidthMm}
-              height={dimensions.characterSlotDepthMm}
-              className="inner-area"
-            />
-            <rect
-              x={
-                settings.characterBaySide === 'left'
-                  ? characterBayX + dimensions.characterSlotWidthMm
-                  : characterBayX - dimensions.characterDividerMm
-              }
-              y={characterBayY}
-              width={dimensions.characterDividerMm}
-              height={characterBayDepth}
-              className="rail"
-            />
-          </>
+          <rect
+            x={characterBayX}
+            y={characterSlotY}
+            width={dimensions.characterSlotWidthMm}
+            height={dimensions.characterSlotDepthMm}
+            className="inner-area"
+          />
         )}
         {isLanceWedge &&
           rankCounts.map((rankCount, rowIndex) => {

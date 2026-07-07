@@ -302,26 +302,5 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     group.add(createBox('rear-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, rearY, railCenterZ));
   }
 
-  if (settings.characterBayEnabled) {
-    const innerLeftX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm;
-    const characterCenterY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.characterSlotDepthMm / 2;
-    const dividerCenterX =
-      settings.characterBaySide === 'left'
-        ? innerLeftX + dimensions.characterSlotWidthMm + dimensions.characterDividerMm / 2
-        : innerLeftX + dimensions.mainInnerWidthMm + dimensions.characterDividerMm / 2;
-
-    group.add(
-      createBox(
-        'character-bay-divider-rail',
-        dimensions.characterDividerMm,
-        dimensions.characterSlotDepthMm,
-        railHeight,
-        dividerCenterX,
-        characterCenterY,
-        railCenterZ,
-      ),
-    );
-  }
-
   return group;
 }

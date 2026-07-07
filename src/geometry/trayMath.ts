@@ -63,8 +63,8 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const hasCharacterBay = settings.template === 'standard' && settings.characterBayEnabled;
   const characterSlotWidthMm = hasCharacterBay ? settings.characterBaseWidthMm + settings.toleranceMm : 0;
   const characterSlotDepthMm = hasCharacterBay ? settings.characterBaseDepthMm + settings.toleranceMm : 0;
-  const characterDividerMm = hasCharacterBay ? settings.railThicknessMm : 0;
-  const innerWidthMm = mainInnerWidthMm + characterDividerMm + characterSlotWidthMm;
+  const characterDividerMm = 0;
+  const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
   const leftRailMm = settings.leftRailEnabled ? settings.railThicknessMm : 0;
   const rightRailMm = settings.rightRailEnabled ? settings.railThicknessMm : 0;
@@ -110,7 +110,7 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     const rowWidth = rankCount * dimensions.slotWidthMm;
     const standardMainOffsetX =
       settings.characterBayEnabled && settings.characterBaySide === 'left'
-        ? dimensions.characterSlotWidthMm + dimensions.characterDividerMm
+        ? dimensions.characterSlotWidthMm
         : 0;
     const rowStartX =
       settings.template === 'lanceWedge'
