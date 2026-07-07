@@ -40,6 +40,42 @@ const themes: Array<{ value: ThemeName; label: string }> = [
   { value: 'parchment', label: 'Parchment' },
 ];
 
+function getTemplateDefaults(template: TraySettings['template'], current: TraySettings): TraySettings {
+  const shared = {
+    toleranceMm: 0.2,
+    floorThicknessMm: 1.6,
+    railThicknessMm: 2,
+    railHeightMm: 2,
+    frontRailEnabled: true,
+    rearRailEnabled: false,
+    leftRailEnabled: true,
+    rightRailEnabled: true,
+    buildPlateSize: current.buildPlateSize,
+  };
+
+  if (template === 'lanceWedge') {
+    return {
+      ...current,
+      ...shared,
+      template,
+      baseWidthMm: 30,
+      baseDepthMm: 60,
+      columns: 5,
+      rows: 3,
+    };
+  }
+
+  return {
+    ...current,
+    ...shared,
+    template,
+    baseWidthMm: 25,
+    baseDepthMm: 25,
+    columns: 5,
+    rows: 4,
+  };
+}
+
 export function TrayControls({ settings, theme, onChange, onThemeChange, validationMessages, onDownload }: Props) {
   const updateTemplate = (template: TraySettings['template']) => {
     if (template === 'lanceWedge') {
@@ -68,6 +104,10 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
 
   const updateToggle = (key: keyof TraySettings, checked: boolean) => {
     onChange({ ...settings, [key]: checked });
+  };
+
+  const resetCurrentTemplate = () => {
+    onChange(getTemplateDefaults(settings.template, settings));
   };
 
   return (
@@ -157,6 +197,15 @@ export function TrayControls({ settings, theme, onChange, onThemeChange, validat
           ))}
         </div>
       )}
+
+      <button
+        className="secondary-button"
+        type="button"
+        title="Reset the current tray template to its default parameters."
+        onClick={resetCurrentTemplate}
+      >
+        Reset template defaults
+      </button>
 
       <button
         className="download-button"

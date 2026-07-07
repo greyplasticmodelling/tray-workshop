@@ -316,6 +316,21 @@ h1 {
   cursor: pointer;
 }
 
+.secondary-button {
+  min-height: 40px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: var(--heading);
+  background: var(--surface);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  border-color: var(--accent);
+}
+
 .download-button:disabled {
   color: var(--muted);
   background: var(--border);
