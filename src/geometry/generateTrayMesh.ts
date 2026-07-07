@@ -130,11 +130,22 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const currentWidth = rankCounts[rowIndex] * dimensions.slotWidthMm;
       const nextWidth = rankCounts[rowIndex + 1] * dimensions.slotWidthMm;
       const stepWidth = (nextWidth - currentWidth) / 2;
-      const stepY = innerFrontY + (rowIndex + 1) * dimensions.slotDepthMm + settings.railThicknessMm / 2;
+      const stepY = innerFrontY + (rowIndex + 1) * dimensions.slotDepthMm - settings.railThicknessMm / 2;
       const leftStepX = -currentWidth / 2 - dimensions.leftRailMm - stepWidth / 2;
       const rightStepX = currentWidth / 2 + dimensions.rightRailMm + stepWidth / 2;
 
       if (stepWidth > 0 && settings.leftRailEnabled) {
+        group.add(
+          createBox(
+            `left-step-floor-${rowIndex + 1}`,
+            stepWidth,
+            settings.railThicknessMm,
+            settings.floorThicknessMm,
+            leftStepX,
+            stepY,
+            settings.floorThicknessMm / 2,
+          ),
+        );
         group.add(
           createBox(
             `left-step-rail-${rowIndex + 1}`,
@@ -149,6 +160,17 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       if (stepWidth > 0 && settings.rightRailEnabled) {
+        group.add(
+          createBox(
+            `right-step-floor-${rowIndex + 1}`,
+            stepWidth,
+            settings.railThicknessMm,
+            settings.floorThicknessMm,
+            rightStepX,
+            stepY,
+            settings.floorThicknessMm / 2,
+          ),
+        );
         group.add(
           createBox(
             `right-step-rail-${rowIndex + 1}`,

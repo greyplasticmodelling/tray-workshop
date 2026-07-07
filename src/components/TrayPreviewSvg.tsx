@@ -151,7 +151,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             const currentWidth = rankCount * dimensions.slotWidthMm;
             const nextWidth = rankCounts[rowIndex + 1] * dimensions.slotWidthMm;
             const stepWidth = (nextWidth - currentWidth) / 2;
-            const stepY = innerY + (rowIndex + 1) * dimensions.slotDepthMm;
+            const stepY = innerY + (rowIndex + 1) * dimensions.slotDepthMm - settings.railThicknessMm;
             const leftStepX = centerX - currentWidth / 2 - dimensions.leftRailMm - stepWidth;
             const rightStepX = centerX + currentWidth / 2 + dimensions.rightRailMm;
 
@@ -167,7 +167,25 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
                     y={stepY}
                     width={stepWidth}
                     height={settings.railThicknessMm}
+                    className="floor"
+                  />
+                )}
+                {settings.leftRailEnabled && (
+                  <rect
+                    x={leftStepX}
+                    y={stepY}
+                    width={stepWidth}
+                    height={settings.railThicknessMm}
                     className="rail"
+                  />
+                )}
+                {settings.rightRailEnabled && (
+                  <rect
+                    x={rightStepX}
+                    y={stepY}
+                    width={stepWidth}
+                    height={settings.railThicknessMm}
+                    className="floor"
                   />
                 )}
                 {settings.rightRailEnabled && (
