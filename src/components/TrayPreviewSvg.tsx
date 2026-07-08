@@ -67,11 +67,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const finishExpansion = settings.trayEdgeSlopeMm;
-  const finishRadius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
   const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
 
-  if (finishExpansion > 0 || finishRadius > 0) {
-    if (isSkirmish || (!isLanceFormation && !hasCharacterBay)) {
+  if (finishExpansion > 0) {
+    if (isSkirmish || isAdapter) {
       finishRects.push({
         key: 'finish-outer',
         x: outerX,
@@ -79,51 +78,117 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         width: dimensions.outerWidthMm,
         height: dimensions.outerDepthMm,
       });
-    } else if (isAdapter && hasCharacterBay) {
-      finishRects.push(
-        {
-          key: 'finish-adapter-main',
-          x: mainFloorX,
+      if (isAdapter && hasCharacterBay) {
+        finishRects.pop();
+        finishRects.push(
+          {
+            key: 'finish-adapter-main',
+            x: mainFloorX,
+            y: outerY,
+            width: dimensions.mainInnerWidthMm,
+            height: dimensions.mainInnerDepthMm,
+          },
+          {
+            key: 'finish-adapter-flank',
+            x: characterFloorX,
+            y: outerY,
+            width: dimensions.characterSlotWidthMm,
+            height: dimensions.characterSlotDepthMm,
+          },
+        );
+      }
+    } else if (!isLanceFormation) {
+      if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
+        finishRects.push({ key: 'finish-left-rail', x: outerX, y: outerY, width: settings.railThicknessMm, height: dimensions.outerDepthMm });
+      }
+
+      if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
+        finishRects.push({
+          key: 'finish-right-rail',
+          x: outerX + dimensions.outerWidthMm - settings.railThicknessMm,
           y: outerY,
-          width: dimensions.mainInnerWidthMm,
-          height: dimensions.mainInnerDepthMm,
-        },
-        {
-          key: 'finish-adapter-flank',
-          x: characterFloorX,
-          y: outerY,
-          width: dimensions.characterSlotWidthMm,
-          height: dimensions.characterSlotDepthMm,
-        },
-      );
-    } else if (hasCharacterBay) {
-      finishRects.push(
-        {
-          key: 'finish-main',
-          x: mainFloorX,
-          y: outerY,
-          width: dimensions.mainInnerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
+          width: settings.railThicknessMm,
           height: dimensions.outerDepthMm,
-        },
-        {
-          key: 'finish-character',
-          x: characterFloorX,
+        });
+      }
+
+      if (settings.frontRailEnabled) {
+        finishRects.push({ key: 'finish-front-rail', x: innerX, y: outerY, width: dimensions.innerWidthMm, height: settings.railThicknessMm });
+      }
+
+      if (settings.rearRailEnabled) {
+        finishRects.push({
+          key: 'finish-rear-rail',
+          x: hasCharacterBay ? mainAreaX : innerX,
+          y: outerY + dimensions.outerDepthMm - settings.railThicknessMm,
+          width: hasCharacterBay ? dimensions.mainInnerWidthMm : dimensions.innerWidthMm,
+          height: settings.railThicknessMm,
+        });
+      }
+
+      if (hasCharacterBay && baySideRailEnabled) {
+        finishRects.push({
+          key: 'finish-bay-side-rail',
+          x: baySideRailX,
           y: outerY,
-          width: characterFloorWidth,
+          width: baySideRailMm,
           height: characterFloorHeight,
-        },
-      );
+        });
+
+        if (hasCharacterReturnRail) {
+          finishRects.push(
+            {
+              key: 'finish-character-return-rail',
+              x: stepRailX,
+              y: stepRailY,
+              width: stepRailWidth,
+              height: settings.railThicknessMm,
+            },
+            {
+              key: 'finish-main-side-rail',
+              x: mainSideRailX,
+              y: stepRailY,
+              width: settings.railThicknessMm,
+              height: mainSideRailHeight,
+            },
+          );
+        }
+      }
     } else if (isLanceFormation) {
       rankCounts.forEach((rankCount, rowIndex) => {
         const rowWidth = rankCount * dimensions.slotWidthMm;
-        const width = isAdapterLance ? rowWidth : rowWidth + dimensions.leftRailMm + dimensions.rightRailMm;
-        finishRects.push({
-          key: `finish-rank-${rowIndex}`,
-          x: centerX - width / 2,
-          y: (isAdapterLance ? outerY : innerY) + rowIndex * dimensions.slotDepthMm,
-          width,
-          height: dimensions.slotDepthMm,
-        });
+        const rowY = (isAdapterLance ? outerY : innerY) + rowIndex * dimensions.slotDepthMm;
+
+        if (isAdapterLance) {
+          finishRects.push({
+            key: `finish-adapter-lance-rank-${rowIndex}`,
+            x: centerX - rowWidth / 2,
+            y: rowY,
+            width: rowWidth,
+            height: dimensions.slotDepthMm,
+          });
+          return;
+        }
+
+        if (settings.leftRailEnabled) {
+          finishRects.push({
+            key: `finish-left-rank-${rowIndex}`,
+            x: centerX - rowWidth / 2 - settings.railThicknessMm,
+            y: rowY,
+            width: settings.railThicknessMm,
+            height: dimensions.slotDepthMm,
+          });
+        }
+
+        if (settings.rightRailEnabled) {
+          finishRects.push({
+            key: `finish-right-rank-${rowIndex}`,
+            x: centerX + rowWidth / 2,
+            y: rowY,
+            width: settings.railThicknessMm,
+            height: dimensions.slotDepthMm,
+          });
+        }
       });
 
       if (isLanceWedge && settings.frontRailEnabled) {
@@ -196,8 +261,6 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             y={rect.y - finishExpansion}
             width={rect.width + finishExpansion * 2}
             height={rect.height + finishExpansion * 2}
-            rx={Math.min(finishRadius, rect.width / 2 + finishExpansion)}
-            ry={Math.min(finishRadius, rect.height / 2 + finishExpansion)}
             className="finish-footprint"
           />
         ))}

@@ -215,47 +215,22 @@ function createTrayFinishShell(name: string, rects: Rect[], height: number, sett
     });
   });
 
-  if (slope > 0) {
-    cornerGroups.forEach((cornerSegments, key) => {
-      const normals = Array.from(
-        new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
-      );
+  cornerGroups.forEach((cornerSegments, key) => {
+    const normals = Array.from(
+      new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
+    );
 
-      if (normals.length < 2) {
-        return;
-      }
+    if (normals.length < 2) {
+      return;
+    }
 
-      const [x, y] = key.split(',').map(Number);
-      const corner = new THREE.Vector2(x, y);
-      const topIndex = addVertex(corner, height);
-      const anglePairs = normals
-        .map((normal) => {
-          const bottomPoint = corner.clone().addScaledVector(normal, slope);
-          return { angle: Math.atan2(normal.y, normal.x), point: bottomPoint };
-        })
-        .sort((a, b) => a.angle - b.angle);
-      const first = anglePairs[0];
-      const last = anglePairs[anglePairs.length - 1];
-      const span = last.angle - first.angle > Math.PI ? [last, first] : [first, last];
-      let startAngle = span[0].angle;
-      let endAngle = span[1].angle;
-
-      if (endAngle < startAngle) {
-        endAngle += Math.PI * 2;
-      }
-
-      const steps = 4;
-      const bottomIndices = Array.from({ length: steps + 1 }, (_, step) => {
-        const angle = startAngle + ((endAngle - startAngle) * step) / steps;
-        const point = corner.clone().add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(slope));
-        return addVertex(point, 0);
-      });
-
-      for (let index = 0; index < bottomIndices.length - 1; index += 1) {
-        indices.push(topIndex, bottomIndices[index], bottomIndices[index + 1]);
-      }
-    });
-  }
+    const [x, y] = key.split(',').map(Number);
+    const corner = new THREE.Vector2(x, y);
+    const topIndex = addVertex(corner, height);
+    const bottomA = addVertex(corner.clone().addScaledVector(normals[0], slope), 0);
+    const bottomB = addVertex(corner.clone().addScaledVector(normals[1], slope), 0);
+    indices.push(topIndex, bottomA, bottomB);
+  });
 
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   geometry.setIndex(indices);

@@ -27,8 +27,6 @@ const standardDefaults: TraySettings = {
   adapterRemoveFloorEnabled: false,
   adapterFloorCutoutEnabled: false,
   adapterFloorCutoutBufferMm: 2,
-  trayRoundedCornersEnabled: false,
-  trayCornerRadiusMm: 0,
   trayEdgeSlopeMm: 0,
   skirmishBaseShape: 'circle',
   skirmishBaseSizeMm: 25,
@@ -280,7 +278,7 @@ export default function App() {
     });
   };
 
-  const updateFinishSetting = (key: 'trayCornerRadiusMm' | 'trayEdgeSlopeMm', value: string) => {
+  const updateFinishSetting = (key: 'trayEdgeSlopeMm', value: string) => {
     updateSettings({
       ...settings,
       [key]: Number(value),
@@ -405,34 +403,6 @@ export default function App() {
           <TrayPreviewSvg settings={settings} dimensions={dimensions} />
           <fieldset className="tray-finish-panel">
             <legend>Tray Finish</legend>
-            <label
-              className="finish-toggle"
-              title="Round the outside perimeter corners inward within the current footprint."
-            >
-              <input
-                type="checkbox"
-                checked={settings.trayRoundedCornersEnabled}
-                onChange={(event) => updateSettings({ ...settings, trayRoundedCornersEnabled: event.target.checked })}
-              />
-              <span>Round perimeter corners</span>
-            </label>
-            {settings.trayRoundedCornersEnabled && (
-              <label
-                className="finish-slider"
-                title="Rounds only the outside perimeter corners inward. Internal cutouts stay square."
-              >
-                <span>Corner radius</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="12"
-                  step="0.5"
-                  value={settings.trayCornerRadiusMm}
-                  onChange={(event) => updateFinishSetting('trayCornerRadiusMm', event.target.value)}
-                />
-                <output>{settings.trayCornerRadiusMm.toFixed(1)} mm</output>
-              </label>
-            )}
             <label
               className="finish-slider"
               title="Slopes only the outside perimeter edges outward. Internal slots and magnet holes are left untouched."
