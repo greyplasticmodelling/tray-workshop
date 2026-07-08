@@ -15,7 +15,6 @@ type Props = {
   onCopyShareLink: () => void;
   shareStatus: string;
   validationMessages: string[];
-  onDownload: () => void;
 };
 
 const numberFields: Array<{
@@ -64,7 +63,6 @@ export function TrayControls({
   onCopyShareLink,
   shareStatus,
   validationMessages,
-  onDownload,
 }: Props) {
   const updateNumber = (key: keyof TraySettings, value: string) => {
     const nextValue = value === '' ? 0 : Number(value);
@@ -87,7 +85,7 @@ export function TrayControls({
     <aside className="controls" aria-label="Tray settings">
       <div>
         <p className="eyebrow">Tray Workshop</p>
-        <h1>Build a square-base tray</h1>
+        <h1>Build a wargaming movement tray</h1>
         <p className="intro">Set the base size, formation, clearances, and tray style, then download a browser-generated STL.</p>
       </div>
 
@@ -644,15 +642,6 @@ export function TrayControls({
         )}
       </section>
 
-      <button
-        className="download-button"
-        type="button"
-        title="Download the current tray as an STL file."
-        disabled={validationMessages.length > 0}
-        onClick={onDownload}
-      >
-        Download STL
-      </button>
     </aside>
   );
 }

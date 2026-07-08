@@ -384,11 +384,22 @@ export default function App() {
           onCopyShareLink={copyShareLink}
           shareStatus={shareStatus}
           validationMessages={validation.messages}
-          onDownload={handleDownload}
         />
 
-        <section className="preview-panel" aria-label="Tray preview and dimensions">
+        <section className="preview-panel" aria-label="Tray preview">
           <TrayPreviewSvg settings={settings} dimensions={dimensions} />
+          <button
+            className="download-button"
+            type="button"
+            title="Download the current tray as an STL file."
+            disabled={validation.messages.length > 0}
+            onClick={handleDownload}
+          >
+            Download STL
+          </button>
+        </section>
+
+        <section className="output-panel" aria-label="Build plate and dimensions">
           <DimensionsPanel
             settings={settings}
             dimensions={dimensions}
