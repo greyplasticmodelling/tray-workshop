@@ -281,9 +281,11 @@ export default function App() {
   };
 
   const updateFinishSetting = (key: 'trayEdgeSlopeMm' | 'trayCornerRadiusMm', value: string) => {
+    const numericValue = Number(value);
     updateSettings({
       ...settings,
-      [key]: Number(value),
+      [key]: numericValue,
+      ...(key === 'trayEdgeSlopeMm' && numericValue > 0 ? { trayRoundedCornersEnabled: false } : {}),
     });
   };
 
@@ -291,6 +293,7 @@ export default function App() {
     updateSettings({
       ...settings,
       [key]: checked,
+      ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
     });
   };
 
@@ -450,6 +453,7 @@ export default function App() {
                 max="6"
                 step="0.25"
                 value={settings.trayEdgeSlopeMm}
+                disabled={settings.trayRoundedCornersEnabled}
                 onChange={(event) => updateFinishSetting('trayEdgeSlopeMm', event.target.value)}
               />
               <output>{settings.trayEdgeSlopeMm.toFixed(2)} mm</output>

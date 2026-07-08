@@ -4,6 +4,7 @@ import { calculateTrayDimensions, getMagnetCutoutCenters, getRankCounts, getSkir
 
 type Rect = { left: number; right: number; front: number; back: number };
 type PerimeterSegment = { start: THREE.Vector2; end: THREE.Vector2; normal: THREE.Vector2 };
+type CornerMask = { frontLeft?: boolean; frontRight?: boolean; backRight?: boolean; backLeft?: boolean };
 
 function createBox(name: string, width: number, depth: number, height: number, x: number, y: number, z: number) {
   const geometry = new THREE.BoxGeometry(width, depth, height);
@@ -15,14 +16,19 @@ function createBox(name: string, width: number, depth: number, height: number, x
 }
 
 function getCornerRadius(settings: TraySettings, width: number, depth: number) {
-  return settings.template === 'skirmish' && settings.trayRoundedCornersEnabled
-    ? Math.min(settings.trayCornerRadiusMm, width / 2 - 0.001, depth / 2 - 0.001)
-    : 0;
+  return settings.trayRoundedCornersEnabled ? Math.min(settings.trayCornerRadiusMm, width / 2 - 0.001, depth / 2 - 0.001) : 0;
 }
 
-function createRoundedRectShape(width: number, depth: number, radius: number) {
+function createRoundedRectShape(width: number, depth: number, radius: number, corners: CornerMask = {}) {
   const halfWidth = width / 2;
   const halfDepth = depth / 2;
+  const cornerMask = {
+    frontLeft: true,
+    frontRight: true,
+    backRight: true,
+    backLeft: true,
+    ...corners,
+  };
   const shape = new THREE.Shape();
 
   if (radius <= 0) {
@@ -34,16 +40,59 @@ function createRoundedRectShape(width: number, depth: number, radius: number) {
     return shape;
   }
 
-  shape.moveTo(-halfWidth + radius, -halfDepth);
-  shape.lineTo(halfWidth - radius, -halfDepth);
-  shape.quadraticCurveTo(halfWidth, -halfDepth, halfWidth, -halfDepth + radius);
-  shape.lineTo(halfWidth, halfDepth - radius);
-  shape.quadraticCurveTo(halfWidth, halfDepth, halfWidth - radius, halfDepth);
-  shape.lineTo(-halfWidth + radius, halfDepth);
-  shape.quadraticCurveTo(-halfWidth, halfDepth, -halfWidth, halfDepth - radius);
-  shape.lineTo(-halfWidth, -halfDepth + radius);
-  shape.quadraticCurveTo(-halfWidth, -halfDepth, -halfWidth + radius, -halfDepth);
+  shape.moveTo(-halfWidth + (cornerMask.frontLeft ? radius : 0), -halfDepth);
+  shape.lineTo(halfWidth - (cornerMask.frontRight ? radius : 0), -halfDepth);
+  if (cornerMask.frontRight) {
+    shape.quadraticCurveTo(halfWidth, -halfDepth, halfWidth, -halfDepth + radius);
+  } else {
+    shape.lineTo(halfWidth, -halfDepth);
+  }
+  shape.lineTo(halfWidth, halfDepth - (cornerMask.backRight ? radius : 0));
+  if (cornerMask.backRight) {
+    shape.quadraticCurveTo(halfWidth, halfDepth, halfWidth - radius, halfDepth);
+  } else {
+    shape.lineTo(halfWidth, halfDepth);
+  }
+  shape.lineTo(-halfWidth + (cornerMask.backLeft ? radius : 0), halfDepth);
+  if (cornerMask.backLeft) {
+    shape.quadraticCurveTo(-halfWidth, halfDepth, -halfWidth, halfDepth - radius);
+  } else {
+    shape.lineTo(-halfWidth, halfDepth);
+  }
+  shape.lineTo(-halfWidth, -halfDepth + (cornerMask.frontLeft ? radius : 0));
+  if (cornerMask.frontLeft) {
+    shape.quadraticCurveTo(-halfWidth, -halfDepth, -halfWidth + radius, -halfDepth);
+  } else {
+    shape.lineTo(-halfWidth, -halfDepth);
+  }
   return shape;
+}
+
+function createRoundedBox(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  x: number,
+  y: number,
+  z: number,
+  radius: number,
+  corners?: CornerMask,
+) {
+  if (radius <= 0) {
+    return createBox(name, width, depth, height, x, y, z);
+  }
+
+  const geometry = new THREE.ExtrudeGeometry(createRoundedRectShape(width, depth, radius, corners), {
+    depth: height,
+    bevelEnabled: false,
+    curveSegments: 16,
+  });
+  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name;
+  mesh.position.set(x, y, z - height / 2);
+  return mesh;
 }
 
 function createPerforatedFloorLayer(
@@ -55,9 +104,12 @@ function createPerforatedFloorLayer(
   y: number,
   holes: Array<{ x: number; y: number }>,
   settings: TraySettings,
+  roundedOuter = false,
 ) {
+  const cornerRadius = roundedOuter ? getCornerRadius(settings, width, depth) : 0;
+
   if (!settings.magnetCutoutsEnabled || holes.length === 0) {
-    return createBox(name, width, depth, height, x, y, height / 2);
+    return createRoundedBox(name, width, depth, height, x, y, height / 2, cornerRadius);
   }
 
   const recessDepth = Math.min(settings.magnetCutoutDepthMm, height);
@@ -66,12 +118,12 @@ function createPerforatedFloorLayer(
   group.name = name;
 
   if (bottomSkinHeight > 0) {
-    group.add(createBox(`${name}-bottom-skin`, width, depth, bottomSkinHeight, x, y, bottomSkinHeight / 2));
+    group.add(createRoundedBox(`${name}-bottom-skin`, width, depth, bottomSkinHeight, x, y, bottomSkinHeight / 2, cornerRadius));
   }
 
   if (recessDepth > 0) {
     const radius = settings.magnetDiameterMm / 2;
-    const shape = createRoundedRectShape(width, depth, getCornerRadius(settings, width, depth));
+    const shape = createRoundedRectShape(width, depth, cornerRadius);
 
     holes.forEach((hole) => {
       if (
@@ -797,6 +849,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           0,
           getHolesInRect(skirmishMagnetCenters, 0, 0, dimensions.outerWidthMm, dimensions.outerDepthMm),
           settings,
+          true,
         ),
       );
     }
@@ -1114,16 +1167,16 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         .map((center) => ({ x: center.x, y: center.y - rowInnerCenterY }));
 
       group.add(
-        createPerforatedFloorLayer(
-          `floor-rank-${rowIndex + 1}`,
+      createPerforatedFloorLayer(
+        `floor-rank-${rowIndex + 1}`,
           rowWidth + dimensions.leftRailMm + dimensions.rightRailMm,
           dimensions.slotDepthMm,
           settings.floorThicknessMm,
           centerX,
           rowCenterY,
-          rowMagnetCenters,
-          settings,
-        ),
+        rowMagnetCenters,
+        settings,
+      ),
       );
 
       if (settings.leftRailEnabled) {
@@ -1424,6 +1477,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         0,
         standardMagnetCenters,
         settings,
+        true,
       ),
     );
   }
@@ -1434,14 +1488,36 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const rearY = dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2;
 
   if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
+    const radius = !hasCharacterBay ? getCornerRadius(settings, settings.railThicknessMm, dimensions.outerDepthMm) : 0;
     group.add(
-      createBox('left-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, leftX, 0, railCenterZ),
+      createRoundedBox(
+        'left-rail',
+        settings.railThicknessMm,
+        dimensions.outerDepthMm,
+        railHeight,
+        leftX,
+        0,
+        railCenterZ,
+        radius,
+        { frontLeft: settings.frontRailEnabled, frontRight: false, backRight: false, backLeft: settings.rearRailEnabled },
+      ),
     );
   }
 
   if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
+    const radius = !hasCharacterBay ? getCornerRadius(settings, settings.railThicknessMm, dimensions.outerDepthMm) : 0;
     group.add(
-      createBox('right-rail', settings.railThicknessMm, dimensions.outerDepthMm, railHeight, rightX, 0, railCenterZ),
+      createRoundedBox(
+        'right-rail',
+        settings.railThicknessMm,
+        dimensions.outerDepthMm,
+        railHeight,
+        rightX,
+        0,
+        railCenterZ,
+        radius,
+        { frontLeft: false, frontRight: settings.frontRailEnabled, backRight: settings.rearRailEnabled, backLeft: false },
+      ),
     );
   }
 
