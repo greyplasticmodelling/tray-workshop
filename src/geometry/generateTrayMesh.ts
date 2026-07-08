@@ -864,6 +864,33 @@ function createPerimeterBorderLayer(
   );
 }
 
+function createRoundedPerimeterBorderLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  x: number,
+  y: number,
+  borderWidth: number,
+  settings: TraySettings,
+) {
+  const inset = Math.max(0, borderWidth);
+  const innerWidth = width - inset * 2;
+  const innerDepth = depth - inset * 2;
+  const outerRadius = getCornerRadius(settings, width, depth);
+
+  if (outerRadius <= 0 || innerWidth <= 0 || innerDepth <= 0) {
+    return createPerimeterBorderLayer(name, width, depth, height, x, y, borderWidth);
+  }
+
+  const shape = createRoundedRectShape(width, depth, outerRadius);
+  const innerRadius = Math.max(0, outerRadius - inset);
+  const hole = createRoundedRectShape(innerWidth, innerDepth, innerRadius);
+  shape.holes.push(hole);
+
+  return createExtrudedShapeMesh(name, shape, height, x, y, height / 2);
+}
+
 function createUnionPerimeterBorderLayer(
   name: string,
   rects: Array<{ left: number; right: number; front: number; back: number }>,
@@ -959,6 +986,136 @@ function createUnionPerimeterBorderLayer(
   return group;
 }
 
+function createRoundedUnionPerimeterBorderLayer(
+  name: string,
+  rects: Array<{ left: number; right: number; front: number; back: number }>,
+  height: number,
+  z: number,
+  borderWidth: number,
+  settings: TraySettings,
+) {
+  const inset = Math.max(0, borderWidth);
+  const outerRects = rects.filter((rect) => rect.right > rect.left && rect.back > rect.front);
+  const points = getOrderedPerimeterPoints(outerRects);
+  const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
+
+  if (points.length < 3 || radius <= 0) {
+    return createUnionPerimeterBorderLayer(name, rects, height, z, borderWidth);
+  }
+
+  if (outerRects.length === 1) {
+    const rect = outerRects[0];
+    const width = rect.right - rect.left;
+    const depth = rect.back - rect.front;
+    return createRoundedPerimeterBorderLayer(
+      name,
+      width,
+      depth,
+      height,
+      rect.left + width / 2,
+      rect.front + depth / 2,
+      borderWidth,
+      settings,
+    );
+  }
+
+  const shape = createRoundedPolygonShape(points, radius);
+
+  outerRects.forEach((rect) => {
+    const innerWidth = rect.right - rect.left - inset * 2;
+    const innerDepth = rect.back - rect.front - inset * 2;
+
+    if (innerWidth <= 0 || innerDepth <= 0) {
+      return;
+    }
+
+    const hole = new THREE.Path();
+    const halfWidth = innerWidth / 2;
+    const halfDepth = innerDepth / 2;
+    const centerX = rect.left + (rect.right - rect.left) / 2;
+    const centerY = rect.front + (rect.back - rect.front) / 2;
+    const innerRadius = Math.max(0, radius - inset);
+
+    if (innerRadius <= 0) {
+      hole.moveTo(centerX - halfWidth, centerY - halfDepth);
+      hole.lineTo(centerX - halfWidth, centerY + halfDepth);
+      hole.lineTo(centerX + halfWidth, centerY + halfDepth);
+      hole.lineTo(centerX + halfWidth, centerY - halfDepth);
+      hole.lineTo(centerX - halfWidth, centerY - halfDepth);
+    } else {
+      hole.moveTo(centerX - halfWidth + innerRadius, centerY - halfDepth);
+      hole.lineTo(centerX + halfWidth - innerRadius, centerY - halfDepth);
+      hole.quadraticCurveTo(centerX + halfWidth, centerY - halfDepth, centerX + halfWidth, centerY - halfDepth + innerRadius);
+      hole.lineTo(centerX + halfWidth, centerY + halfDepth - innerRadius);
+      hole.quadraticCurveTo(centerX + halfWidth, centerY + halfDepth, centerX + halfWidth - innerRadius, centerY + halfDepth);
+      hole.lineTo(centerX - halfWidth + innerRadius, centerY + halfDepth);
+      hole.quadraticCurveTo(centerX - halfWidth, centerY + halfDepth, centerX - halfWidth, centerY + halfDepth - innerRadius);
+      hole.lineTo(centerX - halfWidth, centerY - halfDepth + innerRadius);
+      hole.quadraticCurveTo(centerX - halfWidth, centerY - halfDepth, centerX - halfWidth + innerRadius, centerY - halfDepth);
+    }
+    shape.holes.push(hole);
+  });
+
+  return createExtrudedShapeMesh(name, shape, height, 0, 0, z + height / 2);
+}
+
+function createUnionCircleCutoutLayer(
+  name: string,
+  rects: Rect[],
+  height: number,
+  holes: Array<{ x: number; y: number }>,
+  z: number,
+  settings: TraySettings,
+) {
+  const points = getOrderedPerimeterPoints(rects);
+  const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
+
+  if (points.length < 3 || radius <= 0) {
+    return createUnionRectGridLayer(name, rects, height, [], z);
+  }
+
+  const shape = createRoundedPolygonShape(points, radius);
+  const holeRadius = settings.magnetDiameterMm / 2;
+
+  if (settings.magnetCutoutsEnabled) {
+    holes.forEach((hole) => {
+      const path = new THREE.Path();
+      path.absellipse(hole.x, hole.y, holeRadius, holeRadius, 0, Math.PI * 2, true);
+      shape.holes.push(path);
+    });
+  }
+
+  return createExtrudedShapeMesh(name, shape, height, 0, 0, z + height / 2);
+}
+
+function createUnionPerforatedFloorLayer(
+  name: string,
+  rects: Rect[],
+  height: number,
+  holes: Array<{ x: number; y: number }>,
+  z: number,
+  settings: TraySettings,
+) {
+  if (!settings.magnetCutoutsEnabled || holes.length === 0) {
+    return createUnionCutoutLayer(name, rects, height, [], z, settings);
+  }
+
+  const recessDepth = Math.min(settings.magnetCutoutDepthMm, height);
+  const bottomSkinHeight = height - recessDepth;
+  const group = new THREE.Group();
+  group.name = name;
+
+  if (bottomSkinHeight > 0) {
+    group.add(createUnionCutoutLayer(`${name}-bottom-skin`, rects, bottomSkinHeight, [], z, settings));
+  }
+
+  if (recessDepth > 0) {
+    group.add(createUnionCircleCutoutLayer(`${name}-recess-layer`, rects, recessDepth, holes, z + bottomSkinHeight, settings));
+  }
+
+  return group;
+}
+
 function createAdapterFloorLayer(
   name: string,
   width: number,
@@ -1000,6 +1157,19 @@ function createAdapterTopBorderLayer(
   y: number,
   settings: TraySettings,
 ) {
+  if (settings.trayRoundedCornersEnabled) {
+    return createRoundedPerimeterBorderLayer(
+      name,
+      width,
+      depth,
+      settings.floorThicknessMm,
+      x,
+      y,
+      settings.adapterFloorCutoutBufferMm,
+      settings,
+    );
+  }
+
   return createPerimeterBorderLayer(
     name,
     width,
@@ -1374,12 +1544,13 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
 
     if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled && !hasFlankAdapter) {
       group.add(
-        createUnionPerimeterBorderLayer(
+        createRoundedUnionPerimeterBorderLayer(
           'adapter-magnetic-sheet-border',
           [mainAdapterRect],
           settings.floorThicknessMm,
           settings.adapterBaseHeightMm,
           settings.adapterFloorCutoutBufferMm,
+          settings,
         ),
       );
     }
@@ -1434,12 +1605,13 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
 
     if (hasFlankAdapter && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
       group.add(
-        createUnionPerimeterBorderLayer(
+        createRoundedUnionPerimeterBorderLayer(
           'adapter-flank-magnetic-sheet-border',
           [mainAdapterRect, flankAdapterRect],
           settings.floorThicknessMm,
           settings.adapterBaseHeightMm,
           settings.adapterFloorCutoutBufferMm,
+          settings,
         ),
       );
     }
@@ -1827,8 +1999,32 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     settings.characterBaySide === 'left' ? outerLeftX : innerLeftX + dimensions.mainInnerWidthMm;
   const characterFloorCenterX = characterFloorX + characterFloorWidth / 2;
   const characterFloorCenterY = outerFrontY + characterFloorDepth / 2;
+  const roundedCharacterBay = hasCharacterBay && settings.trayRoundedCornersEnabled;
+  const mainFloorRect = {
+    left: mainFloorCenterX - mainFloorWidth / 2,
+    right: mainFloorCenterX + mainFloorWidth / 2,
+    front: -dimensions.outerDepthMm / 2,
+    back: dimensions.outerDepthMm / 2,
+  };
+  const characterFloorRect = {
+    left: characterFloorCenterX - characterFloorWidth / 2,
+    right: characterFloorCenterX + characterFloorWidth / 2,
+    front: characterFloorCenterY - characterFloorDepth / 2,
+    back: characterFloorCenterY + characterFloorDepth / 2,
+  };
 
-  if (hasCharacterBay) {
+  if (roundedCharacterBay) {
+    group.add(
+      createUnionPerforatedFloorLayer(
+        'rounded-character-floor',
+        [mainFloorRect, characterFloorRect],
+        settings.floorThicknessMm,
+        standardMagnetCenters,
+        0,
+        settings,
+      ),
+    );
+  } else if (hasCharacterBay) {
     group.add(
       createPerforatedFloorLayer(
         'main-floor',
@@ -1896,7 +2092,18 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     group.add(roundedStandardRailLayer);
   }
 
-  if (!roundedStandardRailLayer && settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
+  const roundedCharacterRailRects: Rect[] = [];
+
+  if (roundedCharacterBay && settings.leftRailEnabled && settings.characterBaySide === 'right') {
+    roundedCharacterRailRects.push({
+      left: -dimensions.outerWidthMm / 2,
+      right: -dimensions.outerWidthMm / 2 + settings.railThicknessMm,
+      front: -dimensions.outerDepthMm / 2,
+      back: dimensions.outerDepthMm / 2,
+    });
+  }
+
+  if (!roundedCharacterBay && !roundedStandardRailLayer && settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
     const radius = !hasCharacterBay ? getCornerRadius(settings, settings.railThicknessMm, dimensions.outerDepthMm) : 0;
     group.add(
       createRoundedBox(
@@ -1913,7 +2120,16 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     );
   }
 
-  if (!roundedStandardRailLayer && settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
+  if (roundedCharacterBay && settings.rightRailEnabled && settings.characterBaySide === 'left') {
+    roundedCharacterRailRects.push({
+      left: dimensions.outerWidthMm / 2 - settings.railThicknessMm,
+      right: dimensions.outerWidthMm / 2,
+      front: -dimensions.outerDepthMm / 2,
+      back: dimensions.outerDepthMm / 2,
+    });
+  }
+
+  if (!roundedCharacterBay && !roundedStandardRailLayer && settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
     const radius = !hasCharacterBay ? getCornerRadius(settings, settings.railThicknessMm, dimensions.outerDepthMm) : 0;
     group.add(
       createRoundedBox(
@@ -1930,11 +2146,30 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     );
   }
 
-  if (!roundedStandardRailLayer && settings.frontRailEnabled) {
+  if (roundedCharacterBay && settings.frontRailEnabled) {
+    roundedCharacterRailRects.push({
+      left: -dimensions.innerWidthMm / 2,
+      right: dimensions.innerWidthMm / 2,
+      front: -dimensions.outerDepthMm / 2,
+      back: -dimensions.outerDepthMm / 2 + settings.railThicknessMm,
+    });
+  }
+
+  if (!roundedCharacterBay && !roundedStandardRailLayer && settings.frontRailEnabled) {
     group.add(createBox('front-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, frontY, railCenterZ));
   }
 
-  if (!roundedStandardRailLayer && settings.rearRailEnabled) {
+  if (roundedCharacterBay && settings.rearRailEnabled) {
+    const rearRailWidth = dimensions.mainInnerWidthMm;
+    roundedCharacterRailRects.push({
+      left: mainAreaCenterX - rearRailWidth / 2,
+      right: mainAreaCenterX + rearRailWidth / 2,
+      front: dimensions.outerDepthMm / 2 - settings.railThicknessMm,
+      back: dimensions.outerDepthMm / 2,
+    });
+  }
+
+  if (!roundedCharacterBay && !roundedStandardRailLayer && settings.rearRailEnabled) {
     group.add(
       createBox(
         'rear-rail',
@@ -1954,7 +2189,15 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         ? outerLeftX + settings.railThicknessMm / 2
         : dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
 
-    group.add(
+    if (roundedCharacterBay) {
+      roundedCharacterRailRects.push({
+        left: baySideRailCenterX - settings.railThicknessMm / 2,
+        right: baySideRailCenterX + settings.railThicknessMm / 2,
+        front: characterFloorCenterY - characterFloorDepth / 2,
+        back: characterFloorCenterY + characterFloorDepth / 2,
+      });
+    } else {
+      group.add(
       createBox(
         'character-bay-side-rail',
         settings.railThicknessMm,
@@ -1964,7 +2207,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         characterFloorCenterY,
         railCenterZ,
       ),
-    );
+      );
+    }
 
     if (hasCharacterReturnRail) {
       const stepRailWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
@@ -1982,7 +2226,23 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const mainSideRailCenterY =
         innerFrontY + dimensions.characterSlotDepthMm + mainSideRailDepth / 2;
 
-      group.add(
+      if (roundedCharacterBay) {
+        roundedCharacterRailRects.push(
+          {
+            left: stepRailCenterX - stepRailWidth / 2,
+            right: stepRailCenterX + stepRailWidth / 2,
+            front: stepRailCenterY - settings.railThicknessMm / 2,
+            back: stepRailCenterY + settings.railThicknessMm / 2,
+          },
+          {
+            left: mainSideRailCenterX - settings.railThicknessMm / 2,
+            right: mainSideRailCenterX + settings.railThicknessMm / 2,
+            front: mainSideRailCenterY - mainSideRailDepth / 2,
+            back: mainSideRailCenterY + mainSideRailDepth / 2,
+          },
+        );
+      } else {
+        group.add(
         createBox(
           'character-bay-return-rail',
           stepRailWidth,
@@ -1992,19 +2252,33 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           stepRailCenterY,
           railCenterZ,
         ),
-      );
-      group.add(
-        createBox(
-          'main-side-rail-after-character-bay',
-          settings.railThicknessMm,
-          mainSideRailDepth,
-          railHeight,
-          mainSideRailCenterX,
-          mainSideRailCenterY,
-          railCenterZ,
-        ),
-      );
+        );
+        group.add(
+          createBox(
+            'main-side-rail-after-character-bay',
+            settings.railThicknessMm,
+            mainSideRailDepth,
+            railHeight,
+            mainSideRailCenterX,
+            mainSideRailCenterY,
+            railCenterZ,
+          ),
+        );
+      }
     }
+  }
+
+  if (roundedCharacterBay && roundedCharacterRailRects.length > 0) {
+    group.add(
+      createUnionCutoutLayer(
+        'rounded-character-rails',
+        roundedCharacterRailRects,
+        railHeight,
+        [],
+        settings.floorThicknessMm,
+        settings,
+      ),
+    );
   }
 
   const standardFinishSegments: PerimeterSegment[] = [];

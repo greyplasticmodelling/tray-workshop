@@ -83,10 +83,8 @@ export function TrayControls({
       (settings.template === 'adapter' && settings.characterBayEnabled));
   const magnetCutoutsDisabledByRemovedFloor = supportsOpenFloor && settings.adapterRemoveFloorEnabled;
   const magnetCutoutsDisabled = roundedCornersConflictWithMagnets || magnetCutoutsDisabledByRemovedFloor;
-  const magneticSheetBorderDisabledByRoundedCorners = settings.trayRoundedCornersEnabled;
-  const magneticSheetBorderTooltip = magneticSheetBorderDisabledByRoundedCorners
-    ? 'Magnetic sheet border is not currently available with rounded corners.'
-    : 'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into.';
+  const magneticSheetBorderTooltip =
+    'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into. Rounded corners are applied when advanced rounded corners are enabled.';
   const selectedTemplate = trayTemplates.find((template) => template.value === settings.template);
 
   return (
@@ -405,17 +403,13 @@ export function TrayControls({
                 <input
                   type="checkbox"
                   title={magneticSheetBorderTooltip}
-                  checked={settings.adapterFloorCutoutEnabled && !magneticSheetBorderDisabledByRoundedCorners}
-                  disabled={magneticSheetBorderDisabledByRoundedCorners}
+                  checked={settings.adapterFloorCutoutEnabled}
                   onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
                 />
                 <span>Magnetic sheet border</span>
               </label>
-              {magneticSheetBorderDisabledByRoundedCorners && (
-                <p className="compatibility-note">Magnetic sheet border is disabled while rounded corners are enabled.</p>
-              )}
 
-              {settings.adapterFloorCutoutEnabled && !magneticSheetBorderDisabledByRoundedCorners && (
+              {settings.adapterFloorCutoutEnabled && (
                 <label className="field" title={magneticSheetBorderTooltip}>
                   <span>Border width (mm)</span>
                   <input

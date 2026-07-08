@@ -439,16 +439,8 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     messages.push('Magnet cutouts are not currently available with rounded corners for this tray type.');
   }
 
-  if (settings.template === 'standard' && settings.characterBayEnabled && settings.trayRoundedCornersEnabled) {
-    messages.push('Rounded corners are not currently available with the standard character flank slot.');
-  }
-
   if (hasOpenFloorOption && settings.adapterRemoveFloorEnabled && settings.magnetCutoutsEnabled) {
     messages.push('Magnet cutouts are not available when the floor is removed.');
-  }
-
-  if (hasOpenFloorOption && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled && settings.trayRoundedCornersEnabled) {
-    messages.push('Magnetic sheet border is not currently available with rounded corners.');
   }
 
   if (settings.template === 'adapter' || settings.template === 'adapterLance') {
