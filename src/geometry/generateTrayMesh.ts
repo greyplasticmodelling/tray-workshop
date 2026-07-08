@@ -95,6 +95,75 @@ function createRoundedBox(
   return mesh;
 }
 
+function createExtrudedShapeMesh(name: string, shape: THREE.Shape, height: number, x: number, y: number, z: number) {
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: height,
+    bevelEnabled: false,
+    curveSegments: 16,
+  });
+  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name;
+  mesh.position.set(x, y, z - height / 2);
+  return mesh;
+}
+
+function createStandardRoundedRailLayer(
+  name: string,
+  width: number,
+  depth: number,
+  railThickness: number,
+  railHeight: number,
+  railCenterZ: number,
+  settings: TraySettings,
+) {
+  const radius = getCornerRadius(settings, width, depth);
+  const halfWidth = width / 2;
+  const halfDepth = depth / 2;
+  const left = -halfWidth;
+  const right = halfWidth;
+  const front = -halfDepth;
+  const back = halfDepth;
+  const innerLeft = left + (settings.leftRailEnabled ? railThickness : 0);
+  const innerRight = right - (settings.rightRailEnabled ? railThickness : 0);
+  const innerFront = front + (settings.frontRailEnabled ? railThickness : 0);
+  const innerBack = back - (settings.rearRailEnabled ? railThickness : 0);
+
+  if (radius <= 0 || (!settings.frontRailEnabled && !settings.rearRailEnabled)) {
+    return null;
+  }
+
+  if (settings.frontRailEnabled && settings.leftRailEnabled && settings.rightRailEnabled && !settings.rearRailEnabled) {
+    const shape = new THREE.Shape();
+    shape.moveTo(left, back);
+    shape.lineTo(left, front + radius);
+    shape.quadraticCurveTo(left, front, left + radius, front);
+    shape.lineTo(right - radius, front);
+    shape.quadraticCurveTo(right, front, right, front + radius);
+    shape.lineTo(right, back);
+    shape.lineTo(innerRight, back);
+    shape.lineTo(innerRight, innerFront);
+    shape.lineTo(innerLeft, innerFront);
+    shape.lineTo(innerLeft, back);
+    shape.lineTo(left, back);
+    return createExtrudedShapeMesh(name, shape, railHeight, 0, 0, railCenterZ);
+  }
+
+  if (settings.frontRailEnabled && settings.rearRailEnabled && settings.leftRailEnabled && settings.rightRailEnabled) {
+    const shape = createRoundedRectShape(width, depth, radius);
+    const hole = new THREE.Path();
+    hole.moveTo(innerLeft, innerFront);
+    hole.lineTo(innerLeft, innerBack);
+    hole.lineTo(innerRight, innerBack);
+    hole.lineTo(innerRight, innerFront);
+    hole.lineTo(innerLeft, innerFront);
+    shape.holes.push(hole);
+    return createExtrudedShapeMesh(name, shape, railHeight, 0, 0, railCenterZ);
+  }
+
+  return null;
+}
+
 function createPerforatedFloorLayer(
   name: string,
   width: number,
@@ -162,17 +231,13 @@ function createRectCutoutLayer(
   x: number,
   y: number,
   z: number,
+  radius = 0,
 ) {
   if (holes.length === 0) {
-    return createBox(name, width, depth, height, x, y, z + height / 2);
+    return createRoundedBox(name, width, depth, height, x, y, z + height / 2, radius);
   }
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-width / 2, -depth / 2);
-  shape.lineTo(width / 2, -depth / 2);
-  shape.lineTo(width / 2, depth / 2);
-  shape.lineTo(-width / 2, depth / 2);
-  shape.lineTo(-width / 2, -depth / 2);
+  const shape = createRoundedRectShape(width, depth, radius);
 
   holes.forEach((hole) => {
     const halfWidth = hole.width / 2;
@@ -776,8 +841,9 @@ function createAdapterFloorLayer(
   y: number,
   magnetHoles: Array<{ x: number; y: number }>,
   settings: TraySettings,
+  roundedOuter = false,
 ) {
-  return createPerforatedFloorLayer(name, width, depth, settings.floorThicknessMm, x, y, magnetHoles, settings);
+  return createPerforatedFloorLayer(name, width, depth, settings.floorThicknessMm, x, y, magnetHoles, settings, roundedOuter);
 }
 
 function createAdapterBlockLayer(
@@ -789,7 +855,14 @@ function createAdapterBlockLayer(
   x: number,
   y: number,
   z: number,
+  settings?: TraySettings,
 ) {
+  const radius = settings ? getCornerRadius(settings, width, depth) : 0;
+
+  if (radius > 0) {
+    return createRectCutoutLayer(name, width, depth, height, holes, x, y, z, radius);
+  }
+
   return createRectGridLayer(name, width, depth, height, holes, x, y, z);
 }
 
@@ -940,6 +1013,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           0,
           rowCenterY,
           adapterBlockZ,
+          undefined,
         ),
       );
 
@@ -1036,12 +1110,13 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           dimensions.mainInnerWidthMm,
           dimensions.mainInnerDepthMm,
           mainFloorCenterX,
-          mainFloorCenterY,
-          mainAdapterMagnetCenters,
-          settings,
-        ),
-      );
-    }
+            mainFloorCenterY,
+            mainAdapterMagnetCenters,
+            settings,
+            !hasFlankAdapter,
+          ),
+        );
+      }
 
     if (hasFlankAdapter && settings.adapterRemoveFloorEnabled) {
       group.add(
@@ -1064,6 +1139,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           mainFloorCenterX,
           mainFloorCenterY,
           adapterBlockZ,
+          hasFlankAdapter ? undefined : settings,
         ),
       );
     }
@@ -1121,6 +1197,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
             characterFloorCenterX,
             characterFloorCenterY,
             adapterBlockZ,
+            undefined,
           ),
         );
       }
@@ -1486,8 +1563,24 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const rightX = dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
   const frontY = -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2;
   const rearY = dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2;
+  const roundedStandardRailLayer =
+    !hasCharacterBay && settings.trayRoundedCornersEnabled
+      ? createStandardRoundedRailLayer(
+          'rounded-standard-rails',
+          dimensions.outerWidthMm,
+          dimensions.outerDepthMm,
+          settings.railThicknessMm,
+          railHeight,
+          railCenterZ,
+          settings,
+        )
+      : null;
 
-  if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
+  if (roundedStandardRailLayer) {
+    group.add(roundedStandardRailLayer);
+  }
+
+  if (!roundedStandardRailLayer && settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
     const radius = !hasCharacterBay ? getCornerRadius(settings, settings.railThicknessMm, dimensions.outerDepthMm) : 0;
     group.add(
       createRoundedBox(
@@ -1504,7 +1597,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     );
   }
 
-  if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
+  if (!roundedStandardRailLayer && settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
     const radius = !hasCharacterBay ? getCornerRadius(settings, settings.railThicknessMm, dimensions.outerDepthMm) : 0;
     group.add(
       createRoundedBox(
@@ -1521,11 +1614,11 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     );
   }
 
-  if (settings.frontRailEnabled) {
+  if (!roundedStandardRailLayer && settings.frontRailEnabled) {
     group.add(createBox('front-rail', dimensions.innerWidthMm, settings.railThicknessMm, railHeight, 0, frontY, railCenterZ));
   }
 
-  if (settings.rearRailEnabled) {
+  if (!roundedStandardRailLayer && settings.rearRailEnabled) {
     group.add(
       createBox(
         'rear-rail',
