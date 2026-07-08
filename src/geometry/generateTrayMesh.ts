@@ -358,12 +358,7 @@ function createAdapterBlockLayer(
   x: number,
   y: number,
   z: number,
-  settings: TraySettings,
 ) {
-  if (settings.adapterRemoveFloorEnabled) {
-    return createRectCutoutLayer(name, width, depth, height, holes, x, y, 0);
-  }
-
   return createRectGridLayer(name, width, depth, height, holes, x, y, z);
 }
 
@@ -479,7 +474,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           0,
           rowCenterY,
           adapterBlockZ,
-          settings,
         ),
       );
 
@@ -578,7 +572,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         mainFloorCenterX,
         mainFloorCenterY,
         adapterBlockZ,
-        settings,
       ),
     );
 
@@ -635,7 +628,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           characterFloorCenterX,
           characterFloorCenterY,
           adapterBlockZ,
-          settings,
         ),
       );
 
