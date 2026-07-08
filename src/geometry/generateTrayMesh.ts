@@ -201,6 +201,15 @@ function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegm
   const addQuad = (a: number, b: number, c: number, d: number) => {
     indices.push(a, c, b, b, c, d);
   };
+  const uniqueNormalCount = (point: THREE.Vector2) =>
+    new Set((cornerGroups.get(cornerKey(point)) ?? []).map((segment) => `${segment.normal.x},${segment.normal.y}`)).size;
+
+  segments.forEach((segment) => {
+    [segment.start, segment.end].forEach((point) => {
+      const key = cornerKey(point);
+      cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
+    });
+  });
 
   segments.forEach((segment) => {
     const topStartPoint = segment.start;
@@ -220,13 +229,14 @@ function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegm
     addQuad(topStart, topEnd, bottomStart, bottomEnd);
     addQuad(topStart, outerBottomStart, topEnd, outerBottomEnd);
     addQuad(bottomStart, bottomEnd, outerBottomStart, outerBottomEnd);
-    addTriangle(topStart, bottomStart, outerBottomStart);
-    addTriangle(topEnd, outerBottomEnd, bottomEnd);
 
-    [segment.start, segment.end].forEach((point) => {
-      const key = cornerKey(point);
-      cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
-    });
+    if (uniqueNormalCount(segment.start) < 2) {
+      addTriangle(topStart, bottomStart, outerBottomStart);
+    }
+
+    if (uniqueNormalCount(segment.end) < 2) {
+      addTriangle(topEnd, outerBottomEnd, bottomEnd);
+    }
   });
 
   cornerGroups.forEach((cornerSegments, key) => {
