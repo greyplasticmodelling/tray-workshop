@@ -14,6 +14,11 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterFlankCutoutWidthMm: { min: 10, max: 80, label: 'Flank adapter cutout width', unit: 'mm' },
   adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
+  adapterBorderUniformMm: { min: -20, max: 60, label: 'Adapter perimeter border', unit: 'mm' },
+  adapterBorderFrontMm: { min: -20, max: 60, label: 'Adapter front border adjustment', unit: 'mm' },
+  adapterBorderRearMm: { min: -20, max: 60, label: 'Adapter rear border adjustment', unit: 'mm' },
+  adapterBorderLeftMm: { min: -20, max: 60, label: 'Adapter left border adjustment', unit: 'mm' },
+  adapterBorderRightMm: { min: -20, max: 60, label: 'Adapter right border adjustment', unit: 'mm' },
   adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet border width', unit: 'mm' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
@@ -120,10 +125,22 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
-  const leftRailMm = !isAdapter && !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
-  const rightRailMm = !isAdapter && !isSkirmish && settings.rightRailEnabled ? settings.railThicknessMm : 0;
-  const frontRailMm = !isAdapter && !isSkirmish && settings.frontRailEnabled ? settings.railThicknessMm : 0;
-  const rearRailMm = !isAdapter && !isSkirmish && settings.rearRailEnabled ? settings.railThicknessMm : 0;
+  const adapterBorderLeftMm = isAdapter
+    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderLeftMm : 0)
+    : 0;
+  const adapterBorderRightMm = isAdapter
+    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderRightMm : 0)
+    : 0;
+  const adapterBorderFrontMm = isAdapter
+    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderFrontMm : 0)
+    : 0;
+  const adapterBorderRearMm = isAdapter
+    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderRearMm : 0)
+    : 0;
+  const leftRailMm = isAdapter ? adapterBorderLeftMm : !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
+  const rightRailMm = isAdapter ? adapterBorderRightMm : !isSkirmish && settings.rightRailEnabled ? settings.railThicknessMm : 0;
+  const frontRailMm = isAdapter ? adapterBorderFrontMm : !isSkirmish && settings.frontRailEnabled ? settings.railThicknessMm : 0;
+  const rearRailMm = isAdapter ? adapterBorderRearMm : !isSkirmish && settings.rearRailEnabled ? settings.railThicknessMm : 0;
 
   return {
     slotWidthMm,
@@ -287,6 +304,13 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     settings.template === 'adapter' || settings.template === 'adapterLance' || settings.template === 'skirmish';
 
   Object.entries(bounds).forEach(([key, rule]) => {
+    const isAdapterBorderSide =
+      key === 'adapterBorderFrontMm' ||
+      key === 'adapterBorderRearMm' ||
+      key === 'adapterBorderLeftMm' ||
+      key === 'adapterBorderRightMm';
+    const isAdapterTemplate = settings.template === 'adapter' || settings.template === 'adapterLance';
+
     if ((settings.template === 'lanceWedge' || settings.template === 'adapterLance') && key === 'columns') {
       return;
     }
@@ -309,6 +333,14 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (isAdapterBorderSide && (!isAdapterTemplate || !settings.adapterBorderCustomEnabled)) {
+      return;
+    }
+
+    if (key === 'adapterBorderUniformMm' && !isAdapterTemplate) {
+      return;
+    }
+
     if (key === 'trayCornerRadiusMm' && !settings.trayRoundedCornersEnabled) {
       return;
     }
@@ -323,7 +355,12 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'skirmishMaxOffsetMm' ||
       key === 'skirmishDistributionChancePercent' ||
       key === 'adapterFloorCutoutBufferMm' ||
-      key === 'trayEdgeSlopeMm';
+      key === 'trayEdgeSlopeMm' ||
+      key === 'adapterBorderUniformMm' ||
+      key === 'adapterBorderFrontMm' ||
+      key === 'adapterBorderRearMm' ||
+      key === 'adapterBorderLeftMm' ||
+      key === 'adapterBorderRightMm';
 
     if (!Number.isFinite(value)) {
       messages.push(`${rule.label} must be a number.`);
@@ -344,6 +381,44 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   }
 
   const dimensions = calculateTrayDimensions(settings);
+  if (settings.template === 'adapter' || settings.template === 'adapterLance') {
+    const minimumWallMm = 1;
+    const mainSideWallMm = (dimensions.slotWidthMm - dimensions.adapterCutoutWidthMm) / 2;
+    const mainFrontBackWallMm = (dimensions.slotDepthMm - dimensions.adapterCutoutDepthMm) / 2;
+    const wallChecks = [
+      { label: 'left', value: dimensions.leftRailMm + mainSideWallMm },
+      { label: 'right', value: dimensions.rightRailMm + mainSideWallMm },
+      { label: 'front', value: dimensions.frontRailMm + mainFrontBackWallMm },
+      { label: 'rear', value: dimensions.rearRailMm + mainFrontBackWallMm },
+    ];
+
+    wallChecks.forEach((check) => {
+      if (check.value < minimumWallMm) {
+        messages.push(`Adapter ${check.label} edge must leave at least ${minimumWallMm} mm around the cutouts.`);
+      }
+    });
+
+    if (settings.template === 'adapter' && settings.characterBayEnabled) {
+      const flankSideWallMm = (dimensions.characterSlotWidthMm - dimensions.adapterFlankCutoutWidthMm) / 2;
+      const flankFrontBackWallMm = (dimensions.characterSlotDepthMm - dimensions.adapterFlankCutoutDepthMm) / 2;
+
+      if (dimensions.frontRailMm + flankFrontBackWallMm < minimumWallMm) {
+        messages.push(`Adapter front edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
+      }
+
+      if (dimensions.rearRailMm + flankFrontBackWallMm < minimumWallMm) {
+        messages.push(`Adapter rear edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
+      }
+
+      if (
+        (settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm) + flankSideWallMm <
+        minimumWallMm
+      ) {
+        messages.push(`Adapter flank edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
+      }
+    }
+  }
+
   if (
     settings.template === 'skirmish' &&
     !settings.adapterRemoveFloorEnabled &&

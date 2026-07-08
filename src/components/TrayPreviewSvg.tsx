@@ -43,9 +43,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const mainAreaX =
     innerX + (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm : 0);
   const mainAreaY = innerY;
-  const mainFloorX = hasCharacterBay && settings.characterBaySide === 'left' ? outerX + dimensions.characterSlotWidthMm : outerX;
+  const mainFloorX = hasCharacterBay && settings.characterBaySide === 'left' ? innerX + dimensions.characterSlotWidthMm : innerX;
   const characterFloorX =
-    settings.characterBaySide === 'left' ? outerX : innerX + dimensions.mainInnerWidthMm;
+    settings.characterBaySide === 'left' ? innerX : innerX + dimensions.mainInnerWidthMm;
   const baySideRailEnabled =
     hasCharacterBay &&
     (settings.characterBaySide === 'left' ? settings.leftRailEnabled : settings.rightRailEnabled);
@@ -308,14 +308,14 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           <>
             <rect
               x={mainFloorX}
-              y={outerY}
+              y={innerY}
               width={dimensions.mainInnerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm}
               height={dimensions.outerDepthMm}
               className="floor"
             />
             <rect
               x={characterFloorX}
-              y={outerY}
+              y={innerY}
               width={characterFloorWidth}
               height={characterFloorHeight}
               className="floor"
@@ -360,7 +360,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
 
         {isAdapter &&
           rankCounts.map((rankCount, rowIndex) => {
-            const rowY = outerY + rowIndex * dimensions.slotDepthMm;
+            const rowY = innerY + rowIndex * dimensions.slotDepthMm;
 
             return Array.from({ length: rankCount }, (_, columnIndex) => {
               const cellX = mainAreaX + columnIndex * dimensions.slotWidthMm;
@@ -394,8 +394,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             return (
               <rect
                 key={`adapter-lance-floor-${rowIndex}`}
-                x={centerX - rowWidth / 2}
-                y={outerY + rowIndex * dimensions.slotDepthMm}
+                x={innerCenterScreenX - rowWidth / 2}
+                y={innerY + rowIndex * dimensions.slotDepthMm}
                 width={rowWidth}
                 height={dimensions.slotDepthMm}
                 className="floor"
@@ -406,8 +406,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         {isAdapterLance &&
           rankCounts.map((rankCount, rowIndex) => {
             const rowWidth = rankCount * dimensions.slotWidthMm;
-            const rowX = centerX - rowWidth / 2;
-            const rowY = outerY + rowIndex * dimensions.slotDepthMm;
+            const rowX = innerCenterScreenX - rowWidth / 2;
+            const rowY = innerY + rowIndex * dimensions.slotDepthMm;
 
             return Array.from({ length: rankCount }, (_, columnIndex) => {
               const cellX = rowX + columnIndex * dimensions.slotWidthMm;

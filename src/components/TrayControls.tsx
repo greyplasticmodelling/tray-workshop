@@ -43,6 +43,13 @@ const themes: Array<{ value: ThemeName; label: string }> = [
   { value: 'parchment', label: 'Parchment' },
 ];
 
+const adapterBorderFields: Array<{ key: keyof TraySettings; label: string; tooltip: string }> = [
+  { key: 'adapterBorderFrontMm', label: 'Front border adjustment (mm)', tooltip: 'Extra adjustment for the front tray edge.' },
+  { key: 'adapterBorderRearMm', label: 'Rear border adjustment (mm)', tooltip: 'Extra adjustment for the rear tray edge.' },
+  { key: 'adapterBorderLeftMm', label: 'Left border adjustment (mm)', tooltip: 'Extra adjustment for the left tray edge.' },
+  { key: 'adapterBorderRightMm', label: 'Right border adjustment (mm)', tooltip: 'Extra adjustment for the right tray edge.' },
+];
+
 export function TrayControls({
   settings,
   theme,
@@ -307,6 +314,51 @@ export function TrayControls({
               />
             </label>
           </div>
+
+          <label
+            className="field"
+            title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
+          >
+            <span>Perimeter border (mm)</span>
+            <input
+              type="number"
+              min="-20"
+              max="60"
+              step="0.5"
+              title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
+              value={settings.adapterBorderUniformMm}
+              onChange={(event) => updateNumber('adapterBorderUniformMm', event.target.value)}
+            />
+          </label>
+
+          <label className="toggle" title="Adjust front, rear, left, and right adapter borders independently.">
+            <input
+              type="checkbox"
+              title="Adjust front, rear, left, and right adapter borders independently."
+              checked={settings.adapterBorderCustomEnabled}
+              onChange={(event) => updateToggle('adapterBorderCustomEnabled', event.target.checked)}
+            />
+            <span>Custom side borders</span>
+          </label>
+
+          {settings.adapterBorderCustomEnabled && (
+            <div className="field-grid">
+              {adapterBorderFields.map((field) => (
+                <label className="field" key={field.key} title={field.tooltip}>
+                  <span>{field.label}</span>
+                  <input
+                    type="number"
+                    min="-20"
+                    max="60"
+                    step="0.5"
+                    title={field.tooltip}
+                    value={settings[field.key] as number}
+                    onChange={(event) => updateNumber(field.key, event.target.value)}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
 
         </fieldset>
       )}

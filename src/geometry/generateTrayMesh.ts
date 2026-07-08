@@ -1092,39 +1092,52 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   }
 
   if (settings.template === 'adapterLance') {
+    const outerLeftX = -dimensions.outerWidthMm / 2;
     const outerFrontY = -dimensions.outerDepthMm / 2;
+    const innerLeftX = outerLeftX + dimensions.leftRailMm;
+    const innerFrontY = outerFrontY + dimensions.frontRailMm;
+    const innerCenterX = innerLeftX + dimensions.innerWidthMm / 2;
+    const innerCenterY = innerFrontY + dimensions.innerDepthMm / 2;
+    const adapterOuterRect = {
+      left: outerLeftX,
+      right: outerLeftX + dimensions.outerWidthMm,
+      front: outerFrontY,
+      back: outerFrontY + dimensions.outerDepthMm,
+    };
+    const hasAdapterBorder =
+      dimensions.leftRailMm !== 0 || dimensions.rightRailMm !== 0 || dimensions.frontRailMm !== 0 || dimensions.rearRailMm !== 0;
     const adapterLanceRects: Rect[] = [];
     const adapterLanceHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
-    const useRoundedUnion = settings.trayRoundedCornersEnabled;
+    const useUnionBody = settings.trayRoundedCornersEnabled || hasAdapterBorder;
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
-      const rowCenterY = outerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      const rowCenterY = innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
       adapterLanceRects.push({
-        left: -rowWidth / 2,
-        right: rowWidth / 2,
+        left: innerCenterX - rowWidth / 2,
+        right: innerCenterX + rowWidth / 2,
         front: rowCenterY - dimensions.slotDepthMm / 2,
         back: rowCenterY + dimensions.slotDepthMm / 2,
       });
       const rowMagnetCenters = magnetCenters
         .filter((center) => center.rowIndex === rowIndex)
-        .map((center) => ({ x: center.x, y: center.y - rowCenterY }));
+        .map((center) => ({ x: center.x, y: innerCenterY + center.y - rowCenterY }));
       const rowHoles = Array.from({ length: rankCount }, (_, columnIndex) => ({
-        x: -rowWidth / 2 + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
+        x: innerCenterX - rowWidth / 2 + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
         y: rowCenterY,
         width: dimensions.adapterCutoutWidthMm,
         depth: dimensions.adapterCutoutDepthMm,
       }));
       adapterLanceHoles.push(...rowHoles);
 
-      const localRowHoles = getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm);
-      if (!useRoundedUnion && !settings.adapterRemoveFloorEnabled) {
+      const localRowHoles = getRectHolesInRect(rowHoles, innerCenterX, rowCenterY, rowWidth, dimensions.slotDepthMm);
+      if (!useUnionBody && !settings.adapterRemoveFloorEnabled) {
         group.add(
           createAdapterFloorLayer(
             `adapter-lance-floor-rank-${rowIndex + 1}`,
             rowWidth,
             dimensions.slotDepthMm,
-            0,
+            innerCenterX,
             rowCenterY,
             rowMagnetCenters,
             settings,
@@ -1132,7 +1145,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         );
       }
 
-      if (!useRoundedUnion) {
+      if (!useUnionBody) {
         group.add(
           createAdapterBlockLayer(
             `adapter-lance-block-rank-${rowIndex + 1}`,
@@ -1140,7 +1153,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
             dimensions.slotDepthMm,
             settings.adapterBaseHeightMm,
             localRowHoles,
-            0,
+            innerCenterX,
             rowCenterY,
             adapterBlockZ,
             undefined,
@@ -1148,7 +1161,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         );
       }
 
-      if (!useRoundedUnion && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      if (!useUnionBody && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
         const topBorder = createAdapterTopBorderLayer(
           `adapter-lance-top-border-rank-${rowIndex + 1}`,
           rowWidth,
@@ -1162,16 +1175,17 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
     });
 
-    if (useRoundedUnion) {
+    if (useUnionBody) {
+      const bodyRects = hasAdapterBorder ? [adapterOuterRect] : adapterLanceRects;
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
-          createUnionCutoutLayer('adapter-lance-rounded-floor', adapterLanceRects, settings.floorThicknessMm, [], 0, settings),
+          createUnionCutoutLayer('adapter-lance-rounded-floor', bodyRects, settings.floorThicknessMm, [], 0, settings),
         );
       }
       group.add(
         createUnionCutoutLayer(
           'adapter-lance-rounded-block',
-          adapterLanceRects,
+          bodyRects,
           settings.adapterBaseHeightMm,
           adapterLanceHoles,
           adapterBlockZ,
@@ -1180,36 +1194,54 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       );
     }
 
-    addTrayFinishShell(group, 'adapter-lance-tray-finish', adapterLanceRects, adapterBlockZ + settings.adapterBaseHeightMm, settings);
+    addTrayFinishShell(
+      group,
+      'adapter-lance-tray-finish',
+      hasAdapterBorder ? [adapterOuterRect] : adapterLanceRects,
+      adapterBlockZ + settings.adapterBaseHeightMm,
+      settings,
+    );
 
     return group;
   }
 
   if (settings.template === 'adapter') {
-    const adapterMagnetCenters = magnetCenters.map((center) => ({
-      x: center.x,
-      y: center.y,
-    }));
     const hasFlankAdapter = settings.characterBayEnabled;
     const outerLeftX = -dimensions.outerWidthMm / 2;
     const outerFrontY = -dimensions.outerDepthMm / 2;
+    const innerLeftX = outerLeftX + dimensions.leftRailMm;
+    const innerFrontY = outerFrontY + dimensions.frontRailMm;
+    const innerCenterX = innerLeftX + dimensions.innerWidthMm / 2;
+    const innerCenterY = innerFrontY + dimensions.innerDepthMm / 2;
+    const adapterMagnetCenters = magnetCenters.map((center) => ({
+      x: innerCenterX + center.x,
+      y: innerCenterY + center.y,
+    }));
+    const adapterOuterRect = {
+      left: outerLeftX,
+      right: outerLeftX + dimensions.outerWidthMm,
+      front: outerFrontY,
+      back: outerFrontY + dimensions.outerDepthMm,
+    };
+    const hasAdapterBorder =
+      dimensions.leftRailMm !== 0 || dimensions.rightRailMm !== 0 || dimensions.frontRailMm !== 0 || dimensions.rearRailMm !== 0;
     const mainFloorX =
       hasFlankAdapter && settings.characterBaySide === 'left'
-        ? outerLeftX + dimensions.characterSlotWidthMm
-        : outerLeftX;
+        ? innerLeftX + dimensions.characterSlotWidthMm
+        : innerLeftX;
     const mainFloorCenterX = mainFloorX + dimensions.mainInnerWidthMm / 2;
-    const mainFloorCenterY = outerFrontY + dimensions.mainInnerDepthMm / 2;
+    const mainFloorCenterY = innerFrontY + dimensions.mainInnerDepthMm / 2;
     const characterFloorX =
-      settings.characterBaySide === 'left' ? outerLeftX : outerLeftX + dimensions.mainInnerWidthMm;
+      settings.characterBaySide === 'left' ? innerLeftX : innerLeftX + dimensions.mainInnerWidthMm;
     const characterFloorCenterX = characterFloorX + dimensions.characterSlotWidthMm / 2;
-    const characterFloorCenterY = outerFrontY + dimensions.characterSlotDepthMm / 2;
+    const characterFloorCenterY = innerFrontY + dimensions.characterSlotDepthMm / 2;
     const adapterHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
 
     rankCounts.forEach((rankCount, rowIndex) => {
       for (let columnIndex = 0; columnIndex < rankCount; columnIndex += 1) {
         adapterHoles.push({
           x: mainFloorX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
-          y: outerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2,
+          y: innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2,
           width: dimensions.adapterCutoutWidthMm,
           depth: dimensions.adapterCutoutDepthMm,
         });
@@ -1242,32 +1274,56 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     const mainAdapterRect = {
       left: mainFloorX,
       right: mainFloorX + dimensions.mainInnerWidthMm,
-      front: outerFrontY,
-      back: outerFrontY + dimensions.mainInnerDepthMm,
+      front: innerFrontY,
+      back: innerFrontY + dimensions.mainInnerDepthMm,
     };
     const flankAdapterRect = {
       left: characterFloorX,
       right: characterFloorX + dimensions.characterSlotWidthMm,
-      front: outerFrontY,
-      back: outerFrontY + dimensions.characterSlotDepthMm,
+      front: innerFrontY,
+      back: innerFrontY + dimensions.characterSlotDepthMm,
     };
+    const adapterBodyRects = hasAdapterBorder ? [adapterOuterRect] : hasFlankAdapter ? [mainAdapterRect, flankAdapterRect] : [mainAdapterRect];
 
-    if (!settings.adapterRemoveFloorEnabled) {
+    if (!settings.adapterRemoveFloorEnabled && !hasAdapterBorder) {
       group.add(
         createAdapterFloorLayer(
           'adapter-floor',
-          dimensions.mainInnerWidthMm,
-          dimensions.mainInnerDepthMm,
-          mainFloorCenterX,
-            mainFloorCenterY,
-            mainAdapterMagnetCenters,
-            settings,
-            !hasFlankAdapter,
+          hasAdapterBorder && !hasFlankAdapter ? dimensions.outerWidthMm : dimensions.mainInnerWidthMm,
+          hasAdapterBorder && !hasFlankAdapter ? dimensions.outerDepthMm : dimensions.mainInnerDepthMm,
+          hasAdapterBorder && !hasFlankAdapter ? 0 : mainFloorCenterX,
+          hasAdapterBorder && !hasFlankAdapter ? 0 : mainFloorCenterY,
+          hasAdapterBorder && !hasFlankAdapter ? adapterMagnetCenters : mainAdapterMagnetCenters,
+          settings,
+          !hasFlankAdapter,
           ),
         );
       }
 
-    if (hasFlankAdapter && settings.trayRoundedCornersEnabled) {
+    if (hasAdapterBorder) {
+      if (!settings.adapterRemoveFloorEnabled) {
+        group.add(
+          createUnionCutoutLayer(
+            'adapter-border-floor',
+            adapterBodyRects,
+            settings.floorThicknessMm,
+            [],
+            0,
+            settings,
+          ),
+        );
+      }
+      group.add(
+        createUnionCutoutLayer(
+          'adapter-border-block',
+          adapterBodyRects,
+          settings.adapterBaseHeightMm,
+          adapterHoles,
+          adapterBlockZ,
+          settings,
+        ),
+      );
+    } else if (hasFlankAdapter && settings.trayRoundedCornersEnabled) {
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
           createUnionCutoutLayer(
@@ -1391,7 +1447,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     addTrayFinishShell(
       group,
       'adapter-tray-finish',
-      hasFlankAdapter ? [mainAdapterRect, flankAdapterRect] : [mainAdapterRect],
+      adapterBodyRects,
       adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );

@@ -13,6 +13,12 @@ export type TraySettings = {
   adapterFlankCutoutWidthMm: number;
   adapterFlankCutoutDepthMm: number;
   adapterBaseHeightMm: number;
+  adapterBorderUniformMm: number;
+  adapterBorderCustomEnabled: boolean;
+  adapterBorderFrontMm: number;
+  adapterBorderRearMm: number;
+  adapterBorderLeftMm: number;
+  adapterBorderRightMm: number;
   adapterRemoveFloorEnabled: boolean;
   adapterFloorCutoutEnabled: boolean;
   adapterFloorCutoutBufferMm: number;
