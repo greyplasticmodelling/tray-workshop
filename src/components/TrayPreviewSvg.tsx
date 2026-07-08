@@ -66,6 +66,87 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
+  const finishExpansion = settings.trayEdgeSlopeMm;
+  const finishRadius = Math.max(0, settings.trayCornerRadiusMm + settings.trayEdgeSlopeMm);
+  const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
+
+  if (finishExpansion > 0) {
+    if (isSkirmish || (!isLanceFormation && !hasCharacterBay)) {
+      finishRects.push({
+        key: 'finish-outer',
+        x: outerX,
+        y: outerY,
+        width: dimensions.outerWidthMm,
+        height: dimensions.outerDepthMm,
+      });
+    } else if (isAdapter && hasCharacterBay) {
+      finishRects.push(
+        {
+          key: 'finish-adapter-main',
+          x: mainFloorX,
+          y: outerY,
+          width: dimensions.mainInnerWidthMm,
+          height: dimensions.mainInnerDepthMm,
+        },
+        {
+          key: 'finish-adapter-flank',
+          x: characterFloorX,
+          y: outerY,
+          width: dimensions.characterSlotWidthMm,
+          height: dimensions.characterSlotDepthMm,
+        },
+      );
+    } else if (hasCharacterBay) {
+      finishRects.push(
+        {
+          key: 'finish-main',
+          x: mainFloorX,
+          y: outerY,
+          width: dimensions.mainInnerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
+          height: dimensions.outerDepthMm,
+        },
+        {
+          key: 'finish-character',
+          x: characterFloorX,
+          y: outerY,
+          width: characterFloorWidth,
+          height: characterFloorHeight,
+        },
+      );
+    } else if (isLanceFormation) {
+      rankCounts.forEach((rankCount, rowIndex) => {
+        const rowWidth = rankCount * dimensions.slotWidthMm;
+        const width = isAdapterLance ? rowWidth : rowWidth + dimensions.leftRailMm + dimensions.rightRailMm;
+        finishRects.push({
+          key: `finish-rank-${rowIndex}`,
+          x: centerX - width / 2,
+          y: (isAdapterLance ? outerY : innerY) + rowIndex * dimensions.slotDepthMm,
+          width,
+          height: dimensions.slotDepthMm,
+        });
+      });
+
+      if (isLanceWedge && settings.frontRailEnabled) {
+        finishRects.push({
+          key: 'finish-front-rail',
+          x: centerX - (dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm) / 2,
+          y: outerY,
+          width: dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
+          height: settings.railThicknessMm,
+        });
+      }
+
+      if (isLanceWedge && settings.rearRailEnabled) {
+        finishRects.push({
+          key: 'finish-rear-rail',
+          x: innerX - dimensions.leftRailMm,
+          y: outerY + dimensions.outerDepthMm - settings.railThicknessMm,
+          width: dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
+          height: settings.railThicknessMm,
+        });
+      }
+    }
+  }
   const footprints = [];
   if (!isSkirmish) for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
@@ -107,6 +188,19 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             <path d="M 0 0 L 6 3 L 0 6 z" className="dimension-arrow" />
           </marker>
         </defs>
+
+        {finishRects.map((rect) => (
+          <rect
+            key={rect.key}
+            x={rect.x - finishExpansion}
+            y={rect.y - finishExpansion}
+            width={rect.width + finishExpansion * 2}
+            height={rect.height + finishExpansion * 2}
+            rx={Math.min(finishRadius, rect.width / 2 + finishExpansion)}
+            ry={Math.min(finishRadius, rect.height / 2 + finishExpansion)}
+            className="finish-footprint"
+          />
+        ))}
 
         {isSkirmish && (
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="skirmish-floor" />

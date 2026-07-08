@@ -15,6 +15,8 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
   adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet border width', unit: 'mm' },
+  trayCornerRadiusMm: { min: 0, max: 12, label: 'Tray corner radius', unit: 'mm' },
+  trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
   skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
@@ -316,7 +318,9 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'skirmishMaxRotationDeg' ||
       key === 'skirmishMaxOffsetMm' ||
       key === 'skirmishDistributionChancePercent' ||
-      key === 'adapterFloorCutoutBufferMm';
+      key === 'adapterFloorCutoutBufferMm' ||
+      key === 'trayCornerRadiusMm' ||
+      key === 'trayEdgeSlopeMm';
 
     if (!Number.isFinite(value)) {
       messages.push(`${rule.label} must be a number.`);

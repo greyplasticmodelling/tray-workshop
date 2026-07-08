@@ -16,6 +16,8 @@ export type TraySettings = {
   adapterRemoveFloorEnabled: boolean;
   adapterFloorCutoutEnabled: boolean;
   adapterFloorCutoutBufferMm: number;
+  trayCornerRadiusMm: number;
+  trayEdgeSlopeMm: number;
   skirmishBaseShape: 'square' | 'circle';
   skirmishBaseSizeMm: number;
   skirmishSeed: number;

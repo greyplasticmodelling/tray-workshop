@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import type { TraySettings } from '../types';
 import { calculateTrayDimensions, getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from './trayMath';
 
+type Rect = { left: number; right: number; front: number; back: number };
+type PerimeterSegment = { start: THREE.Vector2; end: THREE.Vector2; normal: THREE.Vector2 };
+
 function createBox(name: string, width: number, depth: number, height: number, x: number, y: number, z: number) {
   const geometry = new THREE.BoxGeometry(width, depth, height);
   const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
@@ -121,6 +124,155 @@ function createRectCutoutLayer(
   mesh.name = name;
   mesh.position.set(x, y, z);
   return mesh;
+}
+
+function getUnionPerimeterSegments(rects: Rect[]): PerimeterSegment[] {
+  const outerRects = rects.filter((rect) => rect.right > rect.left && rect.back > rect.front);
+  const xEdges = new Set<number>();
+  const yEdges = new Set<number>();
+
+  outerRects.forEach((rect) => {
+    xEdges.add(rect.left);
+    xEdges.add(rect.right);
+    yEdges.add(rect.front);
+    yEdges.add(rect.back);
+  });
+
+  const sortedXEdges = Array.from(xEdges).sort((a, b) => a - b);
+  const sortedYEdges = Array.from(yEdges).sort((a, b) => a - b);
+  const containsPoint = (pointX: number, pointY: number) =>
+    outerRects.some((rect) => pointX > rect.left && pointX < rect.right && pointY > rect.front && pointY < rect.back);
+  const segments: PerimeterSegment[] = [];
+
+  for (let xIndex = 0; xIndex < sortedXEdges.length - 1; xIndex += 1) {
+    for (let yIndex = 0; yIndex < sortedYEdges.length - 1; yIndex += 1) {
+      const left = sortedXEdges[xIndex];
+      const right = sortedXEdges[xIndex + 1];
+      const front = sortedYEdges[yIndex];
+      const back = sortedYEdges[yIndex + 1];
+      const centerX = (left + right) / 2;
+      const centerY = (front + back) / 2;
+
+      if (!containsPoint(centerX, centerY)) {
+        continue;
+      }
+
+      if (!containsPoint(left - 0.001, centerY)) {
+        segments.push({ start: new THREE.Vector2(left, front), end: new THREE.Vector2(left, back), normal: new THREE.Vector2(-1, 0) });
+      }
+
+      if (!containsPoint(right + 0.001, centerY)) {
+        segments.push({ start: new THREE.Vector2(right, back), end: new THREE.Vector2(right, front), normal: new THREE.Vector2(1, 0) });
+      }
+
+      if (!containsPoint(centerX, front - 0.001)) {
+        segments.push({ start: new THREE.Vector2(right, front), end: new THREE.Vector2(left, front), normal: new THREE.Vector2(0, -1) });
+      }
+
+      if (!containsPoint(centerX, back + 0.001)) {
+        segments.push({ start: new THREE.Vector2(left, back), end: new THREE.Vector2(right, back), normal: new THREE.Vector2(0, 1) });
+      }
+    }
+  }
+
+  return segments.filter((segment) => segment.start.distanceTo(segment.end) > 0);
+}
+
+function createTrayFinishShell(name: string, rects: Rect[], height: number, settings: TraySettings) {
+  const slope = Math.max(0, settings.trayEdgeSlopeMm);
+  const radius = Math.max(0, settings.trayCornerRadiusMm);
+
+  if (slope <= 0 && radius <= 0) {
+    return null;
+  }
+
+  const segments = getUnionPerimeterSegments(rects);
+  const geometry = new THREE.BufferGeometry();
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const cornerGroups = new Map<string, PerimeterSegment[]>();
+  const roundKey = (value: number) => value.toFixed(4);
+  const cornerKey = (point: THREE.Vector2) => `${roundKey(point.x)},${roundKey(point.y)}`;
+  const addVertex = (point: THREE.Vector2, z: number) => {
+    vertices.push(point.x, point.y, z);
+    return vertices.length / 3 - 1;
+  };
+  const addQuad = (a: THREE.Vector2, b: THREE.Vector2, c: THREE.Vector2, d: THREE.Vector2) => {
+    const index = vertices.length / 3;
+    vertices.push(a.x, a.y, height, b.x, b.y, height, c.x, c.y, 0, d.x, d.y, 0);
+    indices.push(index, index + 2, index + 1, index + 1, index + 2, index + 3);
+  };
+
+  segments.forEach((segment) => {
+    const topStart = segment.start;
+    const topEnd = segment.end;
+    const bottomStart = topStart.clone().addScaledVector(segment.normal, slope);
+    const bottomEnd = topEnd.clone().addScaledVector(segment.normal, slope);
+    addQuad(topStart, topEnd, bottomStart, bottomEnd);
+
+    [segment.start, segment.end].forEach((point) => {
+      const key = cornerKey(point);
+      cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
+    });
+  });
+
+  if (radius > 0 || slope > 0) {
+    cornerGroups.forEach((cornerSegments, key) => {
+      const normals = Array.from(
+        new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
+      );
+
+      if (normals.length < 2) {
+        return;
+      }
+
+      const [x, y] = key.split(',').map(Number);
+      const corner = new THREE.Vector2(x, y);
+      const topIndex = addVertex(corner, height);
+      const anglePairs = normals
+        .map((normal) => {
+          const bottomPoint = corner.clone().addScaledVector(normal, Math.max(slope, radius));
+          return { angle: Math.atan2(normal.y, normal.x), point: bottomPoint };
+        })
+        .sort((a, b) => a.angle - b.angle);
+      const first = anglePairs[0];
+      const last = anglePairs[anglePairs.length - 1];
+      const span = last.angle - first.angle > Math.PI ? [last, first] : [first, last];
+      let startAngle = span[0].angle;
+      let endAngle = span[1].angle;
+
+      if (endAngle < startAngle) {
+        endAngle += Math.PI * 2;
+      }
+
+      const steps = Math.max(4, Math.ceil(radius / 1.5));
+      const bottomIndices = Array.from({ length: steps + 1 }, (_, step) => {
+        const angle = startAngle + ((endAngle - startAngle) * step) / steps;
+        const point = corner.clone().add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(Math.max(slope, radius)));
+        return addVertex(point, 0);
+      });
+
+      for (let index = 0; index < bottomIndices.length - 1; index += 1) {
+        indices.push(topIndex, bottomIndices[index], bottomIndices[index + 1]);
+      }
+    });
+  }
+
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name;
+  return mesh;
+}
+
+function addTrayFinishShell(group: THREE.Group, name: string, rects: Rect[], height: number, settings: TraySettings) {
+  const shell = createTrayFinishShell(name, rects, height, settings);
+  if (shell) {
+    group.add(shell);
+  }
 }
 
 function createRectGridLayer(
@@ -613,15 +765,30 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       group.add(topBorder);
     }
 
+    addTrayFinishShell(
+      group,
+      'skirmish-tray-finish',
+      [{ left: -dimensions.outerWidthMm / 2, right: dimensions.outerWidthMm / 2, front: -dimensions.outerDepthMm / 2, back: dimensions.outerDepthMm / 2 }],
+      settings.skirmishTrayHeightMm,
+      settings,
+    );
+
     return group;
   }
 
   if (settings.template === 'adapterLance') {
     const outerFrontY = -dimensions.outerDepthMm / 2;
+    const adapterLanceRects: Rect[] = [];
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
       const rowCenterY = outerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      adapterLanceRects.push({
+        left: -rowWidth / 2,
+        right: rowWidth / 2,
+        front: rowCenterY - dimensions.slotDepthMm / 2,
+        back: rowCenterY + dimensions.slotDepthMm / 2,
+      });
       const rowMagnetCenters = magnetCenters
         .filter((center) => center.rowIndex === rowIndex)
         .map((center) => ({ x: center.x, y: center.y - rowCenterY }));
@@ -673,6 +840,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         group.add(topBorder);
       }
     });
+
+    addTrayFinishShell(group, 'adapter-lance-tray-finish', adapterLanceRects, adapterBlockZ + settings.adapterBaseHeightMm, settings);
 
     return group;
   }
@@ -854,6 +1023,14 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       );
     }
 
+    addTrayFinishShell(
+      group,
+      'adapter-tray-finish',
+      hasFlankAdapter ? [mainAdapterRect, flankAdapterRect] : [mainAdapterRect],
+      adapterBlockZ + settings.adapterBaseHeightMm,
+      settings,
+    );
+
     return group;
   }
 
@@ -862,10 +1039,17 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     const railCenterZ = settings.floorThicknessMm + railHeight / 2;
     const innerFrontY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm;
     const centerX = 0;
+    const lanceRects: Rect[] = [];
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
       const rowCenterY = innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      lanceRects.push({
+        left: -rowWidth / 2 - dimensions.leftRailMm,
+        right: rowWidth / 2 + dimensions.rightRailMm,
+        front: rowCenterY - dimensions.slotDepthMm / 2,
+        back: rowCenterY + dimensions.slotDepthMm / 2,
+      });
 
       const rowInnerCenterY = -dimensions.innerDepthMm / 2 + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
       const rowMagnetCenters = magnetCenters
@@ -916,6 +1100,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
 
     if (settings.frontRailEnabled) {
       const frontFloorWidth = rankCounts[0] * dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm;
+      lanceRects.push({
+        left: -frontFloorWidth / 2,
+        right: frontFloorWidth / 2,
+        front: -dimensions.outerDepthMm / 2,
+        back: -dimensions.outerDepthMm / 2 + settings.railThicknessMm,
+      });
       group.add(
         createBox(
           'front-floor',
@@ -930,6 +1120,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     }
 
     if (settings.rearRailEnabled) {
+      lanceRects.push({
+        left: -dimensions.innerWidthMm / 2 - dimensions.leftRailMm,
+        right: dimensions.innerWidthMm / 2 + dimensions.rightRailMm,
+        front: dimensions.outerDepthMm / 2 - settings.railThicknessMm,
+        back: dimensions.outerDepthMm / 2,
+      });
       group.add(
         createBox(
           'rear-floor',
@@ -1030,6 +1226,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         );
       }
     }
+
+    addTrayFinishShell(group, 'lance-tray-finish', lanceRects, settings.floorThicknessMm + railHeight, settings);
 
     return group;
   }
@@ -1206,6 +1404,36 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       );
     }
   }
+
+  addTrayFinishShell(
+    group,
+    'standard-tray-finish',
+    hasCharacterBay
+      ? [
+          {
+            left: mainFloorX,
+            right: mainFloorX + mainFloorWidth,
+            front: -dimensions.outerDepthMm / 2,
+            back: dimensions.outerDepthMm / 2,
+          },
+          {
+            left: characterFloorX,
+            right: characterFloorX + characterFloorWidth,
+            front: outerFrontY,
+            back: outerFrontY + characterFloorDepth,
+          },
+        ]
+      : [
+          {
+            left: -dimensions.outerWidthMm / 2,
+            right: dimensions.outerWidthMm / 2,
+            front: -dimensions.outerDepthMm / 2,
+            back: dimensions.outerDepthMm / 2,
+          },
+        ],
+    settings.floorThicknessMm + railHeight,
+    settings,
+  );
 
   return group;
 }
