@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { DimensionsPanel } from './components/DimensionsPanel';
 import { TrayControls } from './components/TrayControls';
 import { TrayPreviewSvg } from './components/TrayPreviewSvg';
-import { downloadStl } from './geometry/exportStl';
 import { calculateBuildPlateFit, calculateTrayDimensions, validateTraySettings } from './geometry/trayMath';
 import type { SavedTray, ThemeName, TraySettings, TrayTemplate } from './types';
+
+const TrayPreview3d = lazy(() =>
+  import('./components/TrayPreview3d').then((module) => ({ default: module.TrayPreview3d })),
+);
 
 const standardDefaults: TraySettings = {
   template: 'standard',
@@ -250,6 +253,7 @@ export default function App() {
   const [savedTrays, setSavedTrays] = useState<SavedTray[]>(() => readSavedTrays());
   const [theme, setTheme] = useState<ThemeName>('darkGrey');
   const [shareStatus, setShareStatus] = useState('');
+  const [is3dPreviewEnabled, setIs3dPreviewEnabled] = useState(false);
   const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
   const buildPlateFit = useMemo(() => calculateBuildPlateFit(settings, dimensions), [settings, dimensions]);
@@ -332,8 +336,9 @@ export default function App() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
+      const { downloadStl } = await import('./geometry/exportStl');
       downloadStl(settings);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Unable to export this tray as an STL.');
@@ -397,6 +402,19 @@ export default function App() {
           >
             Download STL
           </button>
+          <label className="preview-toggle" title="Render an interactive 3D preview. Leave this off on slower devices.">
+            <input
+              type="checkbox"
+              checked={is3dPreviewEnabled}
+              onChange={(event) => setIs3dPreviewEnabled(event.target.checked)}
+            />
+            <span>3D preview</span>
+          </label>
+          {is3dPreviewEnabled && (
+            <Suspense fallback={<div className="preview-3d-loading">Loading 3D preview...</div>}>
+              <TrayPreview3d settings={settings} />
+            </Suspense>
+          )}
         </section>
 
         <section className="output-panel" aria-label="Build plate and dimensions">

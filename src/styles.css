@@ -548,7 +548,7 @@ h1 {
   grid-area: preview;
   min-width: 0;
   display: grid;
-  grid-template-rows: minmax(0, auto) auto;
+  grid-template-rows: minmax(0, auto) auto auto auto;
   gap: 16px;
   padding: 22px;
   align-content: start;
@@ -572,6 +572,57 @@ h1 {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.preview-toggle {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--label);
+  background: var(--surface-soft);
+  font-size: 0.9rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.preview-toggle input {
+  inline-size: 18px;
+  block-size: 18px;
+  accent-color: var(--accent);
+}
+
+.preview-3d-frame {
+  width: min(100%, 980px);
+  height: clamp(260px, 36vh, 460px);
+  justify-self: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #101418;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.preview-3d-frame canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.preview-3d-loading {
+  width: min(100%, 980px);
+  height: clamp(260px, 36vh, 460px);
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface);
+  font-weight: 750;
 }
 
 .floor {
