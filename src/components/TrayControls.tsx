@@ -23,10 +23,11 @@ const numberFields: Array<{
   label: string;
   step: number;
   tooltip: string;
+  max?: number;
 }> = [
   { key: 'baseWidthMm', label: 'Base width (mm)', step: 1, tooltip: 'Width of each model base from left to right.' },
   { key: 'baseDepthMm', label: 'Base depth (mm)', step: 1, tooltip: 'Depth of each model base from front to back.' },
-  { key: 'columns', label: 'Columns', step: 1, tooltip: 'Number of bases across the tray frontage.' },
+  { key: 'columns', label: 'Columns', step: 1, max: 20, tooltip: 'Number of bases across the tray frontage. Maximum 20.' },
   { key: 'rows', label: 'Rows', step: 1, tooltip: 'Number of ranks from front to back.' },
   { key: 'toleranceMm', label: 'Tolerance (mm)', step: 0.1, tooltip: 'Extra clearance added to each base slot.' },
   { key: 'floorThicknessMm', label: 'Floor thickness (mm)', step: 0.1, tooltip: 'Thickness of the flat bottom plate.' },
@@ -156,6 +157,7 @@ export function TrayControls({
             <input
               type="number"
               min="0"
+              max={field.max}
               step={field.step}
               title={tooltip}
               value={settings[field.key] as number}
@@ -300,7 +302,7 @@ export function TrayControls({
             </label>
 
             <label className="field" title="Height of the solid adapter block above the floor.">
-              <span>Adapter block height (mm)</span>
+              <span>{settings.adapterRemoveFloorEnabled ? 'Adapter block height (mm)' : 'Adapter block height above floor (mm)'}</span>
               <input
                 type="number"
                 min="0"
@@ -311,6 +313,47 @@ export function TrayControls({
               />
             </label>
           </div>
+
+          <label className="toggle" title="Remove the bottom floor completely so the adapter prints as an open grid.">
+            <input
+              type="checkbox"
+              title="Remove the bottom floor completely so the adapter prints as an open grid."
+              checked={settings.adapterRemoveFloorEnabled}
+              onChange={(event) => updateToggle('adapterRemoveFloorEnabled', event.target.checked)}
+            />
+            <span>Remove floor</span>
+          </label>
+
+          <label
+            className="toggle"
+            title="Cut openings through the floor around each adapter cutout while keeping the floor border and grid material."
+          >
+            <input
+              type="checkbox"
+              title="Cut openings through the floor around each adapter cutout while keeping the floor border and grid material."
+              checked={settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled}
+              disabled={settings.adapterRemoveFloorEnabled}
+              onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
+            />
+            <span>Cut floor around adapter cutouts</span>
+          </label>
+
+          {settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled && (
+            <label
+              className="field"
+              title="Extra distance from each adapter cutout to the through-floor opening. Uses the floor thickness."
+            >
+              <span>Floor cutout buffer (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                title="Extra distance from each adapter cutout to the through-floor opening. Uses the floor thickness."
+                value={settings.adapterFloorCutoutBufferMm}
+                onChange={(event) => updateNumber('adapterFloorCutoutBufferMm', event.target.value)}
+              />
+            </label>
+          )}
         </fieldset>
       )}
 

@@ -21,6 +21,9 @@ const standardDefaults: TraySettings = {
   adapterFlankCutoutWidthMm: 20,
   adapterFlankCutoutDepthMm: 20,
   adapterBaseHeightMm: 3,
+  adapterRemoveFloorEnabled: false,
+  adapterFloorCutoutEnabled: false,
+  adapterFloorCutoutBufferMm: 2,
   skirmishBaseShape: 'circle',
   skirmishBaseSizeMm: 25,
   skirmishSeed: 12025,
@@ -217,7 +220,17 @@ function SupportButton() {
 function readSavedTrays(): SavedTray[] {
   try {
     const stored = window.localStorage.getItem(savedTraysStorageKey);
-    return stored ? (JSON.parse(stored) as SavedTray[]) : [];
+    const trays = stored ? (JSON.parse(stored) as SavedTray[]) : [];
+
+    return trays
+      .filter((tray) => isTrayTemplate(tray.settings.template))
+      .map((tray) => ({
+        ...tray,
+        settings: {
+          ...defaultSettingsByTemplate[tray.settings.template],
+          ...tray.settings,
+        },
+      }));
   } catch {
     return [];
   }
@@ -295,7 +308,10 @@ export default function App() {
 
     setSettingsByTemplate((current) => ({
       ...current,
-      [savedTray.settings.template]: savedTray.settings,
+      [savedTray.settings.template]: {
+        ...defaultSettingsByTemplate[savedTray.settings.template],
+        ...savedTray.settings,
+      },
     }));
     setActiveTemplate(savedTray.settings.template);
   };

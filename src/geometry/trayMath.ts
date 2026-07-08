@@ -14,6 +14,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterFlankCutoutWidthMm: { min: 10, max: 80, label: 'Flank adapter cutout width', unit: 'mm' },
   adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
+  adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Adapter floor cutout buffer', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
   skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
@@ -343,6 +344,32 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
       if (dimensions.adapterFlankCutoutDepthMm > dimensions.characterSlotDepthMm) {
         messages.push('Flank adapter cutout depth must fit inside the irregular flank base depth.');
+      }
+    }
+
+    if (settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled) {
+      const floorCutoutWidthMm = dimensions.adapterCutoutWidthMm + settings.adapterFloorCutoutBufferMm * 2;
+      const floorCutoutDepthMm = dimensions.adapterCutoutDepthMm + settings.adapterFloorCutoutBufferMm * 2;
+
+      if (floorCutoutWidthMm > dimensions.slotWidthMm) {
+        messages.push('Adapter floor cutout buffer must leave material inside each target base width.');
+      }
+
+      if (floorCutoutDepthMm > dimensions.slotDepthMm) {
+        messages.push('Adapter floor cutout buffer must leave material inside each target base depth.');
+      }
+
+      if (settings.template === 'adapter' && settings.characterBayEnabled) {
+        const flankFloorCutoutWidthMm = dimensions.adapterFlankCutoutWidthMm + settings.adapterFloorCutoutBufferMm * 2;
+        const flankFloorCutoutDepthMm = dimensions.adapterFlankCutoutDepthMm + settings.adapterFloorCutoutBufferMm * 2;
+
+        if (flankFloorCutoutWidthMm > dimensions.characterSlotWidthMm) {
+          messages.push('Adapter floor cutout buffer must leave material inside the irregular flank width.');
+        }
+
+        if (flankFloorCutoutDepthMm > dimensions.characterSlotDepthMm) {
+          messages.push('Adapter floor cutout buffer must leave material inside the irregular flank depth.');
+        }
       }
     }
   }

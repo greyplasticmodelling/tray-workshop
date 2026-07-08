@@ -229,6 +229,44 @@ function getHolesInRect(
     }));
 }
 
+function getAdapterFloorHoles(
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  settings: TraySettings,
+) {
+  const buffer = Math.max(0, settings.adapterFloorCutoutBufferMm);
+  return holes.map((hole) => ({
+    ...hole,
+    width: hole.width + buffer * 2,
+    depth: hole.depth + buffer * 2,
+  }));
+}
+
+function createAdapterFloorLayer(
+  name: string,
+  width: number,
+  depth: number,
+  x: number,
+  y: number,
+  rectHoles: Array<{ x: number; y: number; width: number; depth: number }>,
+  magnetHoles: Array<{ x: number; y: number }>,
+  settings: TraySettings,
+) {
+  if (settings.adapterFloorCutoutEnabled) {
+    return createRectCutoutLayer(
+      name,
+      width,
+      depth,
+      settings.floorThicknessMm,
+      getAdapterFloorHoles(rectHoles, settings),
+      x,
+      y,
+      0,
+    );
+  }
+
+  return createPerforatedFloorLayer(name, width, depth, settings.floorThicknessMm, x, y, magnetHoles, settings);
+}
+
 export function generateTrayMesh(settings: TraySettings): THREE.Group {
   const dimensions = calculateTrayDimensions(settings);
   const group = new THREE.Group();
@@ -296,18 +334,23 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         depth: dimensions.adapterCutoutDepthMm,
       }));
 
-      group.add(
-        createPerforatedFloorLayer(
-          `adapter-lance-floor-rank-${rowIndex + 1}`,
-          rowWidth,
-          dimensions.slotDepthMm,
-          settings.floorThicknessMm,
-          0,
-          rowCenterY,
-          rowMagnetCenters,
-          settings,
-        ),
-      );
+      const localRowHoles = getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm);
+      const blockZ = settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm;
+
+      if (!settings.adapterRemoveFloorEnabled) {
+        group.add(
+          createAdapterFloorLayer(
+            `adapter-lance-floor-rank-${rowIndex + 1}`,
+            rowWidth,
+            dimensions.slotDepthMm,
+            0,
+            rowCenterY,
+            localRowHoles,
+            rowMagnetCenters,
+            settings,
+          ),
+        );
+      }
 
       group.add(
         createRectCutoutLayer(
@@ -315,10 +358,10 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           rowWidth,
           dimensions.slotDepthMm,
           settings.adapterBaseHeightMm,
-          getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm),
+          localRowHoles,
           0,
           rowCenterY,
-          settings.floorThicknessMm,
+          blockZ,
         ),
       );
     });
@@ -366,24 +409,36 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       });
     }
 
-    group.add(
-      createPerforatedFloorLayer(
-        'adapter-floor',
-        dimensions.mainInnerWidthMm,
-        dimensions.mainInnerDepthMm,
-        settings.floorThicknessMm,
-        mainFloorCenterX,
-        mainFloorCenterY,
-        getHolesInRect(
-          adapterMagnetCenters,
-          mainFloorCenterX,
-          mainFloorCenterY,
+    const mainAdapterHoles = getRectHolesInRect(
+      adapterHoles,
+      mainFloorCenterX,
+      mainFloorCenterY,
+      dimensions.mainInnerWidthMm,
+      dimensions.mainInnerDepthMm,
+    );
+    const mainAdapterMagnetCenters = getHolesInRect(
+      adapterMagnetCenters,
+      mainFloorCenterX,
+      mainFloorCenterY,
+      dimensions.mainInnerWidthMm,
+      dimensions.mainInnerDepthMm,
+    );
+    const blockZ = settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm;
+
+    if (!settings.adapterRemoveFloorEnabled) {
+      group.add(
+        createAdapterFloorLayer(
+          'adapter-floor',
           dimensions.mainInnerWidthMm,
           dimensions.mainInnerDepthMm,
+          mainFloorCenterX,
+          mainFloorCenterY,
+          mainAdapterHoles,
+          mainAdapterMagnetCenters,
+          settings,
         ),
-        settings,
-      ),
-    );
+      );
+    }
 
     group.add(
       createRectCutoutLayer(
@@ -391,38 +446,43 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         dimensions.mainInnerWidthMm,
         dimensions.mainInnerDepthMm,
         settings.adapterBaseHeightMm,
-        getRectHolesInRect(
-          adapterHoles,
-          mainFloorCenterX,
-          mainFloorCenterY,
-          dimensions.mainInnerWidthMm,
-          dimensions.mainInnerDepthMm,
-        ),
+        mainAdapterHoles,
         mainFloorCenterX,
         mainFloorCenterY,
-        settings.floorThicknessMm,
+        blockZ,
       ),
     );
 
     if (hasFlankAdapter) {
-      group.add(
-        createPerforatedFloorLayer(
-          'adapter-flank-floor',
-          dimensions.characterSlotWidthMm,
-          dimensions.characterSlotDepthMm,
-          settings.floorThicknessMm,
-          characterFloorCenterX,
-          characterFloorCenterY,
-          getHolesInRect(
-            adapterMagnetCenters,
-            characterFloorCenterX,
-            characterFloorCenterY,
+      const flankAdapterHoles = getRectHolesInRect(
+        adapterHoles,
+        characterFloorCenterX,
+        characterFloorCenterY,
+        dimensions.characterSlotWidthMm,
+        dimensions.characterSlotDepthMm,
+      );
+      const flankAdapterMagnetCenters = getHolesInRect(
+        adapterMagnetCenters,
+        characterFloorCenterX,
+        characterFloorCenterY,
+        dimensions.characterSlotWidthMm,
+        dimensions.characterSlotDepthMm,
+      );
+
+      if (!settings.adapterRemoveFloorEnabled) {
+        group.add(
+          createAdapterFloorLayer(
+            'adapter-flank-floor',
             dimensions.characterSlotWidthMm,
             dimensions.characterSlotDepthMm,
+            characterFloorCenterX,
+            characterFloorCenterY,
+            flankAdapterHoles,
+            flankAdapterMagnetCenters,
+            settings,
           ),
-          settings,
-        ),
-      );
+        );
+      }
 
       group.add(
         createRectCutoutLayer(
@@ -430,16 +490,10 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           dimensions.characterSlotWidthMm,
           dimensions.characterSlotDepthMm,
           settings.adapterBaseHeightMm,
-          getRectHolesInRect(
-            adapterHoles,
-            characterFloorCenterX,
-            characterFloorCenterY,
-            dimensions.characterSlotWidthMm,
-            dimensions.characterSlotDepthMm,
-          ),
+          flankAdapterHoles,
           characterFloorCenterX,
           characterFloorCenterY,
-          settings.floorThicknessMm,
+          blockZ,
         ),
       );
     }

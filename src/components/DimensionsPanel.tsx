@@ -20,6 +20,10 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
           ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
           ['Adapter cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
+          ['Adapter floor', settings.adapterRemoveFloorEnabled ? 'Removed' : settings.adapterFloorCutoutEnabled ? 'Cut around cutouts' : 'Solid'],
+          ...(!settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled
+            ? [['Floor cutout buffer (mm)', formatMm(settings.adapterFloorCutoutBufferMm)]]
+            : []),
           ...(settings.characterBayEnabled
             ? [
                 ['Flank cutout width (mm)', formatMm(dimensions.adapterFlankCutoutWidthMm)],
