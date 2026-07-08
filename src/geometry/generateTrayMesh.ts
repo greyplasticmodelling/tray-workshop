@@ -1083,7 +1083,7 @@ function createUnionCircleCutoutLayer(
   const points = getOrderedPerimeterPoints(rects);
   const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
 
-  if (points.length < 3 || radius <= 0) {
+  if (points.length < 3) {
     return createUnionRectGridLayer(name, rects, height, [], z);
   }
 
@@ -1497,11 +1497,11 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     if (hasAdapterBorder) {
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
-          createUnionCutoutLayer(
+          createUnionPerforatedFloorLayer(
             'adapter-border-floor',
             adapterBodyRects,
             settings.floorThicknessMm,
-            [],
+            adapterMagnetCenters,
             0,
             settings,
           ),
@@ -1520,11 +1520,11 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     } else if (hasFlankAdapter && settings.trayRoundedCornersEnabled) {
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
-          createUnionCutoutLayer(
+          createUnionPerforatedFloorLayer(
             'adapter-flank-rounded-floor',
             [mainAdapterRect, flankAdapterRect],
             settings.floorThicknessMm,
-            [],
+            adapterMagnetCenters,
             0,
             settings,
           ),
