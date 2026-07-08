@@ -326,29 +326,29 @@ export function TrayControls({
 
           <label
             className="toggle"
-            title="Cut openings through the floor around each adapter cutout while keeping the floor border and grid material."
+            title="Keep only a perimeter border on the underside for fitting a cut magnetic sheet, and export the STL face down."
           >
             <input
               type="checkbox"
-              title="Cut openings through the floor around each adapter cutout while keeping the floor border and grid material."
+              title="Keep only a perimeter border on the underside for fitting a cut magnetic sheet, and export the STL face down."
               checked={settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled}
               disabled={settings.adapterRemoveFloorEnabled}
               onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
             />
-            <span>Cut floor around adapter cutouts</span>
+            <span>Magnetic sheet underside border</span>
           </label>
 
           {settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled && (
             <label
               className="field"
-              title="Extra distance from each adapter cutout to the through-floor opening. Uses the floor thickness."
+              title="Width of the perimeter border left around the underside opening for a magnetic sheet."
             >
-              <span>Floor cutout buffer (mm)</span>
+              <span>Underside border width (mm)</span>
               <input
                 type="number"
                 min="0"
                 step="0.1"
-                title="Extra distance from each adapter cutout to the through-floor opening. Uses the floor thickness."
+                title="Width of the perimeter border left around the underside opening for a magnetic sheet."
                 value={settings.adapterFloorCutoutBufferMm}
                 onChange={(event) => updateNumber('adapterFloorCutoutBufferMm', event.target.value)}
               />

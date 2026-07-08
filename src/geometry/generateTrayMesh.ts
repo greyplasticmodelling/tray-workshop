@@ -123,6 +123,85 @@ function createRectCutoutLayer(
   return mesh;
 }
 
+function createRectGridLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  x: number,
+  y: number,
+  z: number,
+) {
+  if (holes.length === 0) {
+    return createBox(name, width, depth, height, x, y, z + height / 2);
+  }
+
+  const group = new THREE.Group();
+  group.name = name;
+  const xEdges = new Set([-width / 2, width / 2]);
+  const yEdges = new Set([-depth / 2, depth / 2]);
+
+  holes.forEach((hole) => {
+    const halfWidth = hole.width / 2;
+    const halfDepth = hole.depth / 2;
+
+    if (
+      hole.x - halfWidth >= -width / 2 &&
+      hole.x + halfWidth <= width / 2 &&
+      hole.y - halfDepth >= -depth / 2 &&
+      hole.y + halfDepth <= depth / 2
+    ) {
+      xEdges.add(hole.x - halfWidth);
+      xEdges.add(hole.x + halfWidth);
+      yEdges.add(hole.y - halfDepth);
+      yEdges.add(hole.y + halfDepth);
+    }
+  });
+
+  const sortedXEdges = Array.from(xEdges).sort((a, b) => a - b);
+  const sortedYEdges = Array.from(yEdges).sort((a, b) => a - b);
+
+  for (let xIndex = 0; xIndex < sortedXEdges.length - 1; xIndex += 1) {
+    for (let yIndex = 0; yIndex < sortedYEdges.length - 1; yIndex += 1) {
+      const left = sortedXEdges[xIndex];
+      const right = sortedXEdges[xIndex + 1];
+      const front = sortedYEdges[yIndex];
+      const back = sortedYEdges[yIndex + 1];
+      const cellWidth = right - left;
+      const cellDepth = back - front;
+      const cellCenterX = left + cellWidth / 2;
+      const cellCenterY = front + cellDepth / 2;
+      const isInsideHole = holes.some((hole) => {
+        const halfWidth = hole.width / 2;
+        const halfDepth = hole.depth / 2;
+        return (
+          cellCenterX > hole.x - halfWidth &&
+          cellCenterX < hole.x + halfWidth &&
+          cellCenterY > hole.y - halfDepth &&
+          cellCenterY < hole.y + halfDepth
+        );
+      });
+
+      if (!isInsideHole && cellWidth > 0 && cellDepth > 0) {
+        group.add(
+          createBox(
+            `${name}-cell-${xIndex}-${yIndex}`,
+            cellWidth,
+            cellDepth,
+            height,
+            x + cellCenterX,
+            y + cellCenterY,
+            z + height / 2,
+          ),
+        );
+      }
+    }
+  }
+
+  return group;
+}
+
 function createSkirmishFloorLayer(
   name: string,
   width: number,
@@ -229,16 +308,33 @@ function getHolesInRect(
     }));
 }
 
-function getAdapterFloorHoles(
-  holes: Array<{ x: number; y: number; width: number; depth: number }>,
-  settings: TraySettings,
+function createPerimeterBorderLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  x: number,
+  y: number,
+  borderWidth: number,
 ) {
-  const buffer = Math.max(0, settings.adapterFloorCutoutBufferMm);
-  return holes.map((hole) => ({
-    ...hole,
-    width: hole.width + buffer * 2,
-    depth: hole.depth + buffer * 2,
-  }));
+  const inset = Math.max(0, borderWidth);
+  const innerWidth = width - inset * 2;
+  const innerDepth = depth - inset * 2;
+
+  if (innerWidth <= 0 || innerDepth <= 0) {
+    return createBox(name, width, depth, height, x, y, height / 2);
+  }
+
+  return createRectGridLayer(
+    name,
+    width,
+    depth,
+    height,
+    [{ x: 0, y: 0, width: innerWidth, depth: innerDepth }],
+    x,
+    y,
+    0,
+  );
 }
 
 function createAdapterFloorLayer(
@@ -247,24 +343,30 @@ function createAdapterFloorLayer(
   depth: number,
   x: number,
   y: number,
-  rectHoles: Array<{ x: number; y: number; width: number; depth: number }>,
   magnetHoles: Array<{ x: number; y: number }>,
   settings: TraySettings,
 ) {
   if (settings.adapterFloorCutoutEnabled) {
-    return createRectCutoutLayer(
+    return createPerimeterBorderLayer(
       name,
       width,
       depth,
       settings.floorThicknessMm,
-      getAdapterFloorHoles(rectHoles, settings),
       x,
       y,
-      0,
+      settings.adapterFloorCutoutBufferMm,
     );
   }
 
   return createPerforatedFloorLayer(name, width, depth, settings.floorThicknessMm, x, y, magnetHoles, settings);
+}
+
+function flipTopFaceDownOnBuildPlate(group: THREE.Group) {
+  group.rotation.x = Math.PI;
+  group.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(group);
+  group.position.z -= bounds.min.z;
+  group.updateMatrixWorld(true);
 }
 
 export function generateTrayMesh(settings: TraySettings): THREE.Group {
@@ -273,6 +375,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   group.name = 'movement-tray';
   const rankCounts = getRankCounts(settings);
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
+  const adapterBlockZ = settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm;
 
   if (settings.template === 'skirmish') {
     const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
@@ -335,8 +438,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }));
 
       const localRowHoles = getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm);
-      const blockZ = settings.floorThicknessMm;
-
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
           createAdapterFloorLayer(
@@ -345,7 +446,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
             dimensions.slotDepthMm,
             0,
             rowCenterY,
-            localRowHoles,
             rowMagnetCenters,
             settings,
           ),
@@ -353,7 +453,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       group.add(
-        createRectCutoutLayer(
+        createRectGridLayer(
           `adapter-lance-block-rank-${rowIndex + 1}`,
           rowWidth,
           dimensions.slotDepthMm,
@@ -361,10 +461,14 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           localRowHoles,
           0,
           rowCenterY,
-          blockZ,
+          adapterBlockZ,
         ),
       );
     });
+
+    if (settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled) {
+      flipTopFaceDownOnBuildPlate(group);
+    }
 
     return group;
   }
@@ -423,8 +527,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       dimensions.mainInnerWidthMm,
       dimensions.mainInnerDepthMm,
     );
-    const blockZ = settings.floorThicknessMm;
-
     if (!settings.adapterRemoveFloorEnabled) {
       group.add(
         createAdapterFloorLayer(
@@ -433,7 +535,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           dimensions.mainInnerDepthMm,
           mainFloorCenterX,
           mainFloorCenterY,
-          mainAdapterHoles,
           mainAdapterMagnetCenters,
           settings,
         ),
@@ -441,7 +542,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     }
 
     group.add(
-      createRectCutoutLayer(
+      createRectGridLayer(
         'adapter-block',
         dimensions.mainInnerWidthMm,
         dimensions.mainInnerDepthMm,
@@ -449,7 +550,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         mainAdapterHoles,
         mainFloorCenterX,
         mainFloorCenterY,
-        blockZ,
+        adapterBlockZ,
       ),
     );
 
@@ -477,7 +578,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
             dimensions.characterSlotDepthMm,
             characterFloorCenterX,
             characterFloorCenterY,
-            flankAdapterHoles,
             flankAdapterMagnetCenters,
             settings,
           ),
@@ -485,7 +585,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       group.add(
-        createRectCutoutLayer(
+        createRectGridLayer(
           'adapter-flank-block',
           dimensions.characterSlotWidthMm,
           dimensions.characterSlotDepthMm,
@@ -493,7 +593,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           flankAdapterHoles,
           characterFloorCenterX,
           characterFloorCenterY,
-          blockZ,
+          adapterBlockZ,
         ),
       );
     }
