@@ -180,9 +180,8 @@ function getUnionPerimeterSegments(rects: Rect[]): PerimeterSegment[] {
 
 function createTrayFinishShell(name: string, rects: Rect[], height: number, settings: TraySettings) {
   const slope = Math.max(0, settings.trayEdgeSlopeMm);
-  const radius = Math.max(0, settings.trayCornerRadiusMm);
 
-  if (slope <= 0 && radius <= 0) {
+  if (slope <= 0) {
     return null;
   }
 
@@ -216,7 +215,7 @@ function createTrayFinishShell(name: string, rects: Rect[], height: number, sett
     });
   });
 
-  if (radius > 0 || slope > 0) {
+  if (slope > 0) {
     cornerGroups.forEach((cornerSegments, key) => {
       const normals = Array.from(
         new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
@@ -231,7 +230,7 @@ function createTrayFinishShell(name: string, rects: Rect[], height: number, sett
       const topIndex = addVertex(corner, height);
       const anglePairs = normals
         .map((normal) => {
-          const bottomPoint = corner.clone().addScaledVector(normal, Math.max(slope, radius));
+          const bottomPoint = corner.clone().addScaledVector(normal, slope);
           return { angle: Math.atan2(normal.y, normal.x), point: bottomPoint };
         })
         .sort((a, b) => a.angle - b.angle);
@@ -245,10 +244,10 @@ function createTrayFinishShell(name: string, rects: Rect[], height: number, sett
         endAngle += Math.PI * 2;
       }
 
-      const steps = Math.max(4, Math.ceil(radius / 1.5));
+      const steps = 4;
       const bottomIndices = Array.from({ length: steps + 1 }, (_, step) => {
         const angle = startAngle + ((endAngle - startAngle) * step) / steps;
-        const point = corner.clone().add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(Math.max(slope, radius)));
+        const point = corner.clone().add(new THREE.Vector2(Math.cos(angle), Math.sin(angle)).multiplyScalar(slope));
         return addVertex(point, 0);
       });
 
@@ -1044,12 +1043,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
       const rowCenterY = innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
-      lanceRects.push({
-        left: -rowWidth / 2 - dimensions.leftRailMm,
-        right: rowWidth / 2 + dimensions.rightRailMm,
-        front: rowCenterY - dimensions.slotDepthMm / 2,
-        back: rowCenterY + dimensions.slotDepthMm / 2,
-      });
 
       const rowInnerCenterY = -dimensions.innerDepthMm / 2 + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
       const rowMagnetCenters = magnetCenters
@@ -1070,6 +1063,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       );
 
       if (settings.leftRailEnabled) {
+        lanceRects.push({
+          left: -rowWidth / 2 - settings.railThicknessMm,
+          right: -rowWidth / 2,
+          front: rowCenterY - dimensions.slotDepthMm / 2,
+          back: rowCenterY + dimensions.slotDepthMm / 2,
+        });
         group.add(
           createBox(
             `left-rail-rank-${rowIndex + 1}`,
@@ -1084,6 +1083,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       if (settings.rightRailEnabled) {
+        lanceRects.push({
+          left: rowWidth / 2,
+          right: rowWidth / 2 + settings.railThicknessMm,
+          front: rowCenterY - dimensions.slotDepthMm / 2,
+          back: rowCenterY + dimensions.slotDepthMm / 2,
+        });
         group.add(
           createBox(
             `right-rail-rank-${rowIndex + 1}`,
@@ -1177,6 +1182,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const rightStepX = currentWidth / 2 + dimensions.rightRailMm + stepWidth / 2;
 
       if (stepWidth > 0 && settings.leftRailEnabled) {
+        lanceRects.push({
+          left: leftStepX - stepWidth / 2,
+          right: leftStepX + stepWidth / 2,
+          front: stepY - settings.railThicknessMm / 2,
+          back: stepY + settings.railThicknessMm / 2,
+        });
         group.add(
           createBox(
             `left-step-floor-${rowIndex + 1}`,
@@ -1202,6 +1213,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       if (stepWidth > 0 && settings.rightRailEnabled) {
+        lanceRects.push({
+          left: rightStepX - stepWidth / 2,
+          right: rightStepX + stepWidth / 2,
+          front: stepY - settings.railThicknessMm / 2,
+          back: stepY + settings.railThicknessMm / 2,
+        });
         group.add(
           createBox(
             `right-step-floor-${rowIndex + 1}`,
@@ -1405,35 +1422,92 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     }
   }
 
-  addTrayFinishShell(
-    group,
-    'standard-tray-finish',
-    hasCharacterBay
-      ? [
-          {
-            left: mainFloorX,
-            right: mainFloorX + mainFloorWidth,
-            front: -dimensions.outerDepthMm / 2,
-            back: dimensions.outerDepthMm / 2,
-          },
-          {
-            left: characterFloorX,
-            right: characterFloorX + characterFloorWidth,
-            front: outerFrontY,
-            back: outerFrontY + characterFloorDepth,
-          },
-        ]
-      : [
-          {
-            left: -dimensions.outerWidthMm / 2,
-            right: dimensions.outerWidthMm / 2,
-            front: -dimensions.outerDepthMm / 2,
-            back: dimensions.outerDepthMm / 2,
-          },
-        ],
-    settings.floorThicknessMm + railHeight,
-    settings,
-  );
+  const standardFinishRects: Rect[] = [];
+
+  if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
+    standardFinishRects.push({
+      left: -dimensions.outerWidthMm / 2,
+      right: -dimensions.outerWidthMm / 2 + settings.railThicknessMm,
+      front: -dimensions.outerDepthMm / 2,
+      back: dimensions.outerDepthMm / 2,
+    });
+  }
+
+  if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
+    standardFinishRects.push({
+      left: dimensions.outerWidthMm / 2 - settings.railThicknessMm,
+      right: dimensions.outerWidthMm / 2,
+      front: -dimensions.outerDepthMm / 2,
+      back: dimensions.outerDepthMm / 2,
+    });
+  }
+
+  if (settings.frontRailEnabled) {
+    standardFinishRects.push({
+      left: -dimensions.innerWidthMm / 2,
+      right: dimensions.innerWidthMm / 2,
+      front: -dimensions.outerDepthMm / 2,
+      back: -dimensions.outerDepthMm / 2 + settings.railThicknessMm,
+    });
+  }
+
+  if (settings.rearRailEnabled) {
+    const rearRailWidth = hasCharacterBay ? dimensions.mainInnerWidthMm : dimensions.innerWidthMm;
+    const rearRailCenterX = hasCharacterBay ? mainAreaCenterX : 0;
+    standardFinishRects.push({
+      left: rearRailCenterX - rearRailWidth / 2,
+      right: rearRailCenterX + rearRailWidth / 2,
+      front: dimensions.outerDepthMm / 2 - settings.railThicknessMm,
+      back: dimensions.outerDepthMm / 2,
+    });
+  }
+
+  if (hasCharacterBay && characterSideRailMm > 0) {
+    const baySideRailCenterX =
+      settings.characterBaySide === 'left'
+        ? outerLeftX + settings.railThicknessMm / 2
+        : dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
+    standardFinishRects.push({
+      left: baySideRailCenterX - settings.railThicknessMm / 2,
+      right: baySideRailCenterX + settings.railThicknessMm / 2,
+      front: characterFloorCenterY - characterFloorDepth / 2,
+      back: characterFloorCenterY + characterFloorDepth / 2,
+    });
+
+    if (hasCharacterReturnRail) {
+      const stepRailWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
+      const stepRailCenterX =
+        settings.characterBaySide === 'left'
+          ? outerLeftX + stepRailWidth / 2
+          : innerLeftX + dimensions.mainInnerWidthMm + stepRailWidth / 2;
+      const stepRailCenterY = innerFrontY + dimensions.characterSlotDepthMm + settings.railThicknessMm / 2;
+      const mainSideRailDepth =
+        dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
+      const mainSideRailCenterX =
+        settings.characterBaySide === 'left'
+          ? outerLeftX + dimensions.characterSlotWidthMm + settings.railThicknessMm / 2
+          : innerLeftX + dimensions.mainInnerWidthMm + settings.railThicknessMm / 2;
+      const mainSideRailCenterY =
+        innerFrontY + dimensions.characterSlotDepthMm + mainSideRailDepth / 2;
+
+      standardFinishRects.push(
+        {
+          left: stepRailCenterX - stepRailWidth / 2,
+          right: stepRailCenterX + stepRailWidth / 2,
+          front: stepRailCenterY - settings.railThicknessMm / 2,
+          back: stepRailCenterY + settings.railThicknessMm / 2,
+        },
+        {
+          left: mainSideRailCenterX - settings.railThicknessMm / 2,
+          right: mainSideRailCenterX + settings.railThicknessMm / 2,
+          front: mainSideRailCenterY - mainSideRailDepth / 2,
+          back: mainSideRailCenterY + mainSideRailDepth / 2,
+        },
+      );
+    }
+  }
+
+  addTrayFinishShell(group, 'standard-tray-finish', standardFinishRects, settings.floorThicknessMm + railHeight, settings);
 
   return group;
 }

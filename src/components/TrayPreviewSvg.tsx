@@ -67,10 +67,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const finishExpansion = settings.trayEdgeSlopeMm;
-  const finishRadius = Math.max(0, settings.trayCornerRadiusMm + settings.trayEdgeSlopeMm);
+  const finishRadius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
   const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
 
-  if (finishExpansion > 0) {
+  if (finishExpansion > 0 || finishRadius > 0) {
     if (isSkirmish || (!isLanceFormation && !hasCharacterBay)) {
       finishRects.push({
         key: 'finish-outer',

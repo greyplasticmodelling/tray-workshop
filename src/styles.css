@@ -593,6 +593,21 @@ h1 {
   font-weight: 800;
 }
 
+.finish-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--label);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.finish-toggle input {
+  inline-size: 18px;
+  block-size: 18px;
+  accent-color: var(--accent);
+}
+
 .finish-slider {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1000,6 +1015,7 @@ footer span:first-child {
   .field-grid,
   .rail-options,
   .magnet-options,
+  .tray-finish-panel,
   .plate-summary,
   .dimensions {
     grid-template-columns: 1fr;
