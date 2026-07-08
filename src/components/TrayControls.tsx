@@ -77,10 +77,7 @@ export function TrayControls({
   const isSkirmish = settings.template === 'skirmish';
   const supportsOpenFloor = isAdapterTray || isSkirmish;
   const roundedCornersConflictWithMagnets =
-    settings.trayRoundedCornersEnabled &&
-    (settings.template === 'lanceWedge' ||
-      settings.template === 'adapterLance' ||
-      (settings.template === 'adapter' && settings.characterBayEnabled));
+    settings.trayRoundedCornersEnabled && settings.template === 'adapter' && settings.characterBayEnabled;
   const magnetCutoutsDisabledByRemovedFloor = supportsOpenFloor && settings.adapterRemoveFloorEnabled;
   const magnetCutoutsDisabled = roundedCornersConflictWithMagnets || magnetCutoutsDisabledByRemovedFloor;
   const magneticSheetBorderTooltip =

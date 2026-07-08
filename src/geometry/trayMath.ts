@@ -432,9 +432,8 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   if (
     settings.trayRoundedCornersEnabled &&
     settings.magnetCutoutsEnabled &&
-    (settings.template === 'lanceWedge' ||
-      settings.template === 'adapterLance' ||
-      (settings.template === 'adapter' && settings.characterBayEnabled))
+    settings.template === 'adapter' &&
+    settings.characterBayEnabled
   ) {
     messages.push('Magnet cutouts are not currently available with rounded corners for this tray type.');
   }

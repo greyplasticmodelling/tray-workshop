@@ -334,7 +334,17 @@ function getOrderedPerimeterPoints(rects: Rect[]) {
   }
 
   const remaining = [...segments];
-  const firstSegment = remaining.shift();
+  const firstIndex = remaining.reduce((bestIndex, segment, index) => {
+    const best = remaining[bestIndex];
+    if (segment.start.y < best.start.y) {
+      return index;
+    }
+    if (segment.start.y === best.start.y && segment.start.x < best.start.x) {
+      return index;
+    }
+    return bestIndex;
+  }, 0);
+  const [firstSegment] = remaining.splice(firstIndex, 1);
 
   if (!firstSegment) {
     return [];
@@ -345,17 +355,20 @@ function getOrderedPerimeterPoints(rects: Rect[]) {
   while (remaining.length > 0) {
     const end = points[points.length - 1];
     const endKey = roundedPointKey(end);
-    const nextIndex = remaining.findIndex(
-      (segment) => roundedPointKey(segment.start) === endKey || roundedPointKey(segment.end) === endKey,
-    );
+    let shouldReverse = false;
+    let nextIndex = remaining.findIndex((segment) => roundedPointKey(segment.start) === endKey);
+
+    if (nextIndex < 0) {
+      nextIndex = remaining.findIndex((segment) => roundedPointKey(segment.end) === endKey);
+      shouldReverse = nextIndex >= 0;
+    }
 
     if (nextIndex < 0) {
       break;
     }
 
     const [nextSegment] = remaining.splice(nextIndex, 1);
-    const nextPoint =
-      roundedPointKey(nextSegment.start) === endKey ? nextSegment.end.clone() : nextSegment.start.clone();
+    const nextPoint = shouldReverse ? nextSegment.start.clone() : nextSegment.end.clone();
 
     if (roundedPointKey(nextPoint) === roundedPointKey(points[0])) {
       break;
@@ -1278,6 +1291,10 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       dimensions.leftRailMm !== 0 || dimensions.rightRailMm !== 0 || dimensions.frontRailMm !== 0 || dimensions.rearRailMm !== 0;
     const adapterLanceRects: Rect[] = [];
     const adapterLanceHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
+    const adapterLanceMagnetCenters = magnetCenters.map((center) => ({
+      x: innerCenterX + center.x,
+      y: innerCenterY + center.y,
+    }));
     const useUnionBody = settings.trayRoundedCornersEnabled || hasAdapterBorder;
 
     rankCounts.forEach((rankCount, rowIndex) => {
@@ -1349,7 +1366,14 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const bodyRects = hasAdapterBorder ? [adapterOuterRect] : adapterLanceRects;
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
-          createUnionCutoutLayer('adapter-lance-rounded-floor', bodyRects, settings.floorThicknessMm, [], 0, settings),
+          createUnionPerforatedFloorLayer(
+            'adapter-lance-rounded-floor',
+            bodyRects,
+            settings.floorThicknessMm,
+            adapterLanceMagnetCenters,
+            0,
+            settings,
+          ),
         );
       }
       group.add(
@@ -1635,7 +1659,12 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     const lanceFinishSegments: PerimeterSegment[] = [];
     const lanceFloorRects: Rect[] = [];
     const lanceRailRects: Rect[] = [];
-    const useRoundedLanceUnion = settings.trayRoundedCornersEnabled && !settings.magnetCutoutsEnabled;
+    const useRoundedLanceUnion = settings.trayRoundedCornersEnabled;
+    const lanceInnerCenterY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
+    const lanceMagnetCenters = magnetCenters.map((center) => ({
+      x: center.x,
+      y: lanceInnerCenterY + center.y,
+    }));
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
@@ -1895,7 +1924,16 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     }
 
     if (useRoundedLanceUnion) {
-      group.add(createUnionCutoutLayer('lance-rounded-floor', lanceFloorRects, settings.floorThicknessMm, [], 0, settings));
+      group.add(
+        createUnionPerforatedFloorLayer(
+          'lance-rounded-floor',
+          lanceFloorRects,
+          settings.floorThicknessMm,
+          lanceMagnetCenters,
+          0,
+          settings,
+        ),
+      );
       if (lanceRailRects.length > 0) {
         group.add(createUnionCutoutLayer('lance-rounded-rails', lanceRailRects, railHeight, [], settings.floorThicknessMm, settings));
       }

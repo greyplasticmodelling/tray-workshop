@@ -319,11 +319,7 @@ function TrayLibrary({
 }
 
 function roundedCornersConflictWithMagnetCutouts(settings: TraySettings) {
-  return (
-    settings.template === 'lanceWedge' ||
-    settings.template === 'adapterLance' ||
-    (settings.template === 'adapter' && settings.characterBayEnabled)
-  );
+  return settings.template === 'adapter' && settings.characterBayEnabled;
 }
 
 function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
