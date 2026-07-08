@@ -401,20 +401,26 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       x: center.x + innerCenterOffsetX,
       y: center.y + innerCenterOffsetY,
     }));
-    const cutoutLayerHeight = Math.max(0, settings.skirmishTrayHeightMm - settings.floorThicknessMm);
-
-    group.add(
-      createPerforatedFloorLayer(
-        'skirmish-floor',
-        dimensions.outerWidthMm,
-        dimensions.outerDepthMm,
-        settings.floorThicknessMm,
-        0,
-        0,
-        getHolesInRect(skirmishMagnetCenters, 0, 0, dimensions.outerWidthMm, dimensions.outerDepthMm),
-        settings,
-      ),
+    const skirmishCutoutZ = settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm;
+    const cutoutLayerHeight = Math.max(
+      0,
+      settings.skirmishTrayHeightMm - (settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm),
     );
+
+    if (!settings.adapterRemoveFloorEnabled) {
+      group.add(
+        createPerforatedFloorLayer(
+          'skirmish-floor',
+          dimensions.outerWidthMm,
+          dimensions.outerDepthMm,
+          settings.floorThicknessMm,
+          0,
+          0,
+          getHolesInRect(skirmishMagnetCenters, 0, 0, dimensions.outerWidthMm, dimensions.outerDepthMm),
+          settings,
+        ),
+      );
+    }
 
     if (cutoutLayerHeight > 0) {
       group.add(
@@ -425,9 +431,22 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           cutoutLayerHeight,
           skirmishHoles,
           settings,
-          settings.floorThicknessMm,
+          skirmishCutoutZ,
         ),
       );
+    }
+
+    if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      const topBorder = createAdapterTopBorderLayer(
+        'skirmish-magnetic-sheet-border',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        0,
+        0,
+        settings,
+      );
+      topBorder.position.z += settings.skirmishTrayHeightMm;
+      group.add(topBorder);
     }
 
     return group;

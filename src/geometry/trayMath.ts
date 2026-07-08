@@ -14,7 +14,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterFlankCutoutWidthMm: { min: 10, max: 80, label: 'Flank adapter cutout width', unit: 'mm' },
   adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
-  adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet top border width', unit: 'mm' },
+  adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet border width', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
   skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
@@ -324,7 +324,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   }
 
   const dimensions = calculateTrayDimensions(settings);
-  if (settings.template === 'skirmish' && settings.skirmishTrayHeightMm <= settings.floorThicknessMm) {
+  if (
+    settings.template === 'skirmish' &&
+    !settings.adapterRemoveFloorEnabled &&
+    settings.skirmishTrayHeightMm <= settings.floorThicknessMm
+  ) {
     messages.push('Skirmish tray height must be greater than floor thickness.');
   }
 
@@ -351,22 +355,34 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       const minimumOpeningWidthMm = settings.adapterFloorCutoutBufferMm * 2;
 
       if (minimumOpeningWidthMm >= dimensions.mainInnerWidthMm) {
-        messages.push('Magnetic sheet top border width must leave an opening inside the adapter width.');
+        messages.push('Magnetic sheet border width must leave an opening inside the adapter width.');
       }
 
       if (minimumOpeningWidthMm >= dimensions.mainInnerDepthMm) {
-        messages.push('Magnetic sheet top border width must leave an opening inside the adapter depth.');
+        messages.push('Magnetic sheet border width must leave an opening inside the adapter depth.');
       }
 
       if (settings.template === 'adapter' && settings.characterBayEnabled) {
         if (minimumOpeningWidthMm >= dimensions.characterSlotWidthMm) {
-          messages.push('Magnetic sheet top border width must leave an opening inside the irregular flank width.');
+          messages.push('Magnetic sheet border width must leave an opening inside the irregular flank width.');
         }
 
         if (minimumOpeningWidthMm >= dimensions.characterSlotDepthMm) {
-          messages.push('Magnetic sheet top border width must leave an opening inside the irregular flank depth.');
+          messages.push('Magnetic sheet border width must leave an opening inside the irregular flank depth.');
         }
       }
+    }
+  }
+
+  if (settings.template === 'skirmish' && settings.adapterFloorCutoutEnabled && settings.adapterRemoveFloorEnabled) {
+    const minimumOpeningWidthMm = settings.adapterFloorCutoutBufferMm * 2;
+
+    if (minimumOpeningWidthMm >= dimensions.outerWidthMm) {
+      messages.push('Magnetic sheet border width must leave an opening inside the skirmish tray width.');
+    }
+
+    if (minimumOpeningWidthMm >= dimensions.outerDepthMm) {
+      messages.push('Magnetic sheet border width must leave an opening inside the skirmish tray depth.');
     }
   }
 

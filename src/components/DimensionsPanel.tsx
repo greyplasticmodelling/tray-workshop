@@ -22,7 +22,7 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
           ['Adapter cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
           ['Adapter floor', settings.adapterRemoveFloorEnabled ? 'Removed' : 'Solid'],
           ...(settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled
-            ? [['Magnetic sheet top border (mm)', formatMm(settings.adapterFloorCutoutBufferMm)]]
+            ? [['Magnetic sheet border (mm)', formatMm(settings.adapterFloorCutoutBufferMm)]]
             : []),
           ...(settings.characterBayEnabled
             ? [
@@ -35,6 +35,10 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
         ? [
             ['Skirmish base size (mm)', formatMm(settings.skirmishBaseSizeMm)],
             ['Overall tray height (mm)', formatMm(settings.skirmishTrayHeightMm)],
+            ['Skirmish floor', settings.adapterRemoveFloorEnabled ? 'Removed' : 'Solid'],
+            ...(settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled
+              ? [['Magnetic sheet border (mm)', formatMm(settings.adapterFloorCutoutBufferMm)]]
+              : []),
             ['Minimum cutout gap (mm)', formatMm(4)],
             ['Max offset (mm)', formatMm(settings.skirmishMaxOffsetMm)],
             ['Max rotation (degrees)', `${settings.skirmishMaxRotationDeg.toFixed(1)} degrees`],

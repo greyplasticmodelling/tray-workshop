@@ -78,7 +78,10 @@ export function TrayControls({
   const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
+  const supportsOpenFloor = isAdapterTray || isSkirmish;
   const selectedTemplate = trayTemplates.find((template) => template.value === settings.template);
+  const magneticSheetTooltip =
+    'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into.';
 
   return (
     <aside className="controls" aria-label="Tray settings">
@@ -314,10 +317,27 @@ export function TrayControls({
             </label>
           </div>
 
-          <label className="toggle" title="Remove the bottom floor completely so the adapter prints as an open grid.">
+        </fieldset>
+      )}
+
+      {supportsOpenFloor && (
+        <fieldset className="character-options">
+          <legend>{isSkirmish ? 'Skirmish floor options' : 'Adapter floor options'}</legend>
+          <label
+            className="toggle"
+            title={
+              isSkirmish
+                ? 'Remove the bottom floor completely so the skirmish tray prints as an open cutout grid.'
+                : 'Remove the bottom floor completely so the adapter prints as an open grid.'
+            }
+          >
             <input
               type="checkbox"
-              title="Remove the bottom floor completely so the adapter prints as an open grid."
+              title={
+                isSkirmish
+                  ? 'Remove the bottom floor completely so the skirmish tray prints as an open cutout grid.'
+                  : 'Remove the bottom floor completely so the adapter prints as an open grid.'
+              }
               checked={settings.adapterRemoveFloorEnabled}
               onChange={(event) => updateToggle('adapterRemoveFloorEnabled', event.target.checked)}
             />
@@ -326,30 +346,24 @@ export function TrayControls({
 
           {settings.adapterRemoveFloorEnabled && (
             <>
-              <label
-                className="toggle"
-                title="Add a square perimeter frame on top of the open adapter grid for locating a cut magnetic sheet."
-              >
+              <label className="toggle" title={magneticSheetTooltip}>
                 <input
                   type="checkbox"
-                  title="Add a square perimeter frame on top of the open adapter grid for locating a cut magnetic sheet."
+                  title={magneticSheetTooltip}
                   checked={settings.adapterFloorCutoutEnabled}
                   onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
                 />
-                <span>Magnetic sheet top border</span>
+                <span>Magnetic sheet border</span>
               </label>
 
               {settings.adapterFloorCutoutEnabled && (
-                <label
-                  className="field"
-                  title="Width of the square perimeter frame added on top of the open adapter grid."
-                >
-                  <span>Top border width (mm)</span>
+                <label className="field" title={magneticSheetTooltip}>
+                  <span>Border width (mm)</span>
                   <input
                     type="number"
                     min="0"
                     step="0.1"
-                    title="Width of the square perimeter frame added on top of the open adapter grid."
+                    title={magneticSheetTooltip}
                     value={settings.adapterFloorCutoutBufferMm}
                     onChange={(event) => updateNumber('adapterFloorCutoutBufferMm', event.target.value)}
                   />
