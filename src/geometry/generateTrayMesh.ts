@@ -14,6 +14,38 @@ function createBox(name: string, width: number, depth: number, height: number, x
   return mesh;
 }
 
+function getCornerRadius(settings: TraySettings, width: number, depth: number) {
+  return settings.template === 'skirmish' && settings.trayRoundedCornersEnabled
+    ? Math.min(settings.trayCornerRadiusMm, width / 2 - 0.001, depth / 2 - 0.001)
+    : 0;
+}
+
+function createRoundedRectShape(width: number, depth: number, radius: number) {
+  const halfWidth = width / 2;
+  const halfDepth = depth / 2;
+  const shape = new THREE.Shape();
+
+  if (radius <= 0) {
+    shape.moveTo(-halfWidth, -halfDepth);
+    shape.lineTo(halfWidth, -halfDepth);
+    shape.lineTo(halfWidth, halfDepth);
+    shape.lineTo(-halfWidth, halfDepth);
+    shape.lineTo(-halfWidth, -halfDepth);
+    return shape;
+  }
+
+  shape.moveTo(-halfWidth + radius, -halfDepth);
+  shape.lineTo(halfWidth - radius, -halfDepth);
+  shape.quadraticCurveTo(halfWidth, -halfDepth, halfWidth, -halfDepth + radius);
+  shape.lineTo(halfWidth, halfDepth - radius);
+  shape.quadraticCurveTo(halfWidth, halfDepth, halfWidth - radius, halfDepth);
+  shape.lineTo(-halfWidth + radius, halfDepth);
+  shape.quadraticCurveTo(-halfWidth, halfDepth, -halfWidth, halfDepth - radius);
+  shape.lineTo(-halfWidth, -halfDepth + radius);
+  shape.quadraticCurveTo(-halfWidth, -halfDepth, -halfWidth + radius, -halfDepth);
+  return shape;
+}
+
 function createPerforatedFloorLayer(
   name: string,
   width: number,
@@ -39,12 +71,7 @@ function createPerforatedFloorLayer(
 
   if (recessDepth > 0) {
     const radius = settings.magnetDiameterMm / 2;
-    const shape = new THREE.Shape();
-    shape.moveTo(-width / 2, -depth / 2);
-    shape.lineTo(width / 2, -depth / 2);
-    shape.lineTo(width / 2, depth / 2);
-    shape.lineTo(-width / 2, depth / 2);
-    shape.lineTo(-width / 2, -depth / 2);
+    const shape = createRoundedRectShape(width, depth, getCornerRadius(settings, width, depth));
 
     holes.forEach((hole) => {
       if (
@@ -178,114 +205,10 @@ function getUnionPerimeterSegments(rects: Rect[]): PerimeterSegment[] {
   return segments.filter((segment) => segment.start.distanceTo(segment.end) > 0);
 }
 
-function createRoundedPerimeterSegments(segments: PerimeterSegment[], settings: TraySettings): PerimeterSegment[] {
-  const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
-
-  if (radius <= 0 || segments.length === 0) {
-    return segments;
-  }
-
-  const roundKey = (value: number) => value.toFixed(4);
-  const cornerKey = (point: THREE.Vector2) => `${roundKey(point.x)},${roundKey(point.y)}`;
-  const cornerGroups = new Map<string, PerimeterSegment[]>();
-  const roundedCornerKeys = new Set<string>();
-  const cornerRadii = new Map<string, number>();
-  const tangentPoints = new Map<string, THREE.Vector2>();
-  const getSegmentKey = (segment: PerimeterSegment, endpoint: 'start' | 'end') =>
-    `${cornerKey(segment.start)}|${cornerKey(segment.end)}|${endpoint}`;
-  const getAwayDirection = (segment: PerimeterSegment, corner: THREE.Vector2) =>
-    segment.start.distanceTo(corner) < segment.end.distanceTo(corner)
-      ? segment.end.clone().sub(segment.start).normalize()
-      : segment.start.clone().sub(segment.end).normalize();
-
-  segments.forEach((segment) => {
-    [segment.start, segment.end].forEach((point) => {
-      const key = cornerKey(point);
-      cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
-    });
-  });
-
-  cornerGroups.forEach((cornerSegments, key) => {
-    const normals = Array.from(
-      new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
-    );
-
-    if (cornerSegments.length < 2 || normals.length !== 2 || Math.abs(normals[0].dot(normals[1])) > 0.001) {
-      return;
-    }
-
-    const [x, y] = key.split(',').map(Number);
-    const corner = new THREE.Vector2(x, y);
-    const availableRadius = Math.min(
-      radius,
-      ...cornerSegments.map((segment) => Math.max(0, segment.start.distanceTo(segment.end) / 2 - 0.001)),
-    );
-
-    if (availableRadius <= 0) {
-      return;
-    }
-
-    roundedCornerKeys.add(key);
-    cornerRadii.set(key, availableRadius);
-    cornerSegments.forEach((segment) => {
-      const endpoint = segment.start.distanceTo(corner) < 0.001 ? 'start' : 'end';
-      tangentPoints.set(getSegmentKey(segment, endpoint), corner.clone().addScaledVector(getAwayDirection(segment, corner), availableRadius));
-    });
-  });
-
-  const roundedSegments = segments
-    .map((segment) => {
-      const start = tangentPoints.get(getSegmentKey(segment, 'start')) ?? segment.start;
-      const end = tangentPoints.get(getSegmentKey(segment, 'end')) ?? segment.end;
-      return { ...segment, start, end };
-    })
-    .filter((segment) => segment.start.distanceTo(segment.end) > 0.001);
-
-  cornerGroups.forEach((cornerSegments, key) => {
-    if (!roundedCornerKeys.has(key)) {
-      return;
-    }
-
-    const [x, y] = key.split(',').map(Number);
-    const corner = new THREE.Vector2(x, y);
-    const cornerRadius = cornerRadii.get(key) ?? radius;
-    const normals = Array.from(
-      new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
-    );
-    const center = corner.clone().addScaledVector(normals[0], -cornerRadius).addScaledVector(normals[1], -cornerRadius);
-    const tangentA =
-      tangentPoints.get(getSegmentKey(cornerSegments[0], cornerSegments[0].start.distanceTo(corner) < 0.001 ? 'start' : 'end')) ??
-      cornerSegments[0].start;
-    const tangentB =
-      tangentPoints.get(getSegmentKey(cornerSegments[1], cornerSegments[1].start.distanceTo(corner) < 0.001 ? 'start' : 'end')) ??
-      cornerSegments[1].start;
-    const angleA = Math.atan2(tangentA.y - center.y, tangentA.x - center.x);
-    const angleB = Math.atan2(tangentB.y - center.y, tangentB.x - center.x);
-    let delta = angleB - angleA;
-
-    while (delta > Math.PI) delta -= Math.PI * 2;
-    while (delta < -Math.PI) delta += Math.PI * 2;
-
-    const arcSteps = 8;
-    let previous = tangentA;
-
-    for (let index = 1; index <= arcSteps; index += 1) {
-      const angle = angleA + (delta * index) / arcSteps;
-      const next = new THREE.Vector2(center.x + Math.cos(angle) * cornerRadius, center.y + Math.sin(angle) * cornerRadius);
-      const midpointNormal = previous.clone().add(next).multiplyScalar(0.5).sub(center).normalize();
-      roundedSegments.push({ start: previous, end: next, normal: midpointNormal });
-      previous = next;
-    }
-  });
-
-  return roundedSegments;
-}
-
 function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegment[], height: number, settings: TraySettings) {
   const slope = Math.max(0, settings.trayEdgeSlopeMm);
-  const finishSegments = createRoundedPerimeterSegments(segments, settings);
 
-  if (slope <= 0 || finishSegments.length === 0) {
+  if (slope <= 0 || segments.length === 0) {
     return null;
   }
 
@@ -308,14 +231,14 @@ function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegm
   const uniqueNormalCount = (point: THREE.Vector2) =>
     new Set((cornerGroups.get(cornerKey(point)) ?? []).map((segment) => `${segment.normal.x},${segment.normal.y}`)).size;
 
-  finishSegments.forEach((segment) => {
+  segments.forEach((segment) => {
     [segment.start, segment.end].forEach((point) => {
       const key = cornerKey(point);
       cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
     });
   });
 
-  finishSegments.forEach((segment) => {
+  segments.forEach((segment) => {
     const topStartPoint = segment.start;
     const topEndPoint = segment.end;
     const bottomStartPoint = segment.start;
@@ -563,15 +486,25 @@ function createSkirmishFloorLayer(
   z = 0,
 ) {
   if (holes.length === 0) {
-    return createBox(name, width, depth, height, 0, 0, z + height / 2);
+    const radius = getCornerRadius(settings, width, depth);
+
+    if (radius <= 0) {
+      return createBox(name, width, depth, height, 0, 0, z + height / 2);
+    }
+
+    const geometry = new THREE.ExtrudeGeometry(createRoundedRectShape(width, depth, radius), {
+      depth: height,
+      bevelEnabled: false,
+      curveSegments: 16,
+    });
+    const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.position.set(0, 0, z);
+    return mesh;
   }
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-width / 2, -depth / 2);
-  shape.lineTo(width / 2, -depth / 2);
-  shape.lineTo(width / 2, depth / 2);
-  shape.lineTo(-width / 2, depth / 2);
-  shape.lineTo(-width / 2, -depth / 2);
+  const shape = createRoundedRectShape(width, depth, getCornerRadius(settings, width, depth));
 
   holes.forEach((hole) => {
     const size = settings.skirmishBaseSizeMm + settings.toleranceMm;
