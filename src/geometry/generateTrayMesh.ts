@@ -361,6 +361,24 @@ function createAdapterFloorLayer(
   return createPerforatedFloorLayer(name, width, depth, settings.floorThicknessMm, x, y, magnetHoles, settings);
 }
 
+function createAdapterBlockLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  x: number,
+  y: number,
+  z: number,
+  settings: TraySettings,
+) {
+  if (settings.adapterRemoveFloorEnabled) {
+    return createRectCutoutLayer(name, width, depth, height, holes, x, y, 0);
+  }
+
+  return createRectGridLayer(name, width, depth, height, holes, x, y, z);
+}
+
 function flipTopFaceDownOnBuildPlate(group: THREE.Group) {
   group.rotation.x = Math.PI;
   group.updateMatrixWorld(true);
@@ -453,7 +471,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       group.add(
-        createRectGridLayer(
+        createAdapterBlockLayer(
           `adapter-lance-block-rank-${rowIndex + 1}`,
           rowWidth,
           dimensions.slotDepthMm,
@@ -462,6 +480,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           0,
           rowCenterY,
           adapterBlockZ,
+          settings,
         ),
       );
     });
@@ -542,7 +561,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     }
 
     group.add(
-      createRectGridLayer(
+      createAdapterBlockLayer(
         'adapter-block',
         dimensions.mainInnerWidthMm,
         dimensions.mainInnerDepthMm,
@@ -551,6 +570,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         mainFloorCenterX,
         mainFloorCenterY,
         adapterBlockZ,
+        settings,
       ),
     );
 
@@ -585,7 +605,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       group.add(
-        createRectGridLayer(
+        createAdapterBlockLayer(
           'adapter-flank-block',
           dimensions.characterSlotWidthMm,
           dimensions.characterSlotDepthMm,
@@ -594,6 +614,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           characterFloorCenterX,
           characterFloorCenterY,
           adapterBlockZ,
+          settings,
         ),
       );
     }
