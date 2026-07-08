@@ -65,6 +65,11 @@ export function TrayControls({
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
   const supportsOpenFloor = isAdapterTray || isSkirmish;
+  const roundedCornersConflictWithMagnets =
+    settings.trayRoundedCornersEnabled &&
+    (settings.template === 'lanceWedge' ||
+      settings.template === 'adapterLance' ||
+      (settings.template === 'adapter' && settings.characterBayEnabled));
   const selectedTemplate = trayTemplates.find((template) => template.value === settings.template);
   const magneticSheetTooltip =
     'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into.';
@@ -504,15 +509,30 @@ export function TrayControls({
 
       <fieldset className="magnet-options">
         <legend>Magnet cutouts</legend>
-        <label className="toggle" title="Add circular top-side magnet recesses centred in each base space.">
+        <label
+          className="toggle"
+          title={
+            roundedCornersConflictWithMagnets
+              ? 'Magnet cutouts are not currently available with rounded corners for this tray type.'
+              : 'Add circular top-side magnet recesses centred in each base space.'
+          }
+        >
           <input
             type="checkbox"
-            title="Add circular top-side magnet recesses centred in each base space."
+            title={
+              roundedCornersConflictWithMagnets
+                ? 'Magnet cutouts are not currently available with rounded corners for this tray type.'
+                : 'Add circular top-side magnet recesses centred in each base space.'
+            }
             checked={settings.magnetCutoutsEnabled}
+            disabled={roundedCornersConflictWithMagnets}
             onChange={(event) => updateToggle('magnetCutoutsEnabled', event.target.checked)}
           />
           <span>Enable cutouts</span>
         </label>
+        {roundedCornersConflictWithMagnets && (
+          <p className="compatibility-note">Magnet cutouts are disabled while rounded corners are enabled for this tray type.</p>
+        )}
 
         <div className="field-grid">
           <label className="field" title="Diameter of each magnet recess.">
@@ -524,6 +544,7 @@ export function TrayControls({
               step="0.1"
               title="Diameter of each magnet recess."
               value={settings.magnetDiameterMm}
+              disabled={roundedCornersConflictWithMagnets}
               onChange={(event) => updateNumber('magnetDiameterMm', event.target.value)}
             />
           </label>
@@ -536,6 +557,7 @@ export function TrayControls({
               step="0.1"
               title="Depth of the recess from the top surface. Set equal to floor thickness for a through-hole."
               value={settings.magnetCutoutDepthMm}
+              disabled={roundedCornersConflictWithMagnets}
               onChange={(event) => updateNumber('magnetCutoutDepthMm', event.target.value)}
             />
           </label>
@@ -548,6 +570,7 @@ export function TrayControls({
                 type="checkbox"
                 title="Use two magnet recesses per base space in the lance wedge templates."
                 checked={settings.lanceDoubleMagnetsEnabled}
+                disabled={roundedCornersConflictWithMagnets}
                 onChange={(event) => updateToggle('lanceDoubleMagnetsEnabled', event.target.checked)}
               />
               <span>Two magnets per space</span>
@@ -561,6 +584,7 @@ export function TrayControls({
                 step="0.1"
                 title="Distance from the base centre to each magnet along the front-to-back centre line."
                 value={settings.lanceMagnetOffsetMm}
+                disabled={roundedCornersConflictWithMagnets}
                 onChange={(event) => updateNumber('lanceMagnetOffsetMm', event.target.value)}
               />
             </label>

@@ -352,6 +352,16 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     messages.push('Skirmish tray height must be greater than floor thickness.');
   }
 
+  if (
+    settings.trayRoundedCornersEnabled &&
+    settings.magnetCutoutsEnabled &&
+    (settings.template === 'lanceWedge' ||
+      settings.template === 'adapterLance' ||
+      (settings.template === 'adapter' && settings.characterBayEnabled))
+  ) {
+    messages.push('Magnet cutouts are not currently available with rounded corners for this tray type.');
+  }
+
   if (settings.template === 'adapter' || settings.template === 'adapterLance') {
     if (dimensions.adapterCutoutWidthMm > dimensions.slotWidthMm) {
       messages.push('Adapter cutout width must fit inside the target base width.');

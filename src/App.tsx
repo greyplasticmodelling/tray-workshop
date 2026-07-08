@@ -312,6 +312,14 @@ function TrayLibrary({
   );
 }
 
+function roundedCornersConflictWithMagnetCutouts(settings: TraySettings) {
+  return (
+    settings.template === 'lanceWedge' ||
+    settings.template === 'adapterLance' ||
+    (settings.template === 'adapter' && settings.characterBayEnabled)
+  );
+}
+
 export default function App() {
   const [activeTemplate, setActiveTemplate] = useState<TrayTemplate>(() => readSharedSettings()?.template ?? 'standard');
   const [settingsByTemplate, setSettingsByTemplate] = useState<Record<TrayTemplate, TraySettings>>(() => {
@@ -374,6 +382,7 @@ export default function App() {
       ...settings,
       [key]: checked,
       ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
+      ...(checked && roundedCornersConflictWithMagnetCutouts(settings) ? { magnetCutoutsEnabled: false } : {}),
     });
   };
 
@@ -559,14 +568,6 @@ export default function App() {
             </label>
             </div>
           </fieldset>
-          <TrayLibrary
-            savedTrays={savedTrays}
-            shareStatus={shareStatus}
-            onSaveTray={saveCurrentTray}
-            onLoadTray={loadSavedTray}
-            onDeleteSavedTray={deleteSavedTray}
-            onCopyShareLink={copyShareLink}
-          />
           <button
             className="download-button"
             type="button"
@@ -576,6 +577,14 @@ export default function App() {
           >
             Download STL
           </button>
+          <TrayLibrary
+            savedTrays={savedTrays}
+            shareStatus={shareStatus}
+            onSaveTray={saveCurrentTray}
+            onLoadTray={loadSavedTray}
+            onDeleteSavedTray={deleteSavedTray}
+            onCopyShareLink={copyShareLink}
+          />
           <label className="preview-toggle" title="Render an interactive 3D preview. Leave this off on slower devices.">
             <input
               type="checkbox"
