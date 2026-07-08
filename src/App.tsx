@@ -318,10 +318,6 @@ function TrayLibrary({
   );
 }
 
-function roundedCornersConflictWithMagnetCutouts(settings: TraySettings) {
-  return settings.template === 'adapter' && settings.characterBayEnabled;
-}
-
 function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
   let nextSettings = settings;
 
@@ -419,7 +415,6 @@ export default function App() {
       ...settings,
       [key]: checked,
       ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
-      ...(checked && roundedCornersConflictWithMagnetCutouts(settings) ? { magnetCutoutsEnabled: false } : {}),
     });
   };
 

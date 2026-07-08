@@ -76,10 +76,8 @@ export function TrayControls({
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
   const supportsOpenFloor = isAdapterTray || isSkirmish;
-  const roundedCornersConflictWithMagnets =
-    settings.trayRoundedCornersEnabled && settings.template === 'adapter' && settings.characterBayEnabled;
   const magnetCutoutsDisabledByRemovedFloor = supportsOpenFloor && settings.adapterRemoveFloorEnabled;
-  const magnetCutoutsDisabled = roundedCornersConflictWithMagnets || magnetCutoutsDisabledByRemovedFloor;
+  const magnetCutoutsDisabled = magnetCutoutsDisabledByRemovedFloor;
   const magneticSheetBorderTooltip =
     'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into. Rounded corners are applied when advanced rounded corners are enabled.';
   const selectedTemplate = trayTemplates.find((template) => template.value === settings.template);
@@ -573,8 +571,6 @@ export function TrayControls({
           title={
             magnetCutoutsDisabledByRemovedFloor
               ? 'Magnet cutouts are not available when the floor is removed.'
-              : roundedCornersConflictWithMagnets
-              ? 'Magnet cutouts are not currently available with rounded corners for this tray type.'
               : 'Add circular top-side magnet recesses centred in each base space.'
           }
         >
@@ -583,8 +579,6 @@ export function TrayControls({
             title={
               magnetCutoutsDisabledByRemovedFloor
                 ? 'Magnet cutouts are not available when the floor is removed.'
-                : roundedCornersConflictWithMagnets
-                ? 'Magnet cutouts are not currently available with rounded corners for this tray type.'
                 : 'Add circular top-side magnet recesses centred in each base space.'
             }
             checked={settings.magnetCutoutsEnabled && !magnetCutoutsDisabled}
@@ -593,9 +587,6 @@ export function TrayControls({
           />
           <span>Enable cutouts</span>
         </label>
-        {roundedCornersConflictWithMagnets && (
-          <p className="compatibility-note">Magnet cutouts are disabled while rounded corners are enabled for this tray type.</p>
-        )}
         {magnetCutoutsDisabledByRemovedFloor && (
           <p className="compatibility-note">Magnet cutouts are disabled while the floor is removed.</p>
         )}
