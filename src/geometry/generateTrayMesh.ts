@@ -335,7 +335,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }));
 
       const localRowHoles = getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm);
-      const blockZ = settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm;
+      const blockZ = settings.floorThicknessMm;
 
       if (!settings.adapterRemoveFloorEnabled) {
         group.add(
@@ -423,7 +423,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       dimensions.mainInnerWidthMm,
       dimensions.mainInnerDepthMm,
     );
-    const blockZ = settings.adapterRemoveFloorEnabled ? 0 : settings.floorThicknessMm;
+    const blockZ = settings.floorThicknessMm;
 
     if (!settings.adapterRemoveFloorEnabled) {
       group.add(
