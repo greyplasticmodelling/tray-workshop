@@ -195,18 +195,33 @@ function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegm
     vertices.push(point.x, point.y, z);
     return vertices.length / 3 - 1;
   };
-  const addQuad = (a: THREE.Vector2, b: THREE.Vector2, c: THREE.Vector2, d: THREE.Vector2) => {
-    const index = vertices.length / 3;
-    vertices.push(a.x, a.y, height, b.x, b.y, height, c.x, c.y, 0, d.x, d.y, 0);
-    indices.push(index, index + 2, index + 1, index + 1, index + 2, index + 3);
+  const addTriangle = (a: number, b: number, c: number) => {
+    indices.push(a, b, c);
+  };
+  const addQuad = (a: number, b: number, c: number, d: number) => {
+    indices.push(a, c, b, b, c, d);
   };
 
   segments.forEach((segment) => {
-    const topStart = segment.start;
-    const topEnd = segment.end;
-    const bottomStart = topStart.clone().addScaledVector(segment.normal, slope);
-    const bottomEnd = topEnd.clone().addScaledVector(segment.normal, slope);
+    const topStartPoint = segment.start;
+    const topEndPoint = segment.end;
+    const bottomStartPoint = segment.start;
+    const bottomEndPoint = segment.end;
+    const outerBottomStartPoint = segment.start.clone().addScaledVector(segment.normal, slope);
+    const outerBottomEndPoint = segment.end.clone().addScaledVector(segment.normal, slope);
+
+    const topStart = addVertex(topStartPoint, height);
+    const topEnd = addVertex(topEndPoint, height);
+    const bottomStart = addVertex(bottomStartPoint, 0);
+    const bottomEnd = addVertex(bottomEndPoint, 0);
+    const outerBottomStart = addVertex(outerBottomStartPoint, 0);
+    const outerBottomEnd = addVertex(outerBottomEndPoint, 0);
+
     addQuad(topStart, topEnd, bottomStart, bottomEnd);
+    addQuad(topStart, outerBottomStart, topEnd, outerBottomEnd);
+    addQuad(bottomStart, bottomEnd, outerBottomStart, outerBottomEnd);
+    addTriangle(topStart, bottomStart, outerBottomStart);
+    addTriangle(topEnd, outerBottomEnd, bottomEnd);
 
     [segment.start, segment.end].forEach((point) => {
       const key = cornerKey(point);
@@ -235,7 +250,11 @@ function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegm
     const bottomA = addVertex(corner.clone().addScaledVector(normals[0], slope), 0);
     const bottomPoint = addVertex(corner.clone().add(miterNormal.multiplyScalar(slope)), 0);
     const bottomB = addVertex(corner.clone().addScaledVector(normals[1], slope), 0);
-    indices.push(topIndex, bottomA, bottomPoint, topIndex, bottomPoint, bottomB);
+    const bottomCorner = addVertex(corner, 0);
+    addTriangle(topIndex, bottomA, bottomPoint);
+    addTriangle(topIndex, bottomPoint, bottomB);
+    addTriangle(bottomCorner, bottomPoint, bottomA);
+    addTriangle(bottomCorner, bottomB, bottomPoint);
   });
 
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
