@@ -322,6 +322,132 @@ function getUnionPerimeterSegments(rects: Rect[]): PerimeterSegment[] {
   return segments.filter((segment) => segment.start.distanceTo(segment.end) > 0);
 }
 
+function roundedPointKey(point: THREE.Vector2) {
+  return `${point.x.toFixed(4)},${point.y.toFixed(4)}`;
+}
+
+function getOrderedPerimeterPoints(rects: Rect[]) {
+  const segments = getUnionPerimeterSegments(rects);
+
+  if (segments.length === 0) {
+    return [];
+  }
+
+  const remaining = [...segments];
+  const firstSegment = remaining.shift();
+
+  if (!firstSegment) {
+    return [];
+  }
+
+  const points = [firstSegment.start.clone(), firstSegment.end.clone()];
+
+  while (remaining.length > 0) {
+    const end = points[points.length - 1];
+    const endKey = roundedPointKey(end);
+    const nextIndex = remaining.findIndex(
+      (segment) => roundedPointKey(segment.start) === endKey || roundedPointKey(segment.end) === endKey,
+    );
+
+    if (nextIndex < 0) {
+      break;
+    }
+
+    const [nextSegment] = remaining.splice(nextIndex, 1);
+    const nextPoint =
+      roundedPointKey(nextSegment.start) === endKey ? nextSegment.end.clone() : nextSegment.start.clone();
+
+    if (roundedPointKey(nextPoint) === roundedPointKey(points[0])) {
+      break;
+    }
+
+    points.push(nextPoint);
+  }
+
+  return points;
+}
+
+function createRoundedPolygonShape(points: THREE.Vector2[], radius: number) {
+  const shape = new THREE.Shape();
+
+  if (points.length < 3) {
+    return shape;
+  }
+
+  const signedArea =
+    points.reduce((total, point, index) => {
+      const next = points[(index + 1) % points.length];
+      return total + point.x * next.y - next.x * point.y;
+    }, 0) / 2;
+  const orientation = signedArea >= 0 ? 1 : -1;
+  const entries = points.map((point, index) => {
+    const previous = points[(index - 1 + points.length) % points.length];
+    const next = points[(index + 1) % points.length];
+    const incoming = point.clone().sub(previous);
+    const outgoing = next.clone().sub(point);
+    const incomingLength = incoming.length();
+    const outgoingLength = outgoing.length();
+    const cross = incoming.x * outgoing.y - incoming.y * outgoing.x;
+    const isConvex = Math.sign(cross) === orientation;
+    const cornerRadius = isConvex ? Math.min(radius, incomingLength / 2 - 0.001, outgoingLength / 2 - 0.001) : 0;
+    const start = cornerRadius > 0 ? point.clone().addScaledVector(incoming.normalize(), -cornerRadius) : point.clone();
+    const end = cornerRadius > 0 ? point.clone().addScaledVector(outgoing.normalize(), cornerRadius) : point.clone();
+    return { point, start, end, radius: cornerRadius };
+  });
+
+  shape.moveTo(entries[0].end.x, entries[0].end.y);
+
+  for (let index = 1; index < entries.length; index += 1) {
+    const entry = entries[index];
+    shape.lineTo(entry.start.x, entry.start.y);
+
+    if (entry.radius > 0) {
+      shape.quadraticCurveTo(entry.point.x, entry.point.y, entry.end.x, entry.end.y);
+    }
+  }
+
+  const firstEntry = entries[0];
+  shape.lineTo(firstEntry.start.x, firstEntry.start.y);
+
+  if (firstEntry.radius > 0) {
+    shape.quadraticCurveTo(firstEntry.point.x, firstEntry.point.y, firstEntry.end.x, firstEntry.end.y);
+  }
+
+  return shape;
+}
+
+function createUnionCutoutLayer(
+  name: string,
+  rects: Rect[],
+  height: number,
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  z: number,
+  settings: TraySettings,
+) {
+  const points = getOrderedPerimeterPoints(rects);
+  const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
+
+  if (points.length < 3 || radius <= 0) {
+    return createUnionRectGridLayer(name, rects, height, holes, z);
+  }
+
+  const shape = createRoundedPolygonShape(points, radius);
+
+  holes.forEach((hole) => {
+    const halfWidth = hole.width / 2;
+    const halfDepth = hole.depth / 2;
+    const path = new THREE.Path();
+    path.moveTo(hole.x - halfWidth, hole.y - halfDepth);
+    path.lineTo(hole.x - halfWidth, hole.y + halfDepth);
+    path.lineTo(hole.x + halfWidth, hole.y + halfDepth);
+    path.lineTo(hole.x + halfWidth, hole.y - halfDepth);
+    path.lineTo(hole.x - halfWidth, hole.y - halfDepth);
+    shape.holes.push(path);
+  });
+
+  return createExtrudedShapeMesh(name, shape, height, 0, 0, z + height / 2);
+}
+
 function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegment[], height: number, settings: TraySettings) {
   const slope = Math.max(0, settings.trayEdgeSlopeMm);
 
@@ -968,6 +1094,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   if (settings.template === 'adapterLance') {
     const outerFrontY = -dimensions.outerDepthMm / 2;
     const adapterLanceRects: Rect[] = [];
+    const adapterLanceHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
+    const useRoundedUnion = settings.trayRoundedCornersEnabled;
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
@@ -987,9 +1115,10 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         width: dimensions.adapterCutoutWidthMm,
         depth: dimensions.adapterCutoutDepthMm,
       }));
+      adapterLanceHoles.push(...rowHoles);
 
       const localRowHoles = getRectHolesInRect(rowHoles, 0, rowCenterY, rowWidth, dimensions.slotDepthMm);
-      if (!settings.adapterRemoveFloorEnabled) {
+      if (!useRoundedUnion && !settings.adapterRemoveFloorEnabled) {
         group.add(
           createAdapterFloorLayer(
             `adapter-lance-floor-rank-${rowIndex + 1}`,
@@ -1003,21 +1132,23 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         );
       }
 
-      group.add(
-        createAdapterBlockLayer(
-          `adapter-lance-block-rank-${rowIndex + 1}`,
-          rowWidth,
-          dimensions.slotDepthMm,
-          settings.adapterBaseHeightMm,
-          localRowHoles,
-          0,
-          rowCenterY,
-          adapterBlockZ,
-          undefined,
-        ),
-      );
+      if (!useRoundedUnion) {
+        group.add(
+          createAdapterBlockLayer(
+            `adapter-lance-block-rank-${rowIndex + 1}`,
+            rowWidth,
+            dimensions.slotDepthMm,
+            settings.adapterBaseHeightMm,
+            localRowHoles,
+            0,
+            rowCenterY,
+            adapterBlockZ,
+            undefined,
+          ),
+        );
+      }
 
-      if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      if (!useRoundedUnion && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
         const topBorder = createAdapterTopBorderLayer(
           `adapter-lance-top-border-rank-${rowIndex + 1}`,
           rowWidth,
@@ -1030,6 +1161,11 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         group.add(topBorder);
       }
     });
+
+    if (useRoundedUnion) {
+      const unionHeight = adapterBlockZ + settings.adapterBaseHeightMm;
+      group.add(createUnionCutoutLayer('adapter-lance-rounded-body', adapterLanceRects, unionHeight, adapterLanceHoles, 0, settings));
+    }
 
     addTrayFinishShell(group, 'adapter-lance-tray-finish', adapterLanceRects, adapterBlockZ + settings.adapterBaseHeightMm, settings);
 
@@ -1118,7 +1254,18 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         );
       }
 
-    if (hasFlankAdapter && settings.adapterRemoveFloorEnabled) {
+    if (hasFlankAdapter && settings.trayRoundedCornersEnabled) {
+      group.add(
+        createUnionCutoutLayer(
+          'adapter-flank-rounded-body',
+          [mainAdapterRect, flankAdapterRect],
+          adapterBlockZ + settings.adapterBaseHeightMm,
+          adapterHoles,
+          0,
+          settings,
+        ),
+      );
+    } else if (hasFlankAdapter && settings.adapterRemoveFloorEnabled) {
       group.add(
         createUnionRectGridLayer(
           'adapter-open-floor-block',
@@ -1156,7 +1303,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       );
     }
 
-    if (hasFlankAdapter) {
+    if (hasFlankAdapter && !settings.trayRoundedCornersEnabled) {
       const flankAdapterHoles = getRectHolesInRect(
         adapterHoles,
         characterFloorCenterX,
