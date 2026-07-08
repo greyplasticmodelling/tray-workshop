@@ -346,18 +346,6 @@ function createAdapterFloorLayer(
   magnetHoles: Array<{ x: number; y: number }>,
   settings: TraySettings,
 ) {
-  if (settings.adapterFloorCutoutEnabled) {
-    return createPerimeterBorderLayer(
-      name,
-      width,
-      depth,
-      settings.floorThicknessMm,
-      x,
-      y,
-      settings.adapterFloorCutoutBufferMm,
-    );
-  }
-
   return createPerforatedFloorLayer(name, width, depth, settings.floorThicknessMm, x, y, magnetHoles, settings);
 }
 
@@ -379,12 +367,23 @@ function createAdapterBlockLayer(
   return createRectGridLayer(name, width, depth, height, holes, x, y, z);
 }
 
-function flipTopFaceDownOnBuildPlate(group: THREE.Group) {
-  group.rotation.x = Math.PI;
-  group.updateMatrixWorld(true);
-  const bounds = new THREE.Box3().setFromObject(group);
-  group.position.z -= bounds.min.z;
-  group.updateMatrixWorld(true);
+function createAdapterTopBorderLayer(
+  name: string,
+  width: number,
+  depth: number,
+  x: number,
+  y: number,
+  settings: TraySettings,
+) {
+  return createPerimeterBorderLayer(
+    name,
+    width,
+    depth,
+    settings.floorThicknessMm,
+    x,
+    y,
+    settings.adapterFloorCutoutBufferMm,
+  );
 }
 
 export function generateTrayMesh(settings: TraySettings): THREE.Group {
@@ -483,11 +482,20 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           settings,
         ),
       );
-    });
 
-    if (settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled) {
-      flipTopFaceDownOnBuildPlate(group);
-    }
+      if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+        const topBorder = createAdapterTopBorderLayer(
+          `adapter-lance-top-border-rank-${rowIndex + 1}`,
+          rowWidth,
+          dimensions.slotDepthMm,
+          0,
+          rowCenterY,
+          settings,
+        );
+        topBorder.position.z += settings.adapterBaseHeightMm;
+        group.add(topBorder);
+      }
+    });
 
     return group;
   }
@@ -574,6 +582,19 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       ),
     );
 
+    if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      const topBorder = createAdapterTopBorderLayer(
+        'adapter-top-border',
+        dimensions.mainInnerWidthMm,
+        dimensions.mainInnerDepthMm,
+        mainFloorCenterX,
+        mainFloorCenterY,
+        settings,
+      );
+      topBorder.position.z += settings.adapterBaseHeightMm;
+      group.add(topBorder);
+    }
+
     if (hasFlankAdapter) {
       const flankAdapterHoles = getRectHolesInRect(
         adapterHoles,
@@ -617,6 +638,19 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           settings,
         ),
       );
+
+      if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+        const flankTopBorder = createAdapterTopBorderLayer(
+          'adapter-flank-top-border',
+          dimensions.characterSlotWidthMm,
+          dimensions.characterSlotDepthMm,
+          characterFloorCenterX,
+          characterFloorCenterY,
+          settings,
+        );
+        flankTopBorder.position.z += settings.adapterBaseHeightMm;
+        group.add(flankTopBorder);
+      }
     }
 
     return group;

@@ -324,35 +324,38 @@ export function TrayControls({
             <span>Remove floor</span>
           </label>
 
-          <label
-            className="toggle"
-            title="Keep only a perimeter border on the underside for fitting a cut magnetic sheet, and export the STL face down."
-          >
-            <input
-              type="checkbox"
-              title="Keep only a perimeter border on the underside for fitting a cut magnetic sheet, and export the STL face down."
-              checked={settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled}
-              disabled={settings.adapterRemoveFloorEnabled}
-              onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
-            />
-            <span>Magnetic sheet underside border</span>
-          </label>
+          {settings.adapterRemoveFloorEnabled && (
+            <>
+              <label
+                className="toggle"
+                title="Add a square perimeter frame on top of the open adapter grid for locating a cut magnetic sheet."
+              >
+                <input
+                  type="checkbox"
+                  title="Add a square perimeter frame on top of the open adapter grid for locating a cut magnetic sheet."
+                  checked={settings.adapterFloorCutoutEnabled}
+                  onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
+                />
+                <span>Magnetic sheet top border</span>
+              </label>
 
-          {settings.adapterFloorCutoutEnabled && !settings.adapterRemoveFloorEnabled && (
-            <label
-              className="field"
-              title="Width of the perimeter border left around the underside opening for a magnetic sheet."
-            >
-              <span>Underside border width (mm)</span>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                title="Width of the perimeter border left around the underside opening for a magnetic sheet."
-                value={settings.adapterFloorCutoutBufferMm}
-                onChange={(event) => updateNumber('adapterFloorCutoutBufferMm', event.target.value)}
-              />
-            </label>
+              {settings.adapterFloorCutoutEnabled && (
+                <label
+                  className="field"
+                  title="Width of the square perimeter frame added on top of the open adapter grid."
+                >
+                  <span>Top border width (mm)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    title="Width of the square perimeter frame added on top of the open adapter grid."
+                    value={settings.adapterFloorCutoutBufferMm}
+                    onChange={(event) => updateNumber('adapterFloorCutoutBufferMm', event.target.value)}
+                  />
+                </label>
+              )}
+            </>
           )}
         </fieldset>
       )}
