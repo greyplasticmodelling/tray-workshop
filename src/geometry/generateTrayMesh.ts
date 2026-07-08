@@ -337,6 +337,101 @@ function createPerimeterBorderLayer(
   );
 }
 
+function createUnionPerimeterBorderLayer(
+  name: string,
+  rects: Array<{ left: number; right: number; front: number; back: number }>,
+  height: number,
+  z: number,
+  borderWidth: number,
+) {
+  const inset = Math.max(0, borderWidth);
+  const outerRects = rects.filter((rect) => rect.right > rect.left && rect.back > rect.front);
+  const xEdges = new Set<number>();
+  const yEdges = new Set<number>();
+
+  outerRects.forEach((rect) => {
+    xEdges.add(rect.left);
+    xEdges.add(rect.right);
+    xEdges.add(rect.left + inset);
+    xEdges.add(rect.right - inset);
+    yEdges.add(rect.front);
+    yEdges.add(rect.back);
+    yEdges.add(rect.front + inset);
+    yEdges.add(rect.back - inset);
+  });
+
+  const sortedXEdges = Array.from(xEdges).sort((a, b) => a - b);
+  const sortedYEdges = Array.from(yEdges).sort((a, b) => a - b);
+  const group = new THREE.Group();
+  group.name = name;
+  const containsPoint = (pointX: number, pointY: number) =>
+    outerRects.some((rect) => pointX > rect.left && pointX < rect.right && pointY > rect.front && pointY < rect.back);
+  const distanceToHorizontalUnionEdge = (pointX: number, pointY: number) => {
+    const intervals = outerRects
+      .filter((rect) => pointY > rect.front && pointY < rect.back)
+      .map((rect) => ({ start: rect.left, end: rect.right }))
+      .sort((a, b) => a.start - b.start);
+    const merged: Array<{ start: number; end: number }> = [];
+
+    intervals.forEach((interval) => {
+      const previous = merged[merged.length - 1];
+
+      if (previous && interval.start <= previous.end) {
+        previous.end = Math.max(previous.end, interval.end);
+      } else {
+        merged.push({ ...interval });
+      }
+    });
+
+    const containingInterval = merged.find((interval) => pointX > interval.start && pointX < interval.end);
+    return containingInterval ? Math.min(pointX - containingInterval.start, containingInterval.end - pointX) : 0;
+  };
+  const distanceToVerticalUnionEdge = (pointX: number, pointY: number) => {
+    const intervals = outerRects
+      .filter((rect) => pointX > rect.left && pointX < rect.right)
+      .map((rect) => ({ start: rect.front, end: rect.back }))
+      .sort((a, b) => a.start - b.start);
+    const merged: Array<{ start: number; end: number }> = [];
+
+    intervals.forEach((interval) => {
+      const previous = merged[merged.length - 1];
+
+      if (previous && interval.start <= previous.end) {
+        previous.end = Math.max(previous.end, interval.end);
+      } else {
+        merged.push({ ...interval });
+      }
+    });
+
+    const containingInterval = merged.find((interval) => pointY > interval.start && pointY < interval.end);
+    return containingInterval ? Math.min(pointY - containingInterval.start, containingInterval.end - pointY) : 0;
+  };
+
+  for (let xIndex = 0; xIndex < sortedXEdges.length - 1; xIndex += 1) {
+    for (let yIndex = 0; yIndex < sortedYEdges.length - 1; yIndex += 1) {
+      const left = sortedXEdges[xIndex];
+      const right = sortedXEdges[xIndex + 1];
+      const front = sortedYEdges[yIndex];
+      const back = sortedYEdges[yIndex + 1];
+      const width = right - left;
+      const depth = back - front;
+      const centerX = left + width / 2;
+      const centerY = front + depth / 2;
+      const isInOuter = containsPoint(centerX, centerY);
+      const distanceToPerimeter = Math.min(
+        distanceToHorizontalUnionEdge(centerX, centerY),
+        distanceToVerticalUnionEdge(centerX, centerY),
+      );
+
+      if (isInOuter && distanceToPerimeter <= inset && width > 0 && depth > 0) {
+        group.add(createBox(`${name}-cell-${xIndex}-${yIndex}`, width, depth, height, centerX, centerY, z + height / 2));
+      }
+    }
+  }
+
+  return group;
+}
+
 function createAdapterFloorLayer(
   name: string,
   width: number,
@@ -594,17 +689,23 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       ),
     );
 
-    if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
-      const topBorder = createAdapterTopBorderLayer(
-        'adapter-top-border',
-        dimensions.mainInnerWidthMm,
-        dimensions.mainInnerDepthMm,
-        mainFloorCenterX,
-        mainFloorCenterY,
-        settings,
+    if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled && !hasFlankAdapter) {
+      group.add(
+        createUnionPerimeterBorderLayer(
+          'adapter-magnetic-sheet-border',
+          [
+            {
+              left: mainFloorX,
+              right: mainFloorX + dimensions.mainInnerWidthMm,
+              front: outerFrontY,
+              back: outerFrontY + dimensions.mainInnerDepthMm,
+            },
+          ],
+          settings.floorThicknessMm,
+          settings.adapterBaseHeightMm,
+          settings.adapterFloorCutoutBufferMm,
+        ),
       );
-      topBorder.position.z += settings.adapterBaseHeightMm;
-      group.add(topBorder);
     }
 
     if (hasFlankAdapter) {
@@ -650,18 +751,31 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         ),
       );
 
-      if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
-        const flankTopBorder = createAdapterTopBorderLayer(
-          'adapter-flank-top-border',
-          dimensions.characterSlotWidthMm,
-          dimensions.characterSlotDepthMm,
-          characterFloorCenterX,
-          characterFloorCenterY,
-          settings,
-        );
-        flankTopBorder.position.z += settings.adapterBaseHeightMm;
-        group.add(flankTopBorder);
-      }
+    }
+
+    if (hasFlankAdapter && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      group.add(
+        createUnionPerimeterBorderLayer(
+          'adapter-flank-magnetic-sheet-border',
+          [
+            {
+              left: mainFloorX,
+              right: mainFloorX + dimensions.mainInnerWidthMm,
+              front: outerFrontY,
+              back: outerFrontY + dimensions.mainInnerDepthMm,
+            },
+            {
+              left: characterFloorX,
+              right: characterFloorX + dimensions.characterSlotWidthMm,
+              front: outerFrontY,
+              back: outerFrontY + dimensions.characterSlotDepthMm,
+            },
+          ],
+          settings.floorThicknessMm,
+          settings.adapterBaseHeightMm,
+          settings.adapterFloorCutoutBufferMm,
+        ),
+      );
     }
 
     return group;
