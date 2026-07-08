@@ -178,10 +178,114 @@ function getUnionPerimeterSegments(rects: Rect[]): PerimeterSegment[] {
   return segments.filter((segment) => segment.start.distanceTo(segment.end) > 0);
 }
 
+function createRoundedPerimeterSegments(segments: PerimeterSegment[], settings: TraySettings): PerimeterSegment[] {
+  const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
+
+  if (radius <= 0 || segments.length === 0) {
+    return segments;
+  }
+
+  const roundKey = (value: number) => value.toFixed(4);
+  const cornerKey = (point: THREE.Vector2) => `${roundKey(point.x)},${roundKey(point.y)}`;
+  const cornerGroups = new Map<string, PerimeterSegment[]>();
+  const roundedCornerKeys = new Set<string>();
+  const cornerRadii = new Map<string, number>();
+  const tangentPoints = new Map<string, THREE.Vector2>();
+  const getSegmentKey = (segment: PerimeterSegment, endpoint: 'start' | 'end') =>
+    `${cornerKey(segment.start)}|${cornerKey(segment.end)}|${endpoint}`;
+  const getAwayDirection = (segment: PerimeterSegment, corner: THREE.Vector2) =>
+    segment.start.distanceTo(corner) < segment.end.distanceTo(corner)
+      ? segment.end.clone().sub(segment.start).normalize()
+      : segment.start.clone().sub(segment.end).normalize();
+
+  segments.forEach((segment) => {
+    [segment.start, segment.end].forEach((point) => {
+      const key = cornerKey(point);
+      cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
+    });
+  });
+
+  cornerGroups.forEach((cornerSegments, key) => {
+    const normals = Array.from(
+      new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
+    );
+
+    if (cornerSegments.length < 2 || normals.length !== 2 || Math.abs(normals[0].dot(normals[1])) > 0.001) {
+      return;
+    }
+
+    const [x, y] = key.split(',').map(Number);
+    const corner = new THREE.Vector2(x, y);
+    const availableRadius = Math.min(
+      radius,
+      ...cornerSegments.map((segment) => Math.max(0, segment.start.distanceTo(segment.end) / 2 - 0.001)),
+    );
+
+    if (availableRadius <= 0) {
+      return;
+    }
+
+    roundedCornerKeys.add(key);
+    cornerRadii.set(key, availableRadius);
+    cornerSegments.forEach((segment) => {
+      const endpoint = segment.start.distanceTo(corner) < 0.001 ? 'start' : 'end';
+      tangentPoints.set(getSegmentKey(segment, endpoint), corner.clone().addScaledVector(getAwayDirection(segment, corner), availableRadius));
+    });
+  });
+
+  const roundedSegments = segments
+    .map((segment) => {
+      const start = tangentPoints.get(getSegmentKey(segment, 'start')) ?? segment.start;
+      const end = tangentPoints.get(getSegmentKey(segment, 'end')) ?? segment.end;
+      return { ...segment, start, end };
+    })
+    .filter((segment) => segment.start.distanceTo(segment.end) > 0.001);
+
+  cornerGroups.forEach((cornerSegments, key) => {
+    if (!roundedCornerKeys.has(key)) {
+      return;
+    }
+
+    const [x, y] = key.split(',').map(Number);
+    const corner = new THREE.Vector2(x, y);
+    const cornerRadius = cornerRadii.get(key) ?? radius;
+    const normals = Array.from(
+      new Map(cornerSegments.map((segment) => [`${segment.normal.x},${segment.normal.y}`, segment.normal])).values(),
+    );
+    const center = corner.clone().addScaledVector(normals[0], -cornerRadius).addScaledVector(normals[1], -cornerRadius);
+    const tangentA =
+      tangentPoints.get(getSegmentKey(cornerSegments[0], cornerSegments[0].start.distanceTo(corner) < 0.001 ? 'start' : 'end')) ??
+      cornerSegments[0].start;
+    const tangentB =
+      tangentPoints.get(getSegmentKey(cornerSegments[1], cornerSegments[1].start.distanceTo(corner) < 0.001 ? 'start' : 'end')) ??
+      cornerSegments[1].start;
+    const angleA = Math.atan2(tangentA.y - center.y, tangentA.x - center.x);
+    const angleB = Math.atan2(tangentB.y - center.y, tangentB.x - center.x);
+    let delta = angleB - angleA;
+
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+
+    const arcSteps = 8;
+    let previous = tangentA;
+
+    for (let index = 1; index <= arcSteps; index += 1) {
+      const angle = angleA + (delta * index) / arcSteps;
+      const next = new THREE.Vector2(center.x + Math.cos(angle) * cornerRadius, center.y + Math.sin(angle) * cornerRadius);
+      const midpointNormal = previous.clone().add(next).multiplyScalar(0.5).sub(center).normalize();
+      roundedSegments.push({ start: previous, end: next, normal: midpointNormal });
+      previous = next;
+    }
+  });
+
+  return roundedSegments;
+}
+
 function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegment[], height: number, settings: TraySettings) {
   const slope = Math.max(0, settings.trayEdgeSlopeMm);
+  const finishSegments = createRoundedPerimeterSegments(segments, settings);
 
-  if (slope <= 0 || segments.length === 0) {
+  if (slope <= 0 || finishSegments.length === 0) {
     return null;
   }
 
@@ -204,14 +308,14 @@ function createTrayFinishShellFromSegments(name: string, segments: PerimeterSegm
   const uniqueNormalCount = (point: THREE.Vector2) =>
     new Set((cornerGroups.get(cornerKey(point)) ?? []).map((segment) => `${segment.normal.x},${segment.normal.y}`)).size;
 
-  segments.forEach((segment) => {
+  finishSegments.forEach((segment) => {
     [segment.start, segment.end].forEach((point) => {
       const key = cornerKey(point);
       cornerGroups.set(key, [...(cornerGroups.get(key) ?? []), segment]);
     });
   });
 
-  segments.forEach((segment) => {
+  finishSegments.forEach((segment) => {
     const topStartPoint = segment.start;
     const topEndPoint = segment.end;
     const bottomStartPoint = segment.start;

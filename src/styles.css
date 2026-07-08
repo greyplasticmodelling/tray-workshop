@@ -615,6 +615,21 @@ h1 {
   font-weight: 850;
 }
 
+.finish-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--label);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.finish-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
 .preview-toggle {
   justify-self: center;
   display: flex;

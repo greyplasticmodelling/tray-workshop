@@ -28,6 +28,8 @@ const standardDefaults: TraySettings = {
   adapterFloorCutoutEnabled: false,
   adapterFloorCutoutBufferMm: 2,
   trayEdgeSlopeMm: 0,
+  trayRoundedCornersEnabled: false,
+  trayCornerRadiusMm: 2,
   skirmishBaseShape: 'circle',
   skirmishBaseSizeMm: 25,
   skirmishSeed: 12025,
@@ -278,10 +280,17 @@ export default function App() {
     });
   };
 
-  const updateFinishSetting = (key: 'trayEdgeSlopeMm', value: string) => {
+  const updateFinishSetting = (key: 'trayEdgeSlopeMm' | 'trayCornerRadiusMm', value: string) => {
     updateSettings({
       ...settings,
       [key]: Number(value),
+    });
+  };
+
+  const updateFinishToggle = (key: 'trayRoundedCornersEnabled', checked: boolean) => {
+    updateSettings({
+      ...settings,
+      [key]: checked,
     });
   };
 
@@ -403,6 +412,33 @@ export default function App() {
           <TrayPreviewSvg settings={settings} dimensions={dimensions} />
           <fieldset className="tray-finish-panel">
             <legend>Tray Finish</legend>
+            <label
+              className="finish-toggle"
+              title="Rounds eligible outside tray corners. On rail trays this applies where enabled rails meet; on solid trays it applies to the outside perimeter."
+            >
+              <input
+                type="checkbox"
+                checked={settings.trayRoundedCornersEnabled}
+                onChange={(event) => updateFinishToggle('trayRoundedCornersEnabled', event.target.checked)}
+              />
+              <span>Rounded corners</span>
+            </label>
+            <label
+              className="finish-slider"
+              title="Controls how far each eligible outer corner is rounded inward."
+            >
+              <span>Corner roundness</span>
+              <input
+                type="range"
+                min="0.5"
+                max="12"
+                step="0.25"
+                value={settings.trayCornerRadiusMm}
+                disabled={!settings.trayRoundedCornersEnabled}
+                onChange={(event) => updateFinishSetting('trayCornerRadiusMm', event.target.value)}
+              />
+              <output>{settings.trayCornerRadiusMm.toFixed(2)} mm</output>
+            </label>
             <label
               className="finish-slider"
               title="Slopes only the outside perimeter edges outward. Internal slots and magnet holes are left untouched."

@@ -67,6 +67,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const finishExpansion = settings.trayEdgeSlopeMm;
+  const finishCornerRadius = settings.trayRoundedCornersEnabled ? settings.trayCornerRadiusMm : 0;
   const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
   const finishLines: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
 
@@ -279,6 +280,8 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             y={rect.y - finishExpansion}
             width={rect.width + finishExpansion * 2}
             height={rect.height + finishExpansion * 2}
+            rx={finishCornerRadius}
+            ry={finishCornerRadius}
             className="finish-footprint"
           />
         ))}

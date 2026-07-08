@@ -16,6 +16,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
   adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet border width', unit: 'mm' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
+  trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
   skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
@@ -305,6 +306,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'adapterFloorCutoutBufferMm' &&
       !(hasOpenFloorOption && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled)
     ) {
+      return;
+    }
+
+    if (key === 'trayCornerRadiusMm' && !settings.trayRoundedCornersEnabled) {
       return;
     }
 
