@@ -1,19 +1,13 @@
-import type { SavedTray, ThemeName, TraySettings } from '../types';
+import type { ThemeName, TraySettings } from '../types';
 import { trayTemplates } from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
   theme: ThemeName;
-  savedTrays: SavedTray[];
   onChange: (settings: TraySettings) => void;
   onTemplateChange: (template: TraySettings['template']) => void;
   onThemeChange: (theme: ThemeName) => void;
   onResetTemplate: () => void;
-  onSaveTray: () => void;
-  onLoadTray: (id: string) => void;
-  onDeleteSavedTray: (id: string) => void;
-  onCopyShareLink: () => void;
-  shareStatus: string;
   validationMessages: string[];
 };
 
@@ -52,16 +46,10 @@ const themes: Array<{ value: ThemeName; label: string }> = [
 export function TrayControls({
   settings,
   theme,
-  savedTrays,
   onChange,
   onTemplateChange,
   onThemeChange,
   onResetTemplate,
-  onSaveTray,
-  onLoadTray,
-  onDeleteSavedTray,
-  onCopyShareLink,
-  shareStatus,
   validationMessages,
 }: Props) {
   const updateNumber = (key: keyof TraySettings, value: string) => {
@@ -596,51 +584,6 @@ export function TrayControls({
       >
         Reset template defaults
       </button>
-
-      <button
-        className="secondary-button"
-        type="button"
-        title="Copy a link that opens this exact tray setup."
-        onClick={onCopyShareLink}
-      >
-        Copy share link
-      </button>
-      {shareStatus && <p className="share-status">{shareStatus}</p>}
-
-      <section className="saved-trays" aria-label="Saved trays">
-        <div className="saved-trays-header">
-          <span>Saved trays</span>
-          <button type="button" className="small-button" title="Save the current tray in this browser." onClick={onSaveTray}>
-            Save
-          </button>
-        </div>
-
-        {savedTrays.length === 0 ? (
-          <p>No saved trays yet.</p>
-        ) : (
-          <div className="saved-tray-list">
-            {savedTrays.map((savedTray) => (
-              <div className="saved-tray-row" key={savedTray.id}>
-                <button
-                  type="button"
-                  title="Load this saved tray."
-                  onClick={() => onLoadTray(savedTray.id)}
-                >
-                  {savedTray.name}
-                </button>
-                <button
-                  type="button"
-                  className="delete-button"
-                  title="Delete this saved tray from this browser."
-                  onClick={() => onDeleteSavedTray(savedTray.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
     </aside>
   );

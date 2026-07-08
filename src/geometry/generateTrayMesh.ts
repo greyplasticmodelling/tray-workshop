@@ -1405,55 +1405,83 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     const innerFrontY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm;
     const centerX = 0;
     const lanceFinishSegments: PerimeterSegment[] = [];
+    const lanceFloorRects: Rect[] = [];
+    const lanceRailRects: Rect[] = [];
+    const useRoundedLanceUnion = settings.trayRoundedCornersEnabled && !settings.magnetCutoutsEnabled;
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
       const rowCenterY = innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
+      const floorWidth = rowWidth + dimensions.leftRailMm + dimensions.rightRailMm;
+      lanceFloorRects.push({
+        left: -floorWidth / 2,
+        right: floorWidth / 2,
+        front: rowCenterY - dimensions.slotDepthMm / 2,
+        back: rowCenterY + dimensions.slotDepthMm / 2,
+      });
 
       const rowInnerCenterY = -dimensions.innerDepthMm / 2 + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2;
       const rowMagnetCenters = magnetCenters
         .filter((center) => center.rowIndex === rowIndex)
         .map((center) => ({ x: center.x, y: center.y - rowInnerCenterY }));
 
-      group.add(
-      createPerforatedFloorLayer(
-        `floor-rank-${rowIndex + 1}`,
-          rowWidth + dimensions.leftRailMm + dimensions.rightRailMm,
-          dimensions.slotDepthMm,
-          settings.floorThicknessMm,
-          centerX,
-          rowCenterY,
-        rowMagnetCenters,
-        settings,
-      ),
-      );
-
-      if (settings.leftRailEnabled) {
+      if (!useRoundedLanceUnion) {
         group.add(
-          createBox(
-            `left-rail-rank-${rowIndex + 1}`,
-            settings.railThicknessMm,
+          createPerforatedFloorLayer(
+            `floor-rank-${rowIndex + 1}`,
+            floorWidth,
             dimensions.slotDepthMm,
-            railHeight,
-            -rowWidth / 2 - settings.railThicknessMm / 2,
+            settings.floorThicknessMm,
+            centerX,
             rowCenterY,
-            railCenterZ,
+            rowMagnetCenters,
+            settings,
           ),
         );
       }
 
+      if (settings.leftRailEnabled) {
+        lanceRailRects.push({
+          left: -rowWidth / 2 - settings.railThicknessMm,
+          right: -rowWidth / 2,
+          front: rowCenterY - dimensions.slotDepthMm / 2,
+          back: rowCenterY + dimensions.slotDepthMm / 2,
+        });
+        if (!useRoundedLanceUnion) {
+          group.add(
+            createBox(
+              `left-rail-rank-${rowIndex + 1}`,
+              settings.railThicknessMm,
+              dimensions.slotDepthMm,
+              railHeight,
+              -rowWidth / 2 - settings.railThicknessMm / 2,
+              rowCenterY,
+              railCenterZ,
+            ),
+          );
+        }
+      }
+
       if (settings.rightRailEnabled) {
-        group.add(
-          createBox(
-            `right-rail-rank-${rowIndex + 1}`,
-            settings.railThicknessMm,
-            dimensions.slotDepthMm,
-            railHeight,
-            rowWidth / 2 + settings.railThicknessMm / 2,
-            rowCenterY,
-            railCenterZ,
-          ),
-        );
+        lanceRailRects.push({
+          left: rowWidth / 2,
+          right: rowWidth / 2 + settings.railThicknessMm,
+          front: rowCenterY - dimensions.slotDepthMm / 2,
+          back: rowCenterY + dimensions.slotDepthMm / 2,
+        });
+        if (!useRoundedLanceUnion) {
+          group.add(
+            createBox(
+              `right-rail-rank-${rowIndex + 1}`,
+              settings.railThicknessMm,
+              dimensions.slotDepthMm,
+              railHeight,
+              rowWidth / 2 + settings.railThicknessMm / 2,
+              rowCenterY,
+              railCenterZ,
+            ),
+          );
+        }
       }
     });
 
@@ -1464,17 +1492,25 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         end: new THREE.Vector2(-frontFloorWidth / 2, -dimensions.outerDepthMm / 2),
         normal: new THREE.Vector2(0, -1),
       });
-      group.add(
-        createBox(
-          'front-floor',
-          frontFloorWidth,
-          settings.railThicknessMm,
-          settings.floorThicknessMm,
-          centerX,
-          -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2,
-          settings.floorThicknessMm / 2,
-        ),
-      );
+      lanceFloorRects.push({
+        left: -frontFloorWidth / 2,
+        right: frontFloorWidth / 2,
+        front: -dimensions.outerDepthMm / 2,
+        back: -dimensions.outerDepthMm / 2 + settings.railThicknessMm,
+      });
+      if (!useRoundedLanceUnion) {
+        group.add(
+          createBox(
+            'front-floor',
+            frontFloorWidth,
+            settings.railThicknessMm,
+            settings.floorThicknessMm,
+            centerX,
+            -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2,
+            settings.floorThicknessMm / 2,
+          ),
+        );
+      }
     }
 
     if (settings.rearRailEnabled) {
@@ -1484,46 +1520,71 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         end: new THREE.Vector2(rearWidth / 2, dimensions.outerDepthMm / 2),
         normal: new THREE.Vector2(0, 1),
       });
-      group.add(
-        createBox(
-          'rear-floor',
-          dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
-          settings.railThicknessMm,
-          settings.floorThicknessMm,
-          centerX,
-          dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2,
-          settings.floorThicknessMm / 2,
-        ),
-      );
+      lanceFloorRects.push({
+        left: -rearWidth / 2,
+        right: rearWidth / 2,
+        front: dimensions.outerDepthMm / 2 - settings.railThicknessMm,
+        back: dimensions.outerDepthMm / 2,
+      });
+      if (!useRoundedLanceUnion) {
+        group.add(
+          createBox(
+            'rear-floor',
+            rearWidth,
+            settings.railThicknessMm,
+            settings.floorThicknessMm,
+            centerX,
+            dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2,
+            settings.floorThicknessMm / 2,
+          ),
+        );
+      }
     }
 
     if (settings.frontRailEnabled) {
       const frontRailWidth = rankCounts[0] * dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm;
-      group.add(
-        createBox(
-          'front-rail',
-          frontRailWidth,
-          settings.railThicknessMm,
-          railHeight,
-          centerX,
-          -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2,
-          railCenterZ,
-        ),
-      );
+      lanceRailRects.push({
+        left: -frontRailWidth / 2,
+        right: frontRailWidth / 2,
+        front: -dimensions.outerDepthMm / 2,
+        back: -dimensions.outerDepthMm / 2 + settings.railThicknessMm,
+      });
+      if (!useRoundedLanceUnion) {
+        group.add(
+          createBox(
+            'front-rail',
+            frontRailWidth,
+            settings.railThicknessMm,
+            railHeight,
+            centerX,
+            -dimensions.outerDepthMm / 2 + settings.railThicknessMm / 2,
+            railCenterZ,
+          ),
+        );
+      }
     }
 
     if (settings.rearRailEnabled) {
-      group.add(
-        createBox(
-          'rear-rail',
-          dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
-          settings.railThicknessMm,
-          railHeight,
-          centerX,
-          dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2,
-          railCenterZ,
-        ),
-      );
+      const rearRailWidth = dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm;
+      lanceRailRects.push({
+        left: -rearRailWidth / 2,
+        right: rearRailWidth / 2,
+        front: dimensions.outerDepthMm / 2 - settings.railThicknessMm,
+        back: dimensions.outerDepthMm / 2,
+      });
+      if (!useRoundedLanceUnion) {
+        group.add(
+          createBox(
+            'rear-rail',
+            rearRailWidth,
+            settings.railThicknessMm,
+            railHeight,
+            centerX,
+            dimensions.outerDepthMm / 2 - settings.railThicknessMm / 2,
+            railCenterZ,
+          ),
+        );
+      }
     }
 
     for (let rowIndex = 0; rowIndex < rankCounts.length - 1; rowIndex += 1) {
@@ -1535,53 +1596,80 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const rightStepX = currentWidth / 2 + dimensions.rightRailMm + stepWidth / 2;
 
       if (stepWidth > 0 && settings.leftRailEnabled) {
-        group.add(
-          createBox(
-            `left-step-floor-${rowIndex + 1}`,
-            stepWidth,
-            settings.railThicknessMm,
-            settings.floorThicknessMm,
-            leftStepX,
-            stepY,
-            settings.floorThicknessMm / 2,
-          ),
-        );
-        group.add(
-          createBox(
-            `left-step-rail-${rowIndex + 1}`,
-            stepWidth,
-            settings.railThicknessMm,
-            railHeight,
-            leftStepX,
-            stepY,
-            railCenterZ,
-          ),
-        );
+        const stepRect = {
+          left: leftStepX - stepWidth / 2,
+          right: leftStepX + stepWidth / 2,
+          front: stepY - settings.railThicknessMm / 2,
+          back: stepY + settings.railThicknessMm / 2,
+        };
+        lanceFloorRects.push(stepRect);
+        lanceRailRects.push(stepRect);
+        if (!useRoundedLanceUnion) {
+          group.add(
+            createBox(
+              `left-step-floor-${rowIndex + 1}`,
+              stepWidth,
+              settings.railThicknessMm,
+              settings.floorThicknessMm,
+              leftStepX,
+              stepY,
+              settings.floorThicknessMm / 2,
+            ),
+          );
+          group.add(
+            createBox(
+              `left-step-rail-${rowIndex + 1}`,
+              stepWidth,
+              settings.railThicknessMm,
+              railHeight,
+              leftStepX,
+              stepY,
+              railCenterZ,
+            ),
+          );
+        }
       }
 
       if (stepWidth > 0 && settings.rightRailEnabled) {
-        group.add(
-          createBox(
-            `right-step-floor-${rowIndex + 1}`,
-            stepWidth,
-            settings.railThicknessMm,
-            settings.floorThicknessMm,
-            rightStepX,
-            stepY,
-            settings.floorThicknessMm / 2,
-          ),
-        );
-        group.add(
-          createBox(
-            `right-step-rail-${rowIndex + 1}`,
-            stepWidth,
-            settings.railThicknessMm,
-            railHeight,
-            rightStepX,
-            stepY,
-            railCenterZ,
-          ),
-        );
+        const stepRect = {
+          left: rightStepX - stepWidth / 2,
+          right: rightStepX + stepWidth / 2,
+          front: stepY - settings.railThicknessMm / 2,
+          back: stepY + settings.railThicknessMm / 2,
+        };
+        lanceFloorRects.push(stepRect);
+        lanceRailRects.push(stepRect);
+        if (!useRoundedLanceUnion) {
+          group.add(
+            createBox(
+              `right-step-floor-${rowIndex + 1}`,
+              stepWidth,
+              settings.railThicknessMm,
+              settings.floorThicknessMm,
+              rightStepX,
+              stepY,
+              settings.floorThicknessMm / 2,
+            ),
+          );
+          group.add(
+            createBox(
+              `right-step-rail-${rowIndex + 1}`,
+              stepWidth,
+              settings.railThicknessMm,
+              railHeight,
+              rightStepX,
+              stepY,
+              railCenterZ,
+            ),
+          );
+        }
+      }
+    }
+
+    if (useRoundedLanceUnion) {
+      group.add(createUnionCutoutLayer('lance-rounded-floor', lanceFloorRects, settings.floorThicknessMm, [], 0, settings));
+      if (lanceRailRects.length > 0) {
+        group.add(createUnionCutoutLayer('lance-rounded-rails', lanceRailRects, railHeight, [], settings.floorThicknessMm, settings));
       }
     }
 

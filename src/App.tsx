@@ -242,6 +242,76 @@ function readSavedTrays(): SavedTray[] {
   }
 }
 
+type TrayLibraryProps = {
+  savedTrays: SavedTray[];
+  shareStatus: string;
+  onSaveTray: () => void;
+  onLoadTray: (id: string) => void;
+  onDeleteSavedTray: (id: string) => void;
+  onCopyShareLink: () => void;
+};
+
+function TrayLibrary({
+  savedTrays,
+  shareStatus,
+  onSaveTray,
+  onLoadTray,
+  onDeleteSavedTray,
+  onCopyShareLink,
+}: TrayLibraryProps) {
+  return (
+    <section className="tray-library" aria-label="Saved and shared trays">
+      <div className="tray-library-actions">
+        <button
+          className="secondary-button"
+          type="button"
+          title="Save the current tray in this browser."
+          onClick={onSaveTray}
+        >
+          Save tray
+        </button>
+        <button
+          className="secondary-button"
+          type="button"
+          title="Copy a link that opens this exact tray setup."
+          onClick={onCopyShareLink}
+        >
+          Copy share link
+        </button>
+      </div>
+      {shareStatus && <p className="share-status">{shareStatus}</p>}
+
+      <div className="saved-trays">
+        <div className="saved-trays-header">
+          <span>Saved trays</span>
+        </div>
+
+        {savedTrays.length === 0 ? (
+          <p>No saved trays yet.</p>
+        ) : (
+          <div className="saved-tray-list">
+            {savedTrays.map((savedTray) => (
+              <div className="saved-tray-row" key={savedTray.id}>
+                <button type="button" title="Load this saved tray." onClick={() => onLoadTray(savedTray.id)}>
+                  {savedTray.name}
+                </button>
+                <button
+                  type="button"
+                  className="delete-button"
+                  title="Delete this saved tray from this browser."
+                  onClick={() => onDeleteSavedTray(savedTray.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function App() {
   const [activeTemplate, setActiveTemplate] = useState<TrayTemplate>(() => readSharedSettings()?.template ?? 'standard');
   const [settingsByTemplate, setSettingsByTemplate] = useState<Record<TrayTemplate, TraySettings>>(() => {
@@ -257,6 +327,10 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeName>('darkGrey');
   const [shareStatus, setShareStatus] = useState('');
   const [is3dPreviewEnabled, setIs3dPreviewEnabled] = useState(false);
+  const [isAdvancedFinishEnabled, setIsAdvancedFinishEnabled] = useState(() => {
+    const sharedSettings = readSharedSettings();
+    return Boolean(sharedSettings?.trayRoundedCornersEnabled || (sharedSettings?.trayEdgeSlopeMm ?? 0) > 0);
+  });
   const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
   const buildPlateFit = useMemo(() => calculateBuildPlateFit(settings, dimensions), [settings, dimensions]);
@@ -265,6 +339,12 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(savedTraysStorageKey, JSON.stringify(savedTrays));
   }, [savedTrays]);
+
+  useEffect(() => {
+    if (settings.trayRoundedCornersEnabled || settings.trayEdgeSlopeMm > 0) {
+      setIsAdvancedFinishEnabled(true);
+    }
+  }, [settings.trayEdgeSlopeMm, settings.trayRoundedCornersEnabled]);
 
   const updateSettings = (nextSettings: TraySettings) => {
     setSettingsByTemplate((current) => ({
@@ -295,6 +375,18 @@ export default function App() {
       [key]: checked,
       ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
     });
+  };
+
+  const toggleAdvancedFinish = (checked: boolean) => {
+    setIsAdvancedFinishEnabled(checked);
+
+    if (!checked) {
+      updateSettings({
+        ...settings,
+        trayEdgeSlopeMm: 0,
+        trayRoundedCornersEnabled: false,
+      });
+    }
   };
 
   const saveCurrentTray = () => {
@@ -398,23 +490,29 @@ export default function App() {
         <TrayControls
           settings={settings}
           theme={theme}
-          savedTrays={savedTrays}
           onChange={updateSettings}
           onTemplateChange={setActiveTemplate}
           onThemeChange={setTheme}
           onResetTemplate={resetCurrentTemplate}
-          onSaveTray={saveCurrentTray}
-          onLoadTray={loadSavedTray}
-          onDeleteSavedTray={deleteSavedTray}
-          onCopyShareLink={copyShareLink}
-          shareStatus={shareStatus}
           validationMessages={validation.messages}
         />
 
         <section className="preview-panel" aria-label="Tray preview">
           <TrayPreviewSvg settings={settings} dimensions={dimensions} />
-          <fieldset className="tray-finish-panel">
-            <legend>Tray Finish</legend>
+          <fieldset className={`tray-finish-panel ${isAdvancedFinishEnabled ? '' : 'is-collapsed'}`}>
+            <legend>Advanced Tray Finish</legend>
+            <label
+              className="finish-toggle finish-master-toggle"
+              title="Enable advanced finishing options such as mitred edge slope or flat rounded corners."
+            >
+              <input
+                type="checkbox"
+                checked={isAdvancedFinishEnabled}
+                onChange={(event) => toggleAdvancedFinish(event.target.checked)}
+              />
+              <span>Enable advanced finish</span>
+            </label>
+            <div className="finish-controls" aria-hidden={!isAdvancedFinishEnabled}>
             <label
               className="finish-toggle"
               title="Rounds eligible outside tray corners. On rail trays this applies where enabled rails meet; on solid trays it applies to the outside perimeter."
@@ -422,6 +520,7 @@ export default function App() {
               <input
                 type="checkbox"
                 checked={settings.trayRoundedCornersEnabled}
+                disabled={!isAdvancedFinishEnabled}
                 onChange={(event) => updateFinishToggle('trayRoundedCornersEnabled', event.target.checked)}
               />
               <span>Rounded corners</span>
@@ -437,7 +536,7 @@ export default function App() {
                 max="12"
                 step="0.25"
                 value={settings.trayCornerRadiusMm}
-                disabled={!settings.trayRoundedCornersEnabled}
+                disabled={!isAdvancedFinishEnabled || !settings.trayRoundedCornersEnabled}
                 onChange={(event) => updateFinishSetting('trayCornerRadiusMm', event.target.value)}
               />
               <output>{settings.trayCornerRadiusMm.toFixed(2)} mm</output>
@@ -453,12 +552,21 @@ export default function App() {
                 max="6"
                 step="0.25"
                 value={settings.trayEdgeSlopeMm}
-                disabled={settings.trayRoundedCornersEnabled}
+                disabled={!isAdvancedFinishEnabled || settings.trayRoundedCornersEnabled}
                 onChange={(event) => updateFinishSetting('trayEdgeSlopeMm', event.target.value)}
               />
               <output>{settings.trayEdgeSlopeMm.toFixed(2)} mm</output>
             </label>
+            </div>
           </fieldset>
+          <TrayLibrary
+            savedTrays={savedTrays}
+            shareStatus={shareStatus}
+            onSaveTray={saveCurrentTray}
+            onLoadTray={loadSavedTray}
+            onDeleteSavedTray={deleteSavedTray}
+            onCopyShareLink={copyShareLink}
+          />
           <button
             className="download-button"
             type="button"
