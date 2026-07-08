@@ -40,6 +40,9 @@ export function downloadStl(settings: TraySettings): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = `${name}.stl`;
+  link.style.display = 'none';
+  document.body.appendChild(link);
   link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -332,6 +332,14 @@ export default function App() {
     }
   };
 
+  const handleDownload = () => {
+    try {
+      downloadStl(settings);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to export this tray as an STL.');
+    }
+  };
+
   return (
     <div className="app-shell" data-theme={theme}>
       <header className="site-banner" aria-label="Tray Workshop">
@@ -376,7 +384,7 @@ export default function App() {
           onCopyShareLink={copyShareLink}
           shareStatus={shareStatus}
           validationMessages={validation.messages}
-          onDownload={() => downloadStl(settings)}
+          onDownload={handleDownload}
         />
 
         <section className="preview-panel" aria-label="Tray preview and dimensions">

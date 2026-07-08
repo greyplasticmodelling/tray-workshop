@@ -281,6 +281,8 @@ export function calculateBuildPlateFit(settings: TraySettings, dimensions = calc
 
 export function validateTraySettings(settings: TraySettings): ValidationResult {
   const messages: string[] = [];
+  const hasOpenFloorOption =
+    settings.template === 'adapter' || settings.template === 'adapterLance' || settings.template === 'skirmish';
 
   Object.entries(bounds).forEach(([key, rule]) => {
     if ((settings.template === 'lanceWedge' || settings.template === 'adapterLance') && key === 'columns') {
@@ -298,12 +300,23 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (
+      key === 'adapterFloorCutoutBufferMm' &&
+      !(hasOpenFloorOption && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled)
+    ) {
+      return;
+    }
+
     const value = settings[key as keyof TraySettings];
     if (typeof value !== 'number') {
       return;
     }
 
-    const allowsZero = key === 'skirmishMaxRotationDeg' || key === 'skirmishMaxOffsetMm' || key === 'skirmishDistributionChancePercent';
+    const allowsZero =
+      key === 'skirmishMaxRotationDeg' ||
+      key === 'skirmishMaxOffsetMm' ||
+      key === 'skirmishDistributionChancePercent' ||
+      key === 'adapterFloorCutoutBufferMm';
 
     if (!Number.isFinite(value)) {
       messages.push(`${rule.label} must be a number.`);
@@ -386,7 +399,9 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   }
 
-  if (settings.magnetCutoutsEnabled) {
+  const hasMagnetCutoutLayer = !(hasOpenFloorOption && settings.adapterRemoveFloorEnabled);
+
+  if (settings.magnetCutoutsEnabled && hasMagnetCutoutLayer) {
     if (settings.magnetCutoutDepthMm > settings.floorThicknessMm) {
       messages.push('Magnet cutout depth cannot be greater than floor thickness.');
     }
