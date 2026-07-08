@@ -448,6 +448,16 @@ h1 {
   line-height: 1.35;
 }
 
+.preview-warning {
+  width: min(100%, 980px);
+  justify-self: center;
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
 .download-button {
   width: min(100%, 520px);
   min-height: 58px;

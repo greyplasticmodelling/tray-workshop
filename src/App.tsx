@@ -593,6 +593,11 @@ export default function App() {
             />
             <span>3D preview</span>
           </label>
+          {is3dPreviewEnabled && (settings.trayRoundedCornersEnabled || settings.trayEdgeSlopeMm > 0) && (
+            <p className="preview-warning">
+              Advanced tray finish may not render correctly in 3D preview but will appear correct in the download STL.
+            </p>
+          )}
           {is3dPreviewEnabled && (
             <Suspense fallback={<div className="preview-3d-loading">Loading 3D preview...</div>}>
               <TrayPreview3d settings={settings} />
