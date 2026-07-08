@@ -68,6 +68,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const finishExpansion = settings.trayEdgeSlopeMm;
   const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
+  const finishLines: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
 
   if (finishExpansion > 0) {
     if (isSkirmish || isAdapter) {
@@ -99,57 +100,61 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
       }
     } else if (!isLanceFormation) {
       if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
-        finishRects.push({ key: 'finish-left-rail', x: outerX, y: outerY, width: settings.railThicknessMm, height: dimensions.outerDepthMm });
+        finishLines.push({ key: 'finish-left-rail', x1: outerX, y1: outerY, x2: outerX, y2: outerY + dimensions.outerDepthMm });
       }
 
       if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
-        finishRects.push({
-          key: 'finish-right-rail',
-          x: outerX + dimensions.outerWidthMm - settings.railThicknessMm,
-          y: outerY,
-          width: settings.railThicknessMm,
-          height: dimensions.outerDepthMm,
-        });
+        const railX = outerX + dimensions.outerWidthMm;
+        finishLines.push({ key: 'finish-right-rail', x1: railX, y1: outerY + dimensions.outerDepthMm, x2: railX, y2: outerY });
       }
 
       if (settings.frontRailEnabled) {
-        finishRects.push({ key: 'finish-front-rail', x: innerX, y: outerY, width: dimensions.innerWidthMm, height: settings.railThicknessMm });
+        const frontLeftX = settings.leftRailEnabled ? outerX : innerX;
+        const frontRightX = settings.rightRailEnabled ? outerX + dimensions.outerWidthMm : innerX + dimensions.innerWidthMm;
+        finishLines.push({ key: 'finish-front-rail', x1: frontRightX, y1: outerY, x2: frontLeftX, y2: outerY });
       }
 
       if (settings.rearRailEnabled) {
-        finishRects.push({
-          key: 'finish-rear-rail',
-          x: hasCharacterBay ? mainAreaX : innerX,
-          y: outerY + dimensions.outerDepthMm - settings.railThicknessMm,
-          width: hasCharacterBay ? dimensions.mainInnerWidthMm : dimensions.innerWidthMm,
-          height: settings.railThicknessMm,
-        });
+        const rearY = outerY + dimensions.outerDepthMm;
+        const rearLeftX = !hasCharacterBay && settings.leftRailEnabled ? outerX : hasCharacterBay ? mainAreaX : innerX;
+        const rearRightX =
+          !hasCharacterBay && settings.rightRailEnabled
+            ? outerX + dimensions.outerWidthMm
+            : hasCharacterBay
+              ? mainAreaX + dimensions.mainInnerWidthMm
+              : innerX + dimensions.innerWidthMm;
+        finishLines.push({ key: 'finish-rear-rail', x1: rearLeftX, y1: rearY, x2: rearRightX, y2: rearY });
       }
 
       if (hasCharacterBay && baySideRailEnabled) {
-        finishRects.push({
+        const bayOuterX = settings.characterBaySide === 'left' ? outerX : outerX + dimensions.outerWidthMm;
+        finishLines.push({
           key: 'finish-bay-side-rail',
-          x: baySideRailX,
-          y: outerY,
-          width: baySideRailMm,
-          height: characterFloorHeight,
+          x1: bayOuterX,
+          y1: outerY,
+          x2: bayOuterX,
+          y2: outerY + characterFloorHeight,
         });
 
         if (hasCharacterReturnRail) {
-          finishRects.push(
+          const mainSideOuterX =
+            settings.characterBaySide === 'left'
+              ? outerX + dimensions.characterSlotWidthMm
+              : innerX + dimensions.mainInnerWidthMm + settings.railThicknessMm;
+          finishLines.push(
             {
               key: 'finish-character-return-rail',
-              x: stepRailX,
-              y: stepRailY,
-              width: stepRailWidth,
-              height: settings.railThicknessMm,
+              x1: stepRailX,
+              y1: stepRailY + settings.railThicknessMm,
+              x2: stepRailX + stepRailWidth,
+              y2: stepRailY + settings.railThicknessMm,
             },
             {
               key: 'finish-main-side-rail',
-              x: mainSideRailX,
-              y: stepRailY,
-              width: settings.railThicknessMm,
-              height: mainSideRailHeight,
+              x1: mainSideOuterX,
+              y1: stepRailY,
+              x2: mainSideOuterX,
+              y2: stepRailY + mainSideRailHeight,
             },
           );
         }
@@ -170,44 +175,54 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           return;
         }
 
+        const nextWidth = rankCounts[rowIndex + 1] ? rankCounts[rowIndex + 1] * dimensions.slotWidthMm : rowWidth;
+        const stepDepth = nextWidth > rowWidth ? settings.railThicknessMm : 0;
+        const sideEndY = rowY + dimensions.slotDepthMm - stepDepth;
+
         if (settings.leftRailEnabled) {
-          finishRects.push({
-            key: `finish-left-rank-${rowIndex}`,
-            x: centerX - rowWidth / 2 - settings.railThicknessMm,
-            y: rowY,
-            width: settings.railThicknessMm,
-            height: dimensions.slotDepthMm,
-          });
+          const rowOuterX = centerX - rowWidth / 2 - settings.railThicknessMm;
+          const nextOuterX = centerX - nextWidth / 2 - settings.railThicknessMm;
+          finishLines.push({ key: `finish-left-rank-${rowIndex}`, x1: rowOuterX, y1: rowY, x2: rowOuterX, y2: sideEndY });
+          if (stepDepth > 0) {
+            finishLines.push(
+              { key: `finish-left-step-${rowIndex}`, x1: rowOuterX, y1: sideEndY, x2: nextOuterX, y2: sideEndY },
+              { key: `finish-left-step-side-${rowIndex}`, x1: nextOuterX, y1: sideEndY, x2: nextOuterX, y2: rowY + dimensions.slotDepthMm },
+            );
+          }
         }
 
         if (settings.rightRailEnabled) {
-          finishRects.push({
-            key: `finish-right-rank-${rowIndex}`,
-            x: centerX + rowWidth / 2,
-            y: rowY,
-            width: settings.railThicknessMm,
-            height: dimensions.slotDepthMm,
-          });
+          const rowOuterX = centerX + rowWidth / 2 + settings.railThicknessMm;
+          const nextOuterX = centerX + nextWidth / 2 + settings.railThicknessMm;
+          finishLines.push({ key: `finish-right-rank-${rowIndex}`, x1: rowOuterX, y1: sideEndY, x2: rowOuterX, y2: rowY });
+          if (stepDepth > 0) {
+            finishLines.push(
+              { key: `finish-right-step-${rowIndex}`, x1: nextOuterX, y1: sideEndY, x2: rowOuterX, y2: sideEndY },
+              { key: `finish-right-step-side-${rowIndex}`, x1: nextOuterX, y1: rowY + dimensions.slotDepthMm, x2: nextOuterX, y2: sideEndY },
+            );
+          }
         }
       });
 
       if (isLanceWedge && settings.frontRailEnabled) {
-        finishRects.push({
+        const frontWidth = dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm;
+        finishLines.push({
           key: 'finish-front-rail',
-          x: centerX - (dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm) / 2,
-          y: outerY,
-          width: dimensions.slotWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
-          height: settings.railThicknessMm,
+          x1: centerX + frontWidth / 2,
+          y1: outerY,
+          x2: centerX - frontWidth / 2,
+          y2: outerY,
         });
       }
 
       if (isLanceWedge && settings.rearRailEnabled) {
-        finishRects.push({
+        const rearWidth = dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm;
+        finishLines.push({
           key: 'finish-rear-rail',
-          x: innerX - dimensions.leftRailMm,
-          y: outerY + dimensions.outerDepthMm - settings.railThicknessMm,
-          width: dimensions.innerWidthMm + dimensions.leftRailMm + dimensions.rightRailMm,
-          height: settings.railThicknessMm,
+          x1: centerX - rearWidth / 2,
+          y1: outerY + dimensions.outerDepthMm,
+          x2: centerX + rearWidth / 2,
+          y2: outerY + dimensions.outerDepthMm,
         });
       }
     }
@@ -262,6 +277,17 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             width={rect.width + finishExpansion * 2}
             height={rect.height + finishExpansion * 2}
             className="finish-footprint"
+          />
+        ))}
+        {finishLines.map((line) => (
+          <line
+            key={line.key}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            className="finish-edge"
+            strokeWidth={Math.max(1, finishExpansion * 2)}
           />
         ))}
 

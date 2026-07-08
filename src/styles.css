@@ -685,6 +685,14 @@ h1 {
   stroke-width: 0.45;
 }
 
+.finish-edge {
+  fill: none;
+  stroke: var(--accent);
+  stroke-dasharray: 3 2;
+  stroke-linecap: square;
+  stroke-opacity: 0.45;
+}
+
 .rail {
   fill: var(--preview-rail);
   stroke: var(--accent-strong);

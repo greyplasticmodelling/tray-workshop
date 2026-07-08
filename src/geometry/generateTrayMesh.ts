@@ -1090,11 +1090,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       );
 
       if (settings.leftRailEnabled) {
-        lanceFinishSegments.push({
-          start: new THREE.Vector2(-rowWidth / 2 - settings.railThicknessMm, rowCenterY - dimensions.slotDepthMm / 2),
-          end: new THREE.Vector2(-rowWidth / 2 - settings.railThicknessMm, rowCenterY + dimensions.slotDepthMm / 2),
-          normal: new THREE.Vector2(-1, 0),
-        });
         group.add(
           createBox(
             `left-rail-rank-${rowIndex + 1}`,
@@ -1109,11 +1104,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       if (settings.rightRailEnabled) {
-        lanceFinishSegments.push({
-          start: new THREE.Vector2(rowWidth / 2 + settings.railThicknessMm, rowCenterY + dimensions.slotDepthMm / 2),
-          end: new THREE.Vector2(rowWidth / 2 + settings.railThicknessMm, rowCenterY - dimensions.slotDepthMm / 2),
-          normal: new THREE.Vector2(1, 0),
-        });
         group.add(
           createBox(
             `right-rail-rank-${rowIndex + 1}`,
@@ -1206,11 +1196,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const rightStepX = currentWidth / 2 + dimensions.rightRailMm + stepWidth / 2;
 
       if (stepWidth > 0 && settings.leftRailEnabled) {
-        lanceFinishSegments.push({
-          start: new THREE.Vector2(leftStepX + stepWidth / 2, stepY + settings.railThicknessMm / 2),
-          end: new THREE.Vector2(leftStepX - stepWidth / 2, stepY + settings.railThicknessMm / 2),
-          normal: new THREE.Vector2(0, 1),
-        });
         group.add(
           createBox(
             `left-step-floor-${rowIndex + 1}`,
@@ -1236,11 +1221,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
       if (stepWidth > 0 && settings.rightRailEnabled) {
-        lanceFinishSegments.push({
-          start: new THREE.Vector2(rightStepX - stepWidth / 2, stepY + settings.railThicknessMm / 2),
-          end: new THREE.Vector2(rightStepX + stepWidth / 2, stepY + settings.railThicknessMm / 2),
-          normal: new THREE.Vector2(0, 1),
-        });
         group.add(
           createBox(
             `right-step-floor-${rowIndex + 1}`,
@@ -1265,6 +1245,65 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         );
       }
     }
+
+    rankCounts.forEach((rankCount, rowIndex) => {
+      const rowWidth = rankCount * dimensions.slotWidthMm;
+      const nextWidth = rankCounts[rowIndex + 1] ? rankCounts[rowIndex + 1] * dimensions.slotWidthMm : rowWidth;
+      const rowStartY = innerFrontY + rowIndex * dimensions.slotDepthMm;
+      const rowEndY = rowStartY + dimensions.slotDepthMm;
+      const stepDepth = nextWidth > rowWidth ? settings.railThicknessMm : 0;
+      const sideEndY = rowEndY - stepDepth;
+
+      if (settings.leftRailEnabled) {
+        const rowOuterX = -rowWidth / 2 - settings.railThicknessMm;
+        const nextOuterX = -nextWidth / 2 - settings.railThicknessMm;
+        lanceFinishSegments.push({
+          start: new THREE.Vector2(rowOuterX, rowStartY),
+          end: new THREE.Vector2(rowOuterX, sideEndY),
+          normal: new THREE.Vector2(-1, 0),
+        });
+
+        if (stepDepth > 0) {
+          lanceFinishSegments.push(
+            {
+              start: new THREE.Vector2(rowOuterX, sideEndY),
+              end: new THREE.Vector2(nextOuterX, sideEndY),
+              normal: new THREE.Vector2(0, -1),
+            },
+            {
+              start: new THREE.Vector2(nextOuterX, sideEndY),
+              end: new THREE.Vector2(nextOuterX, rowEndY),
+              normal: new THREE.Vector2(-1, 0),
+            },
+          );
+        }
+      }
+
+      if (settings.rightRailEnabled) {
+        const rowOuterX = rowWidth / 2 + settings.railThicknessMm;
+        const nextOuterX = nextWidth / 2 + settings.railThicknessMm;
+        lanceFinishSegments.push({
+          start: new THREE.Vector2(rowOuterX, sideEndY),
+          end: new THREE.Vector2(rowOuterX, rowStartY),
+          normal: new THREE.Vector2(1, 0),
+        });
+
+        if (stepDepth > 0) {
+          lanceFinishSegments.push(
+            {
+              start: new THREE.Vector2(nextOuterX, sideEndY),
+              end: new THREE.Vector2(rowOuterX, sideEndY),
+              normal: new THREE.Vector2(0, -1),
+            },
+            {
+              start: new THREE.Vector2(nextOuterX, rowEndY),
+              end: new THREE.Vector2(nextOuterX, sideEndY),
+              normal: new THREE.Vector2(1, 0),
+            },
+          );
+        }
+      }
+    });
 
     addTrayFinishSegments(group, 'lance-tray-finish', lanceFinishSegments, settings.floorThicknessMm + railHeight, settings);
 
