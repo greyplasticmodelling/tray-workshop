@@ -125,17 +125,18 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
+  const useCustomAdapterBorder = settings.template === 'adapter' && settings.adapterBorderCustomEnabled;
   const adapterBorderLeftMm = isAdapter
-    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderLeftMm : 0)
+    ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderLeftMm : 0)
     : 0;
   const adapterBorderRightMm = isAdapter
-    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderRightMm : 0)
+    ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderRightMm : 0)
     : 0;
   const adapterBorderFrontMm = isAdapter
-    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderFrontMm : 0)
+    ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderFrontMm : 0)
     : 0;
   const adapterBorderRearMm = isAdapter
-    ? settings.adapterBorderUniformMm + (settings.adapterBorderCustomEnabled ? settings.adapterBorderRearMm : 0)
+    ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderRearMm : 0)
     : 0;
   const leftRailMm = isAdapter ? adapterBorderLeftMm : !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
   const rightRailMm = isAdapter ? adapterBorderRightMm : !isSkirmish && settings.rightRailEnabled ? settings.railThicknessMm : 0;
@@ -333,7 +334,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
-    if (isAdapterBorderSide && (!isAdapterTemplate || !settings.adapterBorderCustomEnabled)) {
+    if (isAdapterBorderSide && (settings.template !== 'adapter' || !settings.adapterBorderCustomEnabled)) {
       return;
     }
 

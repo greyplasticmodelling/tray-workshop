@@ -331,33 +331,37 @@ export function TrayControls({
             />
           </label>
 
-          <label className="toggle" title="Adjust front, rear, left, and right adapter borders independently.">
-            <input
-              type="checkbox"
-              title="Adjust front, rear, left, and right adapter borders independently."
-              checked={settings.adapterBorderCustomEnabled}
-              onChange={(event) => updateToggle('adapterBorderCustomEnabled', event.target.checked)}
-            />
-            <span>Custom side borders</span>
-          </label>
+          {settings.template === 'adapter' && (
+            <>
+              <label className="toggle" title="Adjust front, rear, left, and right adapter borders independently.">
+                <input
+                  type="checkbox"
+                  title="Adjust front, rear, left, and right adapter borders independently."
+                  checked={settings.adapterBorderCustomEnabled}
+                  onChange={(event) => updateToggle('adapterBorderCustomEnabled', event.target.checked)}
+                />
+                <span>Custom side borders</span>
+              </label>
 
-          {settings.adapterBorderCustomEnabled && (
-            <div className="field-grid">
-              {adapterBorderFields.map((field) => (
-                <label className="field" key={field.key} title={field.tooltip}>
-                  <span>{field.label}</span>
-                  <input
-                    type="number"
-                    min="-20"
-                    max="60"
-                    step="0.5"
-                    title={field.tooltip}
-                    value={settings[field.key] as number}
-                    onChange={(event) => updateNumber(field.key, event.target.value)}
-                  />
-                </label>
-              ))}
-            </div>
+              {settings.adapterBorderCustomEnabled && (
+                <div className="field-grid">
+                  {adapterBorderFields.map((field) => (
+                    <label className="field" key={field.key} title={field.tooltip}>
+                      <span>{field.label}</span>
+                      <input
+                        type="number"
+                        min="-20"
+                        max="60"
+                        step="0.5"
+                        title={field.tooltip}
+                        value={settings[field.key] as number}
+                        onChange={(event) => updateNumber(field.key, event.target.value)}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
         </fieldset>
