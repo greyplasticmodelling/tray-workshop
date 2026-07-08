@@ -326,6 +326,61 @@ function roundedCornersConflictWithMagnetCutouts(settings: TraySettings) {
   );
 }
 
+function roundedCornersUnavailable(settings: TraySettings) {
+  return settings.template === 'standard' && settings.characterBayEnabled;
+}
+
+function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
+  let nextSettings = settings;
+
+  if (
+    settings.template === 'adapterLance' &&
+    (settings.adapterBorderUniformMm !== 0 ||
+      settings.adapterBorderCustomEnabled ||
+      settings.adapterBorderFrontMm !== 0 ||
+      settings.adapterBorderRearMm !== 0 ||
+      settings.adapterBorderLeftMm !== 0 ||
+      settings.adapterBorderRightMm !== 0)
+  ) {
+    nextSettings = {
+      ...nextSettings,
+      adapterBorderUniformMm: 0,
+      adapterBorderCustomEnabled: false,
+      adapterBorderFrontMm: 0,
+      adapterBorderRearMm: 0,
+      adapterBorderLeftMm: 0,
+      adapterBorderRightMm: 0,
+    };
+  }
+
+  if (nextSettings.adapterRemoveFloorEnabled && nextSettings.magnetCutoutsEnabled) {
+    nextSettings = {
+      ...nextSettings,
+      magnetCutoutsEnabled: false,
+    };
+  }
+
+  if (
+    nextSettings.adapterRemoveFloorEnabled &&
+    nextSettings.adapterFloorCutoutEnabled &&
+    nextSettings.trayRoundedCornersEnabled
+  ) {
+    nextSettings = {
+      ...nextSettings,
+      adapterFloorCutoutEnabled: false,
+    };
+  }
+
+  if (roundedCornersUnavailable(nextSettings) && nextSettings.trayRoundedCornersEnabled) {
+    nextSettings = {
+      ...nextSettings,
+      trayRoundedCornersEnabled: false,
+    };
+  }
+
+  return nextSettings;
+}
+
 export default function App() {
   const [activeTemplate, setActiveTemplate] = useState<TrayTemplate>(() => readSharedSettings()?.template ?? 'standard');
   const [settingsByTemplate, setSettingsByTemplate] = useState<Record<TrayTemplate, TraySettings>>(() => {
@@ -333,7 +388,7 @@ export default function App() {
     return sharedSettings
       ? {
           ...defaultSettingsByTemplate,
-          [sharedSettings.template]: sharedSettings,
+          [sharedSettings.template]: normaliseCompatibleSettings(sharedSettings),
         }
       : defaultSettingsByTemplate;
   });
@@ -361,9 +416,11 @@ export default function App() {
   }, [settings.trayEdgeSlopeMm, settings.trayRoundedCornersEnabled]);
 
   const updateSettings = (nextSettings: TraySettings) => {
+    const compatibleSettings = normaliseCompatibleSettings(nextSettings);
+
     setSettingsByTemplate((current) => ({
       ...current,
-      [nextSettings.template]: nextSettings,
+      [compatibleSettings.template]: compatibleSettings,
     }));
   };
 
@@ -389,6 +446,7 @@ export default function App() {
       [key]: checked,
       ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
       ...(checked && roundedCornersConflictWithMagnetCutouts(settings) ? { magnetCutoutsEnabled: false } : {}),
+      ...(checked && settings.adapterRemoveFloorEnabled ? { adapterFloorCutoutEnabled: false } : {}),
     });
   };
 
@@ -441,7 +499,7 @@ export default function App() {
       ...current,
       [savedTray.settings.template]: {
         ...defaultSettingsByTemplate[savedTray.settings.template],
-        ...savedTray.settings,
+        ...normaliseCompatibleSettings(savedTray.settings),
       },
     }));
     setActiveTemplate(savedTray.settings.template);
@@ -471,6 +529,10 @@ export default function App() {
       window.alert(error instanceof Error ? error.message : 'Unable to export this tray as an STL.');
     }
   };
+  const roundedCornersAreUnavailable = roundedCornersUnavailable(settings);
+  const roundedCornersTooltip = roundedCornersAreUnavailable
+    ? 'Rounded corners are not currently available with the standard character flank slot.'
+    : 'Rounds eligible outside tray corners. On rail trays this applies where enabled rails meet; on solid trays it applies to the outside perimeter.';
 
   return (
     <div className="app-shell" data-theme={theme}>
@@ -530,16 +592,19 @@ export default function App() {
             <div className="finish-controls" aria-hidden={!isAdvancedFinishEnabled}>
             <label
               className="finish-toggle"
-              title="Rounds eligible outside tray corners. On rail trays this applies where enabled rails meet; on solid trays it applies to the outside perimeter."
+              title={roundedCornersTooltip}
             >
               <input
                 type="checkbox"
-                checked={settings.trayRoundedCornersEnabled}
-                disabled={!isAdvancedFinishEnabled}
+                checked={settings.trayRoundedCornersEnabled && !roundedCornersAreUnavailable}
+                disabled={!isAdvancedFinishEnabled || roundedCornersAreUnavailable}
                 onChange={(event) => updateFinishToggle('trayRoundedCornersEnabled', event.target.checked)}
               />
               <span>Rounded corners</span>
             </label>
+            {roundedCornersAreUnavailable && (
+              <p className="compatibility-note">Rounded corners are disabled while the standard character flank slot is enabled.</p>
+            )}
             <label
               className="finish-slider"
               title="Controls how far each eligible outer corner is rounded inward."

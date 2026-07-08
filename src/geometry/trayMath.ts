@@ -125,17 +125,18 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
-  const useCustomAdapterBorder = settings.template === 'adapter' && settings.adapterBorderCustomEnabled;
-  const adapterBorderLeftMm = isAdapter
+  const supportsAdapterBorder = settings.template === 'adapter';
+  const useCustomAdapterBorder = supportsAdapterBorder && settings.adapterBorderCustomEnabled;
+  const adapterBorderLeftMm = supportsAdapterBorder
     ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderLeftMm : 0)
     : 0;
-  const adapterBorderRightMm = isAdapter
+  const adapterBorderRightMm = supportsAdapterBorder
     ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderRightMm : 0)
     : 0;
-  const adapterBorderFrontMm = isAdapter
+  const adapterBorderFrontMm = supportsAdapterBorder
     ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderFrontMm : 0)
     : 0;
-  const adapterBorderRearMm = isAdapter
+  const adapterBorderRearMm = supportsAdapterBorder
     ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderRearMm : 0)
     : 0;
   const leftRailMm = isAdapter ? adapterBorderLeftMm : !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
@@ -310,7 +311,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'adapterBorderRearMm' ||
       key === 'adapterBorderLeftMm' ||
       key === 'adapterBorderRightMm';
-    const isAdapterTemplate = settings.template === 'adapter' || settings.template === 'adapterLance';
+    const supportsAdapterBorder = settings.template === 'adapter';
 
     if ((settings.template === 'lanceWedge' || settings.template === 'adapterLance') && key === 'columns') {
       return;
@@ -338,7 +339,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
-    if (key === 'adapterBorderUniformMm' && !isAdapterTemplate) {
+    if (key === 'adapterBorderUniformMm' && !supportsAdapterBorder) {
       return;
     }
 
@@ -436,6 +437,18 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       (settings.template === 'adapter' && settings.characterBayEnabled))
   ) {
     messages.push('Magnet cutouts are not currently available with rounded corners for this tray type.');
+  }
+
+  if (settings.template === 'standard' && settings.characterBayEnabled && settings.trayRoundedCornersEnabled) {
+    messages.push('Rounded corners are not currently available with the standard character flank slot.');
+  }
+
+  if (hasOpenFloorOption && settings.adapterRemoveFloorEnabled && settings.magnetCutoutsEnabled) {
+    messages.push('Magnet cutouts are not available when the floor is removed.');
+  }
+
+  if (hasOpenFloorOption && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled && settings.trayRoundedCornersEnabled) {
+    messages.push('Magnetic sheet border is not currently available with rounded corners.');
   }
 
   if (settings.template === 'adapter' || settings.template === 'adapterLance') {

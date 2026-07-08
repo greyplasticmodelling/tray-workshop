@@ -65,7 +65,11 @@ export function TrayControls({
   };
 
   const updateToggle = (key: keyof TraySettings, checked: boolean) => {
-    onChange({ ...settings, [key]: checked });
+    onChange({
+      ...settings,
+      [key]: checked,
+      ...(key === 'adapterRemoveFloorEnabled' && checked ? { magnetCutoutsEnabled: false } : {}),
+    });
   };
   const isAdapter = settings.template === 'adapter';
   const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
@@ -77,9 +81,13 @@ export function TrayControls({
     (settings.template === 'lanceWedge' ||
       settings.template === 'adapterLance' ||
       (settings.template === 'adapter' && settings.characterBayEnabled));
+  const magnetCutoutsDisabledByRemovedFloor = supportsOpenFloor && settings.adapterRemoveFloorEnabled;
+  const magnetCutoutsDisabled = roundedCornersConflictWithMagnets || magnetCutoutsDisabledByRemovedFloor;
+  const magneticSheetBorderDisabledByRoundedCorners = settings.trayRoundedCornersEnabled;
+  const magneticSheetBorderTooltip = magneticSheetBorderDisabledByRoundedCorners
+    ? 'Magnetic sheet border is not currently available with rounded corners.'
+    : 'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into.';
   const selectedTemplate = trayTemplates.find((template) => template.value === settings.template);
-  const magneticSheetTooltip =
-    'This feature adds a border round the perimeter of the underside of the tray to fit your magnetic sheet into.';
 
   return (
     <aside className="controls" aria-label="Tray settings">
@@ -315,24 +323,24 @@ export function TrayControls({
             </label>
           </div>
 
-          <label
-            className="field"
-            title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
-          >
-            <span>Perimeter border (mm)</span>
-            <input
-              type="number"
-              min="-20"
-              max="60"
-              step="0.5"
-              title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
-              value={settings.adapterBorderUniformMm}
-              onChange={(event) => updateNumber('adapterBorderUniformMm', event.target.value)}
-            />
-          </label>
-
           {settings.template === 'adapter' && (
             <>
+              <label
+                className="field"
+                title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
+              >
+                <span>Perimeter border (mm)</span>
+                <input
+                  type="number"
+                  min="-20"
+                  max="60"
+                  step="0.5"
+                  title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
+                  value={settings.adapterBorderUniformMm}
+                  onChange={(event) => updateNumber('adapterBorderUniformMm', event.target.value)}
+                />
+              </label>
+
               <label className="toggle" title="Adjust front, rear, left, and right adapter borders independently.">
                 <input
                   type="checkbox"
@@ -393,24 +401,28 @@ export function TrayControls({
 
           {settings.adapterRemoveFloorEnabled && (
             <>
-              <label className="toggle" title={magneticSheetTooltip}>
+              <label className="toggle" title={magneticSheetBorderTooltip}>
                 <input
                   type="checkbox"
-                  title={magneticSheetTooltip}
-                  checked={settings.adapterFloorCutoutEnabled}
+                  title={magneticSheetBorderTooltip}
+                  checked={settings.adapterFloorCutoutEnabled && !magneticSheetBorderDisabledByRoundedCorners}
+                  disabled={magneticSheetBorderDisabledByRoundedCorners}
                   onChange={(event) => updateToggle('adapterFloorCutoutEnabled', event.target.checked)}
                 />
                 <span>Magnetic sheet border</span>
               </label>
+              {magneticSheetBorderDisabledByRoundedCorners && (
+                <p className="compatibility-note">Magnetic sheet border is disabled while rounded corners are enabled.</p>
+              )}
 
-              {settings.adapterFloorCutoutEnabled && (
-                <label className="field" title={magneticSheetTooltip}>
+              {settings.adapterFloorCutoutEnabled && !magneticSheetBorderDisabledByRoundedCorners && (
+                <label className="field" title={magneticSheetBorderTooltip}>
                   <span>Border width (mm)</span>
                   <input
                     type="number"
                     min="0"
                     step="0.1"
-                    title={magneticSheetTooltip}
+                    title={magneticSheetBorderTooltip}
                     value={settings.adapterFloorCutoutBufferMm}
                     onChange={(event) => updateNumber('adapterFloorCutoutBufferMm', event.target.value)}
                   />
@@ -568,7 +580,9 @@ export function TrayControls({
         <label
           className="toggle"
           title={
-            roundedCornersConflictWithMagnets
+            magnetCutoutsDisabledByRemovedFloor
+              ? 'Magnet cutouts are not available when the floor is removed.'
+              : roundedCornersConflictWithMagnets
               ? 'Magnet cutouts are not currently available with rounded corners for this tray type.'
               : 'Add circular top-side magnet recesses centred in each base space.'
           }
@@ -576,18 +590,23 @@ export function TrayControls({
           <input
             type="checkbox"
             title={
-              roundedCornersConflictWithMagnets
+              magnetCutoutsDisabledByRemovedFloor
+                ? 'Magnet cutouts are not available when the floor is removed.'
+                : roundedCornersConflictWithMagnets
                 ? 'Magnet cutouts are not currently available with rounded corners for this tray type.'
                 : 'Add circular top-side magnet recesses centred in each base space.'
             }
-            checked={settings.magnetCutoutsEnabled}
-            disabled={roundedCornersConflictWithMagnets}
+            checked={settings.magnetCutoutsEnabled && !magnetCutoutsDisabled}
+            disabled={magnetCutoutsDisabled}
             onChange={(event) => updateToggle('magnetCutoutsEnabled', event.target.checked)}
           />
           <span>Enable cutouts</span>
         </label>
         {roundedCornersConflictWithMagnets && (
           <p className="compatibility-note">Magnet cutouts are disabled while rounded corners are enabled for this tray type.</p>
+        )}
+        {magnetCutoutsDisabledByRemovedFloor && (
+          <p className="compatibility-note">Magnet cutouts are disabled while the floor is removed.</p>
         )}
 
         <div className="field-grid">
@@ -600,7 +619,7 @@ export function TrayControls({
               step="0.1"
               title="Diameter of each magnet recess."
               value={settings.magnetDiameterMm}
-              disabled={roundedCornersConflictWithMagnets}
+              disabled={magnetCutoutsDisabled}
               onChange={(event) => updateNumber('magnetDiameterMm', event.target.value)}
             />
           </label>
@@ -613,7 +632,7 @@ export function TrayControls({
               step="0.1"
               title="Depth of the recess from the top surface. Set equal to floor thickness for a through-hole."
               value={settings.magnetCutoutDepthMm}
-              disabled={roundedCornersConflictWithMagnets}
+              disabled={magnetCutoutsDisabled}
               onChange={(event) => updateNumber('magnetCutoutDepthMm', event.target.value)}
             />
           </label>
@@ -626,7 +645,7 @@ export function TrayControls({
                 type="checkbox"
                 title="Use two magnet recesses per base space in the lance wedge templates."
                 checked={settings.lanceDoubleMagnetsEnabled}
-                disabled={roundedCornersConflictWithMagnets}
+                disabled={magnetCutoutsDisabled}
                 onChange={(event) => updateToggle('lanceDoubleMagnetsEnabled', event.target.checked)}
               />
               <span>Two magnets per space</span>
@@ -640,7 +659,7 @@ export function TrayControls({
                 step="0.1"
                 title="Distance from the base centre to each magnet along the front-to-back centre line."
                 value={settings.lanceMagnetOffsetMm}
-                disabled={roundedCornersConflictWithMagnets}
+                disabled={magnetCutoutsDisabled}
                 onChange={(event) => updateNumber('lanceMagnetOffsetMm', event.target.value)}
               />
             </label>
