@@ -176,13 +176,16 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         }
 
         const nextWidth = rankCounts[rowIndex + 1] ? rankCounts[rowIndex + 1] * dimensions.slotWidthMm : rowWidth;
+        const rowBackY =
+          rowIndex === rankCounts.length - 1 && settings.rearRailEnabled ? outerY + dimensions.outerDepthMm : rowY + dimensions.slotDepthMm;
+        const sideStartY = rowIndex === 0 && settings.frontRailEnabled ? outerY : rowY;
         const stepDepth = nextWidth > rowWidth ? settings.railThicknessMm : 0;
-        const sideEndY = rowY + dimensions.slotDepthMm - stepDepth;
+        const sideEndY = stepDepth > 0 ? rowY + dimensions.slotDepthMm - stepDepth : rowBackY;
 
         if (settings.leftRailEnabled) {
           const rowOuterX = centerX - rowWidth / 2 - settings.railThicknessMm;
           const nextOuterX = centerX - nextWidth / 2 - settings.railThicknessMm;
-          finishLines.push({ key: `finish-left-rank-${rowIndex}`, x1: rowOuterX, y1: rowY, x2: rowOuterX, y2: sideEndY });
+          finishLines.push({ key: `finish-left-rank-${rowIndex}`, x1: rowOuterX, y1: sideStartY, x2: rowOuterX, y2: sideEndY });
           if (stepDepth > 0) {
             finishLines.push(
               { key: `finish-left-step-${rowIndex}`, x1: rowOuterX, y1: sideEndY, x2: nextOuterX, y2: sideEndY },
@@ -194,7 +197,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         if (settings.rightRailEnabled) {
           const rowOuterX = centerX + rowWidth / 2 + settings.railThicknessMm;
           const nextOuterX = centerX + nextWidth / 2 + settings.railThicknessMm;
-          finishLines.push({ key: `finish-right-rank-${rowIndex}`, x1: rowOuterX, y1: sideEndY, x2: rowOuterX, y2: rowY });
+          finishLines.push({ key: `finish-right-rank-${rowIndex}`, x1: rowOuterX, y1: sideEndY, x2: rowOuterX, y2: sideStartY });
           if (stepDepth > 0) {
             finishLines.push(
               { key: `finish-right-step-${rowIndex}`, x1: nextOuterX, y1: sideEndY, x2: rowOuterX, y2: sideEndY },

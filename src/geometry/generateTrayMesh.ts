@@ -1251,14 +1251,16 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       const nextWidth = rankCounts[rowIndex + 1] ? rankCounts[rowIndex + 1] * dimensions.slotWidthMm : rowWidth;
       const rowStartY = innerFrontY + rowIndex * dimensions.slotDepthMm;
       const rowEndY = rowStartY + dimensions.slotDepthMm;
+      const sideStartY = rowIndex === 0 && settings.frontRailEnabled ? -dimensions.outerDepthMm / 2 : rowStartY;
+      const sideBackY = rowIndex === rankCounts.length - 1 && settings.rearRailEnabled ? dimensions.outerDepthMm / 2 : rowEndY;
       const stepDepth = nextWidth > rowWidth ? settings.railThicknessMm : 0;
-      const sideEndY = rowEndY - stepDepth;
+      const sideEndY = stepDepth > 0 ? rowEndY - stepDepth : sideBackY;
 
       if (settings.leftRailEnabled) {
         const rowOuterX = -rowWidth / 2 - settings.railThicknessMm;
         const nextOuterX = -nextWidth / 2 - settings.railThicknessMm;
         lanceFinishSegments.push({
-          start: new THREE.Vector2(rowOuterX, rowStartY),
+          start: new THREE.Vector2(rowOuterX, sideStartY),
           end: new THREE.Vector2(rowOuterX, sideEndY),
           normal: new THREE.Vector2(-1, 0),
         });
@@ -1284,7 +1286,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         const nextOuterX = nextWidth / 2 + settings.railThicknessMm;
         lanceFinishSegments.push({
           start: new THREE.Vector2(rowOuterX, sideEndY),
-          end: new THREE.Vector2(rowOuterX, rowStartY),
+          end: new THREE.Vector2(rowOuterX, sideStartY),
           normal: new THREE.Vector2(1, 0),
         });
 

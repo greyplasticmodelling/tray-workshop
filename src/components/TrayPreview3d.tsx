@@ -65,7 +65,7 @@ export function TrayPreview3d({ settings }: Props) {
         object.receiveShadow = true;
         object.geometry.computeVertexNormals();
 
-        const edges = new THREE.EdgesGeometry(object.geometry, 28);
+        const edges = new THREE.EdgesGeometry(object.geometry, 1);
         const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
         edgeLines.name = `${object.name}-definition-lines`;
         object.add(edgeLines);
