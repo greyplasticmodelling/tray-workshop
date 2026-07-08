@@ -1163,8 +1163,21 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     });
 
     if (useRoundedUnion) {
-      const unionHeight = adapterBlockZ + settings.adapterBaseHeightMm;
-      group.add(createUnionCutoutLayer('adapter-lance-rounded-body', adapterLanceRects, unionHeight, adapterLanceHoles, 0, settings));
+      if (!settings.adapterRemoveFloorEnabled) {
+        group.add(
+          createUnionCutoutLayer('adapter-lance-rounded-floor', adapterLanceRects, settings.floorThicknessMm, [], 0, settings),
+        );
+      }
+      group.add(
+        createUnionCutoutLayer(
+          'adapter-lance-rounded-block',
+          adapterLanceRects,
+          settings.adapterBaseHeightMm,
+          adapterLanceHoles,
+          adapterBlockZ,
+          settings,
+        ),
+      );
     }
 
     addTrayFinishShell(group, 'adapter-lance-tray-finish', adapterLanceRects, adapterBlockZ + settings.adapterBaseHeightMm, settings);
@@ -1255,13 +1268,25 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       }
 
     if (hasFlankAdapter && settings.trayRoundedCornersEnabled) {
+      if (!settings.adapterRemoveFloorEnabled) {
+        group.add(
+          createUnionCutoutLayer(
+            'adapter-flank-rounded-floor',
+            [mainAdapterRect, flankAdapterRect],
+            settings.floorThicknessMm,
+            [],
+            0,
+            settings,
+          ),
+        );
+      }
       group.add(
         createUnionCutoutLayer(
-          'adapter-flank-rounded-body',
+          'adapter-flank-rounded-block',
           [mainAdapterRect, flankAdapterRect],
-          adapterBlockZ + settings.adapterBaseHeightMm,
+          settings.adapterBaseHeightMm,
           adapterHoles,
-          0,
+          adapterBlockZ,
           settings,
         ),
       );
