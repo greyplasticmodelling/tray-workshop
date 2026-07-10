@@ -46,6 +46,7 @@ const standardDefaults: TraySettings = {
   skirmishDistributionChancePercent: 100,
   skirmishTrayHeightMm: 4,
   magnetCutoutsEnabled: false,
+  magnetCutoutsFromBottom: false,
   magnetDiameterMm: 5,
   magnetCutoutDepthMm: 1,
   lanceDoubleMagnetsEnabled: false,

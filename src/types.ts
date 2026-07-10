@@ -35,6 +35,7 @@ export type TraySettings = {
   skirmishDistributionChancePercent: number;
   skirmishTrayHeightMm: number;
   magnetCutoutsEnabled: boolean;
+  magnetCutoutsFromBottom: boolean;
   magnetDiameterMm: number;
   magnetCutoutDepthMm: number;
   lanceDoubleMagnetsEnabled: boolean;

@@ -621,7 +621,7 @@ export function TrayControls({
           title={
             magnetCutoutsDisabledByRemovedFloor
               ? 'Magnet cutouts are not available when the floor is removed.'
-              : 'Add circular top-side magnet recesses centred in each base space.'
+              : 'Add circular magnet recesses centred in each base space.'
           }
         >
           <input
@@ -629,7 +629,7 @@ export function TrayControls({
             title={
               magnetCutoutsDisabledByRemovedFloor
                 ? 'Magnet cutouts are not available when the floor is removed.'
-                : 'Add circular top-side magnet recesses centred in each base space.'
+                : 'Add circular magnet recesses centred in each base space.'
             }
             checked={settings.magnetCutoutsEnabled && !magnetCutoutsDisabled}
             disabled={magnetCutoutsDisabled}
@@ -656,19 +656,44 @@ export function TrayControls({
             />
           </label>
 
-          <label className="field" title="Depth of the recess from the top surface. Set equal to floor thickness for a through-hole.">
+          <label
+            className="field"
+            title={
+              settings.magnetCutoutsFromBottom
+                ? 'Depth of the recess from the underside of the tray floor. Set equal to floor thickness for a through-hole.'
+                : 'Depth of the recess from the top surface. Set equal to floor thickness for a through-hole.'
+            }
+          >
             <span>Cutout depth (mm)</span>
             <input
               type="number"
               min="0"
               step="0.1"
-              title="Depth of the recess from the top surface. Set equal to floor thickness for a through-hole."
+              title={
+                settings.magnetCutoutsFromBottom
+                  ? 'Depth of the recess from the underside of the tray floor. Set equal to floor thickness for a through-hole.'
+                  : 'Depth of the recess from the top surface. Set equal to floor thickness for a through-hole.'
+              }
               value={settings.magnetCutoutDepthMm}
               disabled={magnetCutoutsDisabled}
               onChange={(event) => updateNumber('magnetCutoutDepthMm', event.target.value)}
             />
           </label>
         </div>
+
+        <label
+          className="toggle"
+          title="Place the same magnet recesses on the underside of the tray floor instead of the top surface."
+        >
+          <input
+            type="checkbox"
+            title="Place the same magnet recesses on the underside of the tray floor instead of the top surface."
+            checked={settings.magnetCutoutsFromBottom}
+            disabled={magnetCutoutsDisabled}
+            onChange={(event) => updateToggle('magnetCutoutsFromBottom', event.target.checked)}
+          />
+          <span>Cut from underside</span>
+        </label>
 
         {isLanceFormation && (
           <>

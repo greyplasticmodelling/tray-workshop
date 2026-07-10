@@ -188,12 +188,14 @@ function createPerforatedFloorLayer(
   }
 
   const recessDepth = Math.min(settings.magnetCutoutDepthMm, height);
-  const bottomSkinHeight = height - recessDepth;
+  const skinHeight = height - recessDepth;
   const group = new THREE.Group();
   group.name = name;
 
-  if (bottomSkinHeight > 0) {
-    group.add(createRoundedBox(`${name}-bottom-skin`, width, depth, bottomSkinHeight, x, y, bottomSkinHeight / 2, cornerRadius));
+  if (skinHeight > 0) {
+    const skinName = settings.magnetCutoutsFromBottom ? 'top-skin' : 'bottom-skin';
+    const skinCenterZ = settings.magnetCutoutsFromBottom ? recessDepth + skinHeight / 2 : skinHeight / 2;
+    group.add(createRoundedBox(`${name}-${skinName}`, width, depth, skinHeight, x, y, skinCenterZ, cornerRadius));
   }
 
   if (recessDepth > 0) {
@@ -221,7 +223,7 @@ function createPerforatedFloorLayer(
     const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.name = `${name}-recess-layer`;
-    mesh.position.set(x, y, bottomSkinHeight);
+    mesh.position.set(x, y, settings.magnetCutoutsFromBottom ? 0 : skinHeight);
     group.add(mesh);
   }
 
@@ -1145,16 +1147,19 @@ function createUnionPerforatedFloorLayer(
   }
 
   const recessDepth = Math.min(settings.magnetCutoutDepthMm, height);
-  const bottomSkinHeight = height - recessDepth;
+  const skinHeight = height - recessDepth;
   const group = new THREE.Group();
   group.name = name;
 
-  if (bottomSkinHeight > 0) {
-    group.add(createUnionCutoutLayer(`${name}-bottom-skin`, rects, bottomSkinHeight, [], z, settings));
+  if (skinHeight > 0) {
+    const skinName = settings.magnetCutoutsFromBottom ? 'top-skin' : 'bottom-skin';
+    const skinZ = settings.magnetCutoutsFromBottom ? z + recessDepth : z;
+    group.add(createUnionCutoutLayer(`${name}-${skinName}`, rects, skinHeight, [], skinZ, settings));
   }
 
   if (recessDepth > 0) {
-    group.add(createUnionCircleCutoutLayer(`${name}-recess-layer`, rects, recessDepth, holes, z + bottomSkinHeight, settings));
+    const recessZ = settings.magnetCutoutsFromBottom ? z : z + skinHeight;
+    group.add(createUnionCircleCutoutLayer(`${name}-recess-layer`, rects, recessDepth, holes, recessZ, settings));
   }
 
   return group;

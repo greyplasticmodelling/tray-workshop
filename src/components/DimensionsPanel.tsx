@@ -15,6 +15,9 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
     ['Outer width (mm)', formatMm(dimensions.outerWidthMm)],
     ['Outer depth (mm)', formatMm(dimensions.outerDepthMm)],
     ['Floor thickness (mm)', formatMm(settings.floorThicknessMm)],
+    ...(settings.magnetCutoutsEnabled
+      ? [['Magnet cutout side', settings.magnetCutoutsFromBottom ? 'Underside' : 'Top side']]
+      : []),
     ...(settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance'
       ? [
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
