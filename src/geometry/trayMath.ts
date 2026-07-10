@@ -280,7 +280,9 @@ export function getRankInsertSlot(settings: TraySettings, dimensions = calculate
       : settings.template === 'skirmish'
       ? rowSpan * skirmishCutoutSizeMm
       : occupiedDepth;
-  const x = occupiedLeft + occupiedWidth / 2;
+  const firstColumnCenter = occupiedLeft + dimensions.slotWidthMm / 2;
+  const lastColumnCenter = firstColumnCenter + (columnSpan - 1) * dimensions.slotWidthMm;
+  const x = isCircleInsert ? (firstColumnCenter + lastColumnCenter) / 2 : occupiedLeft + occupiedWidth / 2;
   const firstAdapterCutoutFront = occupiedFront + dimensions.slotDepthMm / 2 - dimensions.adapterCutoutDepthMm / 2;
   const lastAdapterCutoutBack =
     occupiedFront + (rowSpan - 1) * dimensions.slotDepthMm + dimensions.slotDepthMm / 2 + dimensions.adapterCutoutDepthMm / 2;
