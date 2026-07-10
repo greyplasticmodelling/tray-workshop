@@ -1,5 +1,5 @@
 import type { TrayDimensions, TraySettings } from '../types';
-import { getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from '../geometry/trayMath';
+import { getCircleAdapterCenters, getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -28,8 +28,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const rankCounts = getRankCounts(settings);
   const isLanceWedge = settings.template === 'lanceWedge';
   const isAdapter = settings.template === 'adapter';
+  const isAdapterCircle = settings.template === 'adapterCircle';
   const isAdapterLance = settings.template === 'adapterLance';
-  const isAdapterTray = isAdapter || isAdapterLance;
+  const isAdapterTray = isAdapter || isAdapterCircle || isAdapterLance;
   const isLanceFormation = isLanceWedge || isAdapterLance;
   const isSkirmish = settings.template === 'skirmish';
   const hasCharacterBay =
@@ -66,13 +67,14 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
+  const circleAdapterCenters = isAdapterCircle ? getCircleAdapterCenters(settings, dimensions) : [];
   const finishExpansion = settings.trayEdgeSlopeMm;
   const finishCornerRadius = settings.template === 'skirmish' && settings.trayRoundedCornersEnabled ? settings.trayCornerRadiusMm : 0;
   const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
   const finishLines: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
 
   if (finishExpansion > 0) {
-    if (isSkirmish || isAdapter) {
+    if (isSkirmish || isAdapter || isAdapterCircle) {
       finishRects.push({
         key: 'finish-outer',
         x: outerX,
@@ -301,7 +303,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="skirmish-floor" />
         )}
 
-        {!isLanceFormation && !isSkirmish && !hasCharacterBay && (
+        {!isLanceFormation && !isSkirmish && !hasCharacterBay && !isAdapterCircle && (
+          <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
+        )}
+        {isAdapterCircle && (
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
         )}
         {!isLanceWedge && hasCharacterBay && (
@@ -388,6 +393,22 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             });
           })}
 
+        {isAdapterCircle &&
+          circleAdapterCenters.map((placement, index) => {
+            const x = innerCenterScreenX + placement.x;
+            const y = innerCenterScreenY + placement.y;
+
+            return (
+              <circle
+                key={`circle-adapter-cutout-${index}`}
+                cx={x}
+                cy={y}
+                r={dimensions.adapterCutoutWidthMm / 2}
+                className="adapter-cutout"
+              />
+            );
+          })}
+
         {isAdapterLance &&
           rankCounts.map((rankCount, rowIndex) => {
             const rowWidth = rankCount * dimensions.slotWidthMm;
@@ -454,10 +475,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </g>
         )}
 
-        {settings.frontRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && (
+        {settings.frontRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
         )}
-        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && !hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && !hasCharacterBay && (
           <rect
             x={innerX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -466,7 +487,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.rearRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && hasCharacterBay && (
+        {settings.rearRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && hasCharacterBay && (
           <rect
             x={mainAreaX}
             y={outerY + dimensions.outerDepthMm - settings.railThicknessMm}
@@ -475,10 +496,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {settings.leftRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && !hasCharacterBay && (
+        {settings.leftRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && !hasCharacterBay && (
           <rect x={outerX} y={outerY} width={settings.railThicknessMm} height={dimensions.outerDepthMm} className="rail" />
         )}
-        {settings.rightRailEnabled && !isLanceFormation && !isAdapter && !isSkirmish && !hasCharacterBay && (
+        {settings.rightRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && !hasCharacterBay && (
           <rect
             x={outerX + dimensions.outerWidthMm - settings.railThicknessMm}
             y={outerY}
@@ -632,7 +653,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
 
-        {!isLanceFormation && !isAdapter && !isSkirmish && (
+        {!isLanceFormation && !isAdapterTray && !isSkirmish && (
           <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
         )}
         {hasCharacterBay && (

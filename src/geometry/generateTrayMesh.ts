@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import type { TraySettings } from '../types';
-import { calculateTrayDimensions, getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from './trayMath';
+import {
+  calculateTrayDimensions,
+  getCircleAdapterCenters,
+  getMagnetCutoutCenters,
+  getRankCounts,
+  getSkirmishPlacements,
+} from './trayMath';
 
 type Rect = { left: number; right: number; front: number; back: number };
 type PerimeterSegment = { start: THREE.Vector2; end: THREE.Vector2; normal: THREE.Vector2 };
@@ -805,6 +811,31 @@ function createSkirmishFloorLayer(
   return mesh;
 }
 
+function createCircleAdapterCutoutLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  holes: Array<{ x: number; y: number }>,
+  z: number,
+  settings: TraySettings,
+) {
+  if (holes.length === 0) {
+    return createRoundedBox(name, width, depth, height, 0, 0, z + height / 2, getCornerRadius(settings, width, depth));
+  }
+
+  const shape = createRoundedRectShape(width, depth, getCornerRadius(settings, width, depth));
+  const radius = settings.adapterCircleDiameterMm / 2 + settings.toleranceMm / 2;
+
+  holes.forEach((hole) => {
+    const path = new THREE.Path();
+    path.absellipse(hole.x, hole.y, radius, radius, 0, Math.PI * 2, true);
+    shape.holes.push(path);
+  });
+
+  return createExtrudedShapeMesh(name, shape, height, 0, 0, z + height / 2);
+}
+
 function getRectHolesInRect(
   holes: Array<{ x: number; y: number; width: number; depth: number }>,
   centerX: number,
@@ -1268,6 +1299,72 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       'skirmish-tray-finish',
       [{ left: -dimensions.outerWidthMm / 2, right: dimensions.outerWidthMm / 2, front: -dimensions.outerDepthMm / 2, back: dimensions.outerDepthMm / 2 }],
       settings.skirmishTrayHeightMm,
+      settings,
+    );
+
+    return group;
+  }
+
+  if (settings.template === 'adapterCircle') {
+    const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
+    const innerCenterOffsetY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
+    const circleCenters = getCircleAdapterCenters(settings, dimensions).map((center) => ({
+      x: center.x + innerCenterOffsetX,
+      y: center.y + innerCenterOffsetY,
+    }));
+    const circleAdapterRect = {
+      left: -dimensions.outerWidthMm / 2,
+      right: dimensions.outerWidthMm / 2,
+      front: -dimensions.outerDepthMm / 2,
+      back: dimensions.outerDepthMm / 2,
+    };
+
+    if (!settings.adapterRemoveFloorEnabled) {
+      group.add(
+        createPerforatedFloorLayer(
+          'circle-adapter-floor',
+          dimensions.outerWidthMm,
+          dimensions.outerDepthMm,
+          settings.floorThicknessMm,
+          0,
+          0,
+          getHolesInRect(circleCenters, 0, 0, dimensions.outerWidthMm, dimensions.outerDepthMm),
+          settings,
+          true,
+        ),
+      );
+    }
+
+    group.add(
+      createCircleAdapterCutoutLayer(
+        'circle-adapter-block',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        settings.adapterBaseHeightMm,
+        circleCenters,
+        adapterBlockZ,
+        settings,
+      ),
+    );
+
+    if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      const topBorder = createAdapterTopBorderLayer(
+        'circle-adapter-magnetic-sheet-border',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        0,
+        0,
+        settings,
+      );
+      topBorder.position.z += settings.adapterBaseHeightMm;
+      group.add(topBorder);
+    }
+
+    addTrayFinishShell(
+      group,
+      'circle-adapter-tray-finish',
+      [circleAdapterRect],
+      adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );
 

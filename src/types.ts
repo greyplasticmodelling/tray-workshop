@@ -10,6 +10,8 @@ export type TraySettings = {
   railHeightMm: number;
   adapterCutoutWidthMm: number;
   adapterCutoutDepthMm: number;
+  adapterCircleDiameterMm: number;
+  adapterCircleGapMm: number;
   adapterFlankCutoutWidthMm: number;
   adapterFlankCutoutDepthMm: number;
   adapterBaseHeightMm: number;
@@ -48,7 +50,7 @@ export type TraySettings = {
   buildPlateSize: BuildPlateSize;
 };
 
-export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter' | 'adapterLance' | 'skirmish';
+export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter' | 'adapterCircle' | 'adapterLance' | 'skirmish';
 
 export type SavedTray = {
   id: string;

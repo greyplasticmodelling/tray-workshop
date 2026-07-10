@@ -15,11 +15,18 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
     ['Outer width (mm)', formatMm(dimensions.outerWidthMm)],
     ['Outer depth (mm)', formatMm(dimensions.outerDepthMm)],
     ['Floor thickness (mm)', formatMm(settings.floorThicknessMm)],
-    ...(settings.template === 'adapter' || settings.template === 'adapterLance'
+    ...(settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance'
       ? [
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
-          ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
-          ['Adapter cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
+          ...(settings.template === 'adapterCircle'
+            ? [
+                ['Circle cutout diameter (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
+                ['Gap between circles (mm)', formatMm(settings.adapterCircleGapMm)],
+              ]
+            : [
+                ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
+                ['Adapter cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
+              ]),
           ['Adapter floor', settings.adapterRemoveFloorEnabled ? 'Removed' : 'Solid'],
           ...(settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled
             ? [['Magnetic sheet border (mm)', formatMm(settings.adapterFloorCutoutBufferMm)]]

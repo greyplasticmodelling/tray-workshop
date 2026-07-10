@@ -72,7 +72,9 @@ export function TrayControls({
     });
   };
   const isAdapter = settings.template === 'adapter';
-  const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
+  const isAdapterCircle = settings.template === 'adapterCircle';
+  const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance';
+  const isRectAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
   const supportsOpenFloor = isAdapterTray || isSkirmish;
@@ -128,6 +130,10 @@ export function TrayControls({
           }
 
           if (isSkirmish && (field.key === 'baseWidthMm' || field.key === 'baseDepthMm')) {
+            return null;
+          }
+
+          if (isAdapterCircle && (field.key === 'baseWidthMm' || field.key === 'baseDepthMm')) {
             return null;
           }
 
@@ -275,7 +281,50 @@ export function TrayControls({
         </fieldset>
       )}
 
-      {isAdapterTray && (
+      {isAdapterCircle && (
+        <fieldset className="character-options">
+          <legend>Circle adapter cutouts</legend>
+          <div className="field-grid">
+            <label className="field" title="Diameter of each round base cutout before tolerance is added.">
+              <span>Circle base diameter (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                title="Diameter of each round base cutout before tolerance is added."
+                value={settings.adapterCircleDiameterMm}
+                onChange={(event) => updateNumber('adapterCircleDiameterMm', event.target.value)}
+              />
+            </label>
+
+            <label className="field" title="Solid gap between neighbouring circular cutout edges.">
+              <span>Gap between circles (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                title="Solid gap between neighbouring circular cutout edges."
+                value={settings.adapterCircleGapMm}
+                onChange={(event) => updateNumber('adapterCircleGapMm', event.target.value)}
+              />
+            </label>
+
+            <label className="field" title="Height of the solid adapter block above the floor.">
+              <span>{settings.adapterRemoveFloorEnabled ? 'Adapter block height (mm)' : 'Adapter block height above floor (mm)'}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                title="Height of the solid adapter block above the floor."
+                value={settings.adapterBaseHeightMm}
+                onChange={(event) => updateNumber('adapterBaseHeightMm', event.target.value)}
+              />
+            </label>
+          </div>
+        </fieldset>
+      )}
+
+      {isRectAdapterTray && (
         <fieldset className="character-options">
           <legend>{settings.template === 'adapterLance' ? 'Lance adapter cutouts' : 'Adapter cutouts'}</legend>
           <div className="field-grid">
@@ -316,55 +365,56 @@ export function TrayControls({
             </label>
           </div>
 
-          {settings.template === 'adapter' && (
-            <>
-              <label
-                className="field"
-                title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
-              >
-                <span>Perimeter border (mm)</span>
-                <input
-                  type="number"
-                  min="-20"
-                  max="60"
-                  step="0.5"
-                  title="Uniform perimeter border added outside the target adapter base footprint. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
-                  value={settings.adapterBorderUniformMm}
-                  onChange={(event) => updateNumber('adapterBorderUniformMm', event.target.value)}
-                />
-              </label>
+        </fieldset>
+      )}
 
-              <label className="toggle" title="Adjust front, rear, left, and right adapter borders independently.">
-                <input
-                  type="checkbox"
-                  title="Adjust front, rear, left, and right adapter borders independently."
-                  checked={settings.adapterBorderCustomEnabled}
-                  onChange={(event) => updateToggle('adapterBorderCustomEnabled', event.target.checked)}
-                />
-                <span>Custom side borders</span>
-              </label>
+      {(isAdapter || isAdapterCircle) && (
+        <fieldset className="character-options">
+          <legend>Adapter border</legend>
+          <label
+            className="field"
+            title="Uniform perimeter border added outside the adapter cutouts. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
+          >
+            <span>Perimeter border (mm)</span>
+            <input
+              type="number"
+              min="-20"
+              max="60"
+              step="0.5"
+              title="Uniform perimeter border added outside the adapter cutouts. Negative values shrink the edge, but must leave at least 1 mm around cutouts."
+              value={settings.adapterBorderUniformMm}
+              onChange={(event) => updateNumber('adapterBorderUniformMm', event.target.value)}
+            />
+          </label>
 
-              {settings.adapterBorderCustomEnabled && (
-                <div className="field-grid">
-                  {adapterBorderFields.map((field) => (
-                    <label className="field" key={field.key} title={field.tooltip}>
-                      <span>{field.label}</span>
-                      <input
-                        type="number"
-                        min="-20"
-                        max="60"
-                        step="0.5"
-                        title={field.tooltip}
-                        value={settings[field.key] as number}
-                        onChange={(event) => updateNumber(field.key, event.target.value)}
-                      />
-                    </label>
-                  ))}
-                </div>
-              )}
-            </>
+          <label className="toggle" title="Adjust front, rear, left, and right adapter borders independently.">
+            <input
+              type="checkbox"
+              title="Adjust front, rear, left, and right adapter borders independently."
+              checked={settings.adapterBorderCustomEnabled}
+              onChange={(event) => updateToggle('adapterBorderCustomEnabled', event.target.checked)}
+            />
+            <span>Custom side borders</span>
+          </label>
+
+          {settings.adapterBorderCustomEnabled && (
+            <div className="field-grid">
+              {adapterBorderFields.map((field) => (
+                <label className="field" key={field.key} title={field.tooltip}>
+                  <span>{field.label}</span>
+                  <input
+                    type="number"
+                    min="-20"
+                    max="60"
+                    step="0.5"
+                    title={field.tooltip}
+                    value={settings[field.key] as number}
+                    onChange={(event) => updateNumber(field.key, event.target.value)}
+                  />
+                </label>
+              ))}
+            </div>
           )}
-
         </fieldset>
       )}
 

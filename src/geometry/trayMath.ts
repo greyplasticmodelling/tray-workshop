@@ -11,6 +11,8 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   railHeightMm: { min: 0.5, max: 12, label: 'Rail height', unit: 'mm' },
   adapterCutoutWidthMm: { min: 10, max: 60, label: 'Adapter cutout width', unit: 'mm' },
   adapterCutoutDepthMm: { min: 10, max: 80, label: 'Adapter cutout depth', unit: 'mm' },
+  adapterCircleDiameterMm: { min: 10, max: 80, label: 'Circle adapter base diameter', unit: 'mm' },
+  adapterCircleGapMm: { min: 1, max: 30, label: 'Circle adapter gap', unit: 'mm' },
   adapterFlankCutoutWidthMm: { min: 10, max: 80, label: 'Flank adapter cutout width', unit: 'mm' },
   adapterFlankCutoutDepthMm: { min: 10, max: 100, label: 'Flank adapter cutout depth', unit: 'mm' },
   adapterBaseHeightMm: { min: 0.5, max: 12, label: 'Adapter base height', unit: 'mm' },
@@ -66,6 +68,11 @@ export const trayTemplates: Array<{ value: TraySettings['template']; label: stri
     description: 'A solid larger-base tray with smaller centred base cutouts.',
   },
   {
+    value: 'adapterCircle',
+    label: 'Adapter Circle Tray',
+    description: 'A solid rank-and-file adapter tray with circular base cutouts, fixed gaps, and adjustable borders.',
+  },
+  {
     value: 'adapterLance',
     label: 'Adapter Lance Wedge Movement Tray',
     description: 'A solid lance wedge adapter tray with smaller centred base cutouts.',
@@ -93,6 +100,7 @@ export function getBuildPlate(size: BuildPlateSize): BuildPlate {
 export function calculateTrayDimensions(settings: TraySettings): TrayDimensions {
   const rankCounts = getRankCounts(settings);
   const isAdapter = settings.template === 'adapter' || settings.template === 'adapterLance';
+  const isCircleAdapter = settings.template === 'adapterCircle';
   const isSkirmish = settings.template === 'skirmish';
   const maxSkirmishRotationRad =
     settings.skirmishBaseShape === 'square' ? (Math.min(10, Math.max(0, settings.skirmishMaxRotationDeg)) * Math.PI) / 180 : 0;
@@ -102,14 +110,32 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
       ? skirmishCutoutSizeMm * (Math.cos(maxSkirmishRotationRad) + Math.sin(maxSkirmishRotationRad))
       : skirmishCutoutSizeMm;
   const skirmishCellSizeMm = skirmishBaseFootprintMm + settings.skirmishMaxOffsetMm * 2 + skirmishMinimumGapMm;
-  const slotWidthMm = isAdapter ? settings.baseWidthMm : isSkirmish ? skirmishCellSizeMm : settings.baseWidthMm + settings.toleranceMm;
-  const slotDepthMm = isAdapter ? settings.baseDepthMm : isSkirmish ? skirmishCellSizeMm : settings.baseDepthMm + settings.toleranceMm;
-  const adapterCutoutWidthMm = settings.adapterCutoutWidthMm + settings.toleranceMm;
-  const adapterCutoutDepthMm = settings.adapterCutoutDepthMm + settings.toleranceMm;
+  const adapterCircleCutoutDiameterMm = settings.adapterCircleDiameterMm + settings.toleranceMm;
+  const adapterCirclePitchMm = adapterCircleCutoutDiameterMm + settings.adapterCircleGapMm;
+  const slotWidthMm = isCircleAdapter
+    ? adapterCirclePitchMm
+    : isAdapter
+    ? settings.baseWidthMm
+    : isSkirmish
+    ? skirmishCellSizeMm
+    : settings.baseWidthMm + settings.toleranceMm;
+  const slotDepthMm = isCircleAdapter
+    ? adapterCirclePitchMm
+    : isAdapter
+    ? settings.baseDepthMm
+    : isSkirmish
+    ? skirmishCellSizeMm
+    : settings.baseDepthMm + settings.toleranceMm;
+  const adapterCutoutWidthMm = isCircleAdapter ? adapterCircleCutoutDiameterMm : settings.adapterCutoutWidthMm + settings.toleranceMm;
+  const adapterCutoutDepthMm = isCircleAdapter ? adapterCircleCutoutDiameterMm : settings.adapterCutoutDepthMm + settings.toleranceMm;
   const adapterFlankCutoutWidthMm = settings.adapterFlankCutoutWidthMm + settings.toleranceMm;
   const adapterFlankCutoutDepthMm = settings.adapterFlankCutoutDepthMm + settings.toleranceMm;
-  const mainInnerWidthMm = Math.max(...rankCounts) * slotWidthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
-  const mainInnerDepthMm = rankCounts.length * slotDepthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
+  const mainInnerWidthMm = isCircleAdapter
+    ? Math.max(...rankCounts) * adapterCircleCutoutDiameterMm + (Math.max(...rankCounts) - 1) * settings.adapterCircleGapMm
+    : Math.max(...rankCounts) * slotWidthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
+  const mainInnerDepthMm = isCircleAdapter
+    ? rankCounts.length * adapterCircleCutoutDiameterMm + (rankCounts.length - 1) * settings.adapterCircleGapMm
+    : rankCounts.length * slotDepthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
   const hasCharacterBay =
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
   const characterSlotWidthMm = hasCharacterBay
@@ -125,7 +151,7 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const characterDividerMm = 0;
   const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
   const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
-  const supportsAdapterBorder = settings.template === 'adapter';
+  const supportsAdapterBorder = settings.template === 'adapter' || settings.template === 'adapterCircle';
   const useCustomAdapterBorder = supportsAdapterBorder && settings.adapterBorderCustomEnabled;
   const adapterBorderLeftMm = supportsAdapterBorder
     ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderLeftMm : 0)
@@ -139,10 +165,10 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const adapterBorderRearMm = supportsAdapterBorder
     ? settings.adapterBorderUniformMm + (useCustomAdapterBorder ? settings.adapterBorderRearMm : 0)
     : 0;
-  const leftRailMm = isAdapter ? adapterBorderLeftMm : !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
-  const rightRailMm = isAdapter ? adapterBorderRightMm : !isSkirmish && settings.rightRailEnabled ? settings.railThicknessMm : 0;
-  const frontRailMm = isAdapter ? adapterBorderFrontMm : !isSkirmish && settings.frontRailEnabled ? settings.railThicknessMm : 0;
-  const rearRailMm = isAdapter ? adapterBorderRearMm : !isSkirmish && settings.rearRailEnabled ? settings.railThicknessMm : 0;
+  const leftRailMm = isAdapter || isCircleAdapter ? adapterBorderLeftMm : !isSkirmish && settings.leftRailEnabled ? settings.railThicknessMm : 0;
+  const rightRailMm = isAdapter || isCircleAdapter ? adapterBorderRightMm : !isSkirmish && settings.rightRailEnabled ? settings.railThicknessMm : 0;
+  const frontRailMm = isAdapter || isCircleAdapter ? adapterBorderFrontMm : !isSkirmish && settings.frontRailEnabled ? settings.railThicknessMm : 0;
+  const rearRailMm = isAdapter || isCircleAdapter ? adapterBorderRearMm : !isSkirmish && settings.rearRailEnabled ? settings.railThicknessMm : 0;
 
   return {
     slotWidthMm,
@@ -180,6 +206,26 @@ export type SkirmishBasePlacement = {
   rowIndex: number;
   columnIndex: number;
 };
+
+export function getCircleAdapterCenters(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): MagnetCutoutCenter[] {
+  const diameter = dimensions.adapterCutoutWidthMm;
+  const pitch = diameter + settings.adapterCircleGapMm;
+  const centers: MagnetCutoutCenter[] = [];
+  const startX = -dimensions.mainInnerWidthMm / 2 + diameter / 2;
+  const startY = -dimensions.mainInnerDepthMm / 2 + diameter / 2;
+
+  for (let rowIndex = 0; rowIndex < settings.rows; rowIndex += 1) {
+    for (let columnIndex = 0; columnIndex < settings.columns; columnIndex += 1) {
+      centers.push({
+        x: startX + columnIndex * pitch,
+        y: startY + rowIndex * pitch,
+        rowIndex,
+      });
+    }
+  }
+
+  return centers;
+}
 
 function seededRandom(seed: number) {
   let state = Math.max(1, Math.floor(seed)) % 2147483647;
@@ -234,6 +280,10 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
       y: placement.y,
       rowIndex: placement.rowIndex,
     }));
+  }
+
+  if (settings.template === 'adapterCircle') {
+    return getCircleAdapterCenters(settings, dimensions);
   }
 
   const rankCounts = getRankCounts(settings);
@@ -303,7 +353,10 @@ export function calculateBuildPlateFit(settings: TraySettings, dimensions = calc
 export function validateTraySettings(settings: TraySettings): ValidationResult {
   const messages: string[] = [];
   const hasOpenFloorOption =
-    settings.template === 'adapter' || settings.template === 'adapterLance' || settings.template === 'skirmish';
+    settings.template === 'adapter' ||
+    settings.template === 'adapterCircle' ||
+    settings.template === 'adapterLance' ||
+    settings.template === 'skirmish';
 
   Object.entries(bounds).forEach(([key, rule]) => {
     const isAdapterBorderSide =
@@ -311,15 +364,34 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'adapterBorderRearMm' ||
       key === 'adapterBorderLeftMm' ||
       key === 'adapterBorderRightMm';
-    const supportsAdapterBorder = settings.template === 'adapter';
+    const supportsAdapterBorder = settings.template === 'adapter' || settings.template === 'adapterCircle';
 
     if ((settings.template === 'lanceWedge' || settings.template === 'adapterLance') && key === 'columns') {
       return;
     }
 
     if (
-      (settings.template === 'adapter' || settings.template === 'adapterLance') &&
+      (settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance') &&
       (key === 'railThicknessMm' || key === 'railHeightMm')
+    ) {
+      return;
+    }
+
+    if (
+      settings.template === 'adapterCircle' &&
+      (key === 'baseWidthMm' ||
+        key === 'baseDepthMm' ||
+        key === 'adapterCutoutWidthMm' ||
+        key === 'adapterCutoutDepthMm' ||
+        key === 'adapterFlankCutoutWidthMm' ||
+        key === 'adapterFlankCutoutDepthMm')
+    ) {
+      return;
+    }
+
+    if (
+      settings.template !== 'adapterCircle' &&
+      (key === 'adapterCircleDiameterMm' || key === 'adapterCircleGapMm')
     ) {
       return;
     }
@@ -335,7 +407,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
-    if (isAdapterBorderSide && (settings.template !== 'adapter' || !settings.adapterBorderCustomEnabled)) {
+    if (isAdapterBorderSide && (!supportsAdapterBorder || !settings.adapterBorderCustomEnabled)) {
       return;
     }
 
@@ -421,6 +493,22 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   }
 
+  if (settings.template === 'adapterCircle') {
+    const minimumWallMm = 1;
+    const borderChecks = [
+      { label: 'left', value: dimensions.leftRailMm },
+      { label: 'right', value: dimensions.rightRailMm },
+      { label: 'front', value: dimensions.frontRailMm },
+      { label: 'rear', value: dimensions.rearRailMm },
+    ];
+
+    borderChecks.forEach((check) => {
+      if (check.value < minimumWallMm) {
+        messages.push(`Circle adapter ${check.label} border must leave at least ${minimumWallMm} mm around the cutouts.`);
+      }
+    });
+  }
+
   if (
     settings.template === 'skirmish' &&
     !settings.adapterRemoveFloorEnabled &&
@@ -475,6 +563,18 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
   }
 
+  if (settings.template === 'adapterCircle' && settings.adapterFloorCutoutEnabled && settings.adapterRemoveFloorEnabled) {
+    const minimumOpeningWidthMm = settings.adapterFloorCutoutBufferMm * 2;
+
+    if (minimumOpeningWidthMm >= dimensions.outerWidthMm) {
+      messages.push('Magnetic sheet border width must leave an opening inside the circle adapter width.');
+    }
+
+    if (minimumOpeningWidthMm >= dimensions.outerDepthMm) {
+      messages.push('Magnetic sheet border width must leave an opening inside the circle adapter depth.');
+    }
+  }
+
   if (settings.template === 'skirmish' && settings.adapterFloorCutoutEnabled && settings.adapterRemoveFloorEnabled) {
     const minimumOpeningWidthMm = settings.adapterFloorCutoutBufferMm * 2;
 
@@ -497,7 +597,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     const magnetLimit =
       settings.template === 'skirmish'
         ? settings.skirmishBaseSizeMm + settings.toleranceMm
-        : settings.template === 'adapter' || settings.template === 'adapterLance'
+        : settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance'
         ? Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm)
         : Math.min(dimensions.slotWidthMm, dimensions.slotDepthMm);
 

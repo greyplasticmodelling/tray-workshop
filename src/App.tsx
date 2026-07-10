@@ -21,6 +21,8 @@ const standardDefaults: TraySettings = {
   railHeightMm: 2,
   adapterCutoutWidthMm: 20,
   adapterCutoutDepthMm: 20,
+  adapterCircleDiameterMm: 25,
+  adapterCircleGapMm: 4,
   adapterFlankCutoutWidthMm: 20,
   adapterFlankCutoutDepthMm: 20,
   adapterBaseHeightMm: 3,
@@ -101,6 +103,18 @@ const adapterLanceDefaults: TraySettings = {
   characterBayEnabled: false,
 };
 
+const adapterCircleDefaults: TraySettings = {
+  ...adapterDefaults,
+  template: 'adapterCircle',
+  columns: 5,
+  rows: 4,
+  adapterCircleDiameterMm: 25,
+  adapterCircleGapMm: 4,
+  adapterBaseHeightMm: 3,
+  adapterBorderUniformMm: 3,
+  characterBayEnabled: false,
+};
+
 const skirmishDefaults: TraySettings = {
   ...standardDefaults,
   template: 'skirmish',
@@ -126,6 +140,7 @@ const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
   standard: standardDefaults,
   lanceWedge: lanceWedgeDefaults,
   adapter: adapterDefaults,
+  adapterCircle: adapterCircleDefaults,
   adapterLance: adapterLanceDefaults,
   skirmish: skirmishDefaults,
 };
@@ -434,6 +449,8 @@ export default function App() {
     const defaultName =
       settings.template === 'adapterLance'
         ? `Adapter Lance ${settings.rows} rows`
+        : settings.template === 'adapterCircle'
+        ? `Circle Adapter ${settings.columns} x ${settings.rows}`
         : settings.template === 'skirmish'
         ? `Skirmish ${settings.columns} x ${settings.rows}`
         : settings.template === 'adapter'
