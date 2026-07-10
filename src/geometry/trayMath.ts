@@ -271,9 +271,17 @@ export function getRankInsertSlot(settings: TraySettings, dimensions = calculate
       ? rowSpan * dimensions.adapterCutoutDepthMm + Math.max(0, rowSpan - 1) * settings.adapterCircleGapMm
       : occupiedDepth;
   const x = occupiedLeft + occupiedWidth / 2;
-  const y = settings.rankInsertAlignRear
-    ? occupiedFront + occupiedDepth - depth / 2
-    : occupiedFront + depth / 2;
+  const firstAdapterCutoutFront = occupiedFront + dimensions.slotDepthMm / 2 - dimensions.adapterCutoutDepthMm / 2;
+  const lastAdapterCutoutBack =
+    occupiedFront + (rowSpan - 1) * dimensions.slotDepthMm + dimensions.slotDepthMm / 2 + dimensions.adapterCutoutDepthMm / 2;
+  const y =
+    settings.template === 'adapter'
+      ? settings.rankInsertAlignRear
+        ? lastAdapterCutoutBack - depth / 2
+        : firstAdapterCutoutFront + depth / 2
+      : settings.rankInsertAlignRear
+      ? occupiedFront + occupiedDepth - depth / 2
+      : occupiedFront + depth / 2;
   const left = x - width / 2;
   const right = x + width / 2;
   const front = y - depth / 2;
