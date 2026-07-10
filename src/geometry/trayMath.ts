@@ -22,6 +22,10 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterBorderLeftMm: { min: -20, max: 60, label: 'Adapter left border adjustment', unit: 'mm' },
   adapterBorderRightMm: { min: -20, max: 60, label: 'Adapter right border adjustment', unit: 'mm' },
   adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet border width', unit: 'mm' },
+  rankInsertColumn: { min: 1, max: 20, label: 'Rank insert origin column' },
+  rankInsertRow: { min: 1, max: 12, label: 'Rank insert origin rank' },
+  rankInsertColumnSpan: { min: 1, max: 20, label: 'Rank insert column span' },
+  rankInsertRowSpan: { min: 1, max: 12, label: 'Rank insert rank span' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
@@ -199,6 +203,21 @@ export type MagnetCutoutCenter = {
   rowIndex: number;
 };
 
+export type RankInsertSlot = {
+  columnIndex: number;
+  rowIndex: number;
+  columnSpan: number;
+  rowSpan: number;
+  x: number;
+  y: number;
+  width: number;
+  depth: number;
+  left: number;
+  right: number;
+  front: number;
+  back: number;
+};
+
 export type SkirmishBasePlacement = {
   x: number;
   y: number;
@@ -206,6 +225,71 @@ export type SkirmishBasePlacement = {
   rowIndex: number;
   columnIndex: number;
 };
+
+export function supportsRankInsert(settings: TraySettings) {
+  if (settings.template === 'adapter' && settings.characterBayEnabled) {
+    return false;
+  }
+
+  return settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'skirmish';
+}
+
+export function getRankInsertSlot(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): RankInsertSlot | null {
+  if (!settings.rankInsertEnabled || !supportsRankInsert(settings)) {
+    return null;
+  }
+
+  const columnIndex = Math.max(0, Math.floor(settings.rankInsertColumn) - 1);
+  const rowIndex = Math.max(0, Math.floor(settings.rankInsertRow) - 1);
+  const columnSpan = Math.max(1, Math.floor(settings.rankInsertColumnSpan));
+  const rowSpan = Math.max(1, Math.floor(settings.rankInsertRowSpan));
+
+  if (
+    columnIndex + columnSpan > settings.columns ||
+    rowIndex + rowSpan > settings.rows ||
+    settings.rows <= 1
+  ) {
+    return null;
+  }
+
+  const gridLeft = -dimensions.mainInnerWidthMm / 2;
+  const gridFront = -dimensions.mainInnerDepthMm / 2;
+  const occupiedLeft = gridLeft + columnIndex * dimensions.slotWidthMm;
+  const occupiedFront = gridFront + rowIndex * dimensions.slotDepthMm;
+  const occupiedWidth = columnSpan * dimensions.slotWidthMm;
+  const occupiedDepth = rowSpan * dimensions.slotDepthMm;
+  const width =
+    settings.template === 'adapterCircle'
+      ? columnSpan * dimensions.adapterCutoutWidthMm + Math.max(0, columnSpan - 1) * settings.adapterCircleGapMm
+      : occupiedWidth;
+  const depth =
+    settings.template === 'adapterCircle'
+      ? rowSpan * dimensions.adapterCutoutDepthMm + Math.max(0, rowSpan - 1) * settings.adapterCircleGapMm
+      : occupiedDepth;
+  const x = occupiedLeft + occupiedWidth / 2;
+  const y = settings.rankInsertAlignRear
+    ? occupiedFront + occupiedDepth - depth / 2
+    : occupiedFront + depth / 2;
+  const left = x - width / 2;
+  const right = x + width / 2;
+  const front = y - depth / 2;
+  const back = y + depth / 2;
+
+  return {
+    columnIndex,
+    rowIndex,
+    columnSpan,
+    rowSpan,
+    x,
+    y,
+    width,
+    depth,
+    left,
+    right,
+    front,
+    back,
+  };
+}
 
 export function getCircleAdapterCenters(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): MagnetCutoutCenter[] {
   const diameter = dimensions.adapterCutoutWidthMm;
@@ -274,16 +358,27 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     return [];
   }
 
+  const rankInsert = getRankInsertSlot(settings, dimensions);
+  const isInRankInsert = (x: number, y: number) =>
+    Boolean(rankInsert && x >= rankInsert.left && x <= rankInsert.right && y >= rankInsert.front && y <= rankInsert.back);
+  const withRankInsertCenter = (centers: MagnetCutoutCenter[]) =>
+    rankInsert
+      ? [
+          ...centers.filter((center) => !isInRankInsert(center.x, center.y)),
+          { x: rankInsert.x, y: rankInsert.y, rowIndex: rankInsert.rowIndex },
+        ]
+      : centers;
+
   if (settings.template === 'skirmish') {
-    return getSkirmishPlacements(settings, dimensions).map((placement) => ({
+    return withRankInsertCenter(getSkirmishPlacements(settings, dimensions).map((placement) => ({
       x: placement.x,
       y: placement.y,
       rowIndex: placement.rowIndex,
-    }));
+    })));
   }
 
   if (settings.template === 'adapterCircle') {
-    return getCircleAdapterCenters(settings, dimensions);
+    return withRankInsertCenter(getCircleAdapterCenters(settings, dimensions));
   }
 
   const rankCounts = getRankCounts(settings);
@@ -333,7 +428,7 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     });
   }
 
-  return centers;
+  return withRankInsertCenter(centers);
 }
 
 export function calculateBuildPlateFit(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): BuildPlateFit {
@@ -407,6 +502,16 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (
+      (key === 'rankInsertColumn' ||
+        key === 'rankInsertRow' ||
+        key === 'rankInsertColumnSpan' ||
+        key === 'rankInsertRowSpan') &&
+      !settings.rankInsertEnabled
+    ) {
+      return;
+    }
+
     if (isAdapterBorderSide && (!supportsAdapterBorder || !settings.adapterBorderCustomEnabled)) {
       return;
     }
@@ -455,6 +560,34 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   }
 
   const dimensions = calculateTrayDimensions(settings);
+  const rankInsertSupported = supportsRankInsert(settings);
+
+  if (settings.rankInsertEnabled) {
+    if (!rankInsertSupported) {
+      messages.push('Rank insert slot is only available for adapter, circle adapter, and skirmish trays without an irregular flank adapter.');
+    }
+
+    if (settings.rows <= 1) {
+      messages.push('Rank insert slot needs at least two ranks.');
+    }
+
+    if (!Number.isInteger(settings.rankInsertColumn) || !Number.isInteger(settings.rankInsertRow)) {
+      messages.push('Rank insert origin must use whole-number coordinates.');
+    }
+
+    if (!Number.isInteger(settings.rankInsertColumnSpan) || !Number.isInteger(settings.rankInsertRowSpan)) {
+      messages.push('Rank insert span must use whole numbers.');
+    }
+
+    if (settings.rankInsertColumn + settings.rankInsertColumnSpan - 1 > settings.columns) {
+      messages.push('Rank insert column span must stay inside the tray columns.');
+    }
+
+    if (settings.rankInsertRow + settings.rankInsertRowSpan - 1 > settings.rows) {
+      messages.push('Rank insert rank span must stay inside the tray ranks.');
+    }
+  }
+
   if (settings.template === 'adapter' || settings.template === 'adapterLance') {
     const minimumWallMm = 1;
     const mainSideWallMm = (dimensions.slotWidthMm - dimensions.adapterCutoutWidthMm) / 2;

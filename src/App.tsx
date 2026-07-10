@@ -35,6 +35,12 @@ const standardDefaults: TraySettings = {
   adapterRemoveFloorEnabled: false,
   adapterFloorCutoutEnabled: false,
   adapterFloorCutoutBufferMm: 2,
+  rankInsertEnabled: false,
+  rankInsertColumn: 1,
+  rankInsertRow: 1,
+  rankInsertColumnSpan: 1,
+  rankInsertRowSpan: 2,
+  rankInsertAlignRear: false,
   trayEdgeSlopeMm: 0,
   trayRoundedCornersEnabled: false,
   trayCornerRadiusMm: 2,
@@ -361,6 +367,13 @@ function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
     nextSettings = {
       ...nextSettings,
       magnetCutoutsEnabled: false,
+    };
+  }
+
+  if (nextSettings.template === 'adapter' && nextSettings.characterBayEnabled && nextSettings.rankInsertEnabled) {
+    nextSettings = {
+      ...nextSettings,
+      rankInsertEnabled: false,
     };
   }
 

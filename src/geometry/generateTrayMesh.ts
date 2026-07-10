@@ -4,6 +4,7 @@ import {
   calculateTrayDimensions,
   getCircleAdapterCenters,
   getMagnetCutoutCenters,
+  getRankInsertSlot,
   getRankCounts,
   getSkirmishPlacements,
 } from './trayMath';
@@ -748,8 +749,9 @@ function createSkirmishFloorLayer(
   holes: Array<{ x: number; y: number; rotationDeg: number }>,
   settings: TraySettings,
   z = 0,
+  rectHoles: Array<{ x: number; y: number; width: number; depth: number }> = [],
 ) {
-  if (holes.length === 0) {
+  if (holes.length === 0 && rectHoles.length === 0) {
     const radius = getCornerRadius(settings, width, depth);
 
     if (radius <= 0) {
@@ -801,6 +803,18 @@ function createSkirmishFloorLayer(
     shape.holes.push(path);
   });
 
+  rectHoles.forEach((hole) => {
+    const halfWidth = hole.width / 2;
+    const halfDepth = hole.depth / 2;
+    const path = new THREE.Path();
+    path.moveTo(hole.x - halfWidth, hole.y - halfDepth);
+    path.lineTo(hole.x - halfWidth, hole.y + halfDepth);
+    path.lineTo(hole.x + halfWidth, hole.y + halfDepth);
+    path.lineTo(hole.x + halfWidth, hole.y - halfDepth);
+    path.lineTo(hole.x - halfWidth, hole.y - halfDepth);
+    shape.holes.push(path);
+  });
+
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: height,
     bevelEnabled: false,
@@ -819,10 +833,11 @@ function createCircleAdapterCutoutLayer(
   depth: number,
   height: number,
   holes: Array<{ x: number; y: number }>,
+  rectHoles: Array<{ x: number; y: number; width: number; depth: number }>,
   z: number,
   settings: TraySettings,
 ) {
-  if (holes.length === 0) {
+  if (holes.length === 0 && rectHoles.length === 0) {
     return createRoundedBox(name, width, depth, height, 0, 0, z + height / 2, getCornerRadius(settings, width, depth));
   }
 
@@ -832,6 +847,18 @@ function createCircleAdapterCutoutLayer(
   holes.forEach((hole) => {
     const path = new THREE.Path();
     path.absellipse(hole.x, hole.y, radius, radius, 0, Math.PI * 2, true);
+    shape.holes.push(path);
+  });
+
+  rectHoles.forEach((hole) => {
+    const halfWidth = hole.width / 2;
+    const halfDepth = hole.depth / 2;
+    const path = new THREE.Path();
+    path.moveTo(hole.x - halfWidth, hole.y - halfDepth);
+    path.lineTo(hole.x - halfWidth, hole.y + halfDepth);
+    path.lineTo(hole.x + halfWidth, hole.y + halfDepth);
+    path.lineTo(hole.x + halfWidth, hole.y - halfDepth);
+    path.lineTo(hole.x - halfWidth, hole.y - halfDepth);
     shape.holes.push(path);
   });
 
@@ -1241,11 +1268,26 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   if (settings.template === 'skirmish') {
     const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
     const innerCenterOffsetY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
-    const skirmishHoles = getSkirmishPlacements(settings, dimensions).map((placement) => ({
-      x: placement.x + innerCenterOffsetX,
-      y: placement.y + innerCenterOffsetY,
-      rotationDeg: placement.rotationDeg,
-    }));
+    const rankInsert = getRankInsertSlot(settings, dimensions);
+    const isInsideRankInsert = (x: number, y: number) =>
+      Boolean(rankInsert && x >= rankInsert.left && x <= rankInsert.right && y >= rankInsert.front && y <= rankInsert.back);
+    const skirmishHoles = getSkirmishPlacements(settings, dimensions)
+      .filter((placement) => !isInsideRankInsert(placement.x, placement.y))
+      .map((placement) => ({
+        x: placement.x + innerCenterOffsetX,
+        y: placement.y + innerCenterOffsetY,
+        rotationDeg: placement.rotationDeg,
+      }));
+    const skirmishRankInsertHoles = rankInsert
+      ? [
+          {
+            x: rankInsert.x + innerCenterOffsetX,
+            y: rankInsert.y + innerCenterOffsetY,
+            width: rankInsert.width,
+            depth: rankInsert.depth,
+          },
+        ]
+      : [];
     const skirmishMagnetCenters = magnetCenters.map((center) => ({
       x: center.x + innerCenterOffsetX,
       y: center.y + innerCenterOffsetY,
@@ -1282,6 +1324,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           skirmishHoles,
           settings,
           skirmishCutoutZ,
+          skirmishRankInsertHoles,
         ),
       );
     }
@@ -1313,10 +1356,25 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   if (settings.template === 'adapterCircle') {
     const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
     const innerCenterOffsetY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
-    const circleCenters = getCircleAdapterCenters(settings, dimensions).map((center) => ({
-      x: center.x + innerCenterOffsetX,
-      y: center.y + innerCenterOffsetY,
-    }));
+    const rankInsert = getRankInsertSlot(settings, dimensions);
+    const isInsideRankInsert = (x: number, y: number) =>
+      Boolean(rankInsert && x >= rankInsert.left && x <= rankInsert.right && y >= rankInsert.front && y <= rankInsert.back);
+    const circleCenters = getCircleAdapterCenters(settings, dimensions)
+      .filter((center) => !isInsideRankInsert(center.x, center.y))
+      .map((center) => ({
+        x: center.x + innerCenterOffsetX,
+        y: center.y + innerCenterOffsetY,
+      }));
+    const circleRankInsertHoles = rankInsert
+      ? [
+          {
+            x: rankInsert.x + innerCenterOffsetX,
+            y: rankInsert.y + innerCenterOffsetY,
+            width: rankInsert.width,
+            depth: rankInsert.depth,
+          },
+        ]
+      : [];
     const circleAdapterRect = {
       left: -dimensions.outerWidthMm / 2,
       right: dimensions.outerWidthMm / 2,
@@ -1347,6 +1405,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         dimensions.outerDepthMm,
         settings.adapterBaseHeightMm,
         circleCenters,
+        circleRankInsertHoles,
         adapterBlockZ,
         settings,
       ),
@@ -1532,9 +1591,31 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     const characterFloorCenterX = characterFloorX + dimensions.characterSlotWidthMm / 2;
     const characterFloorCenterY = innerFrontY + dimensions.characterSlotDepthMm / 2;
     const adapterHoles: Array<{ x: number; y: number; width: number; depth: number }> = [];
+    const rankInsert = getRankInsertSlot(settings, dimensions);
+    const isInsideRankInsertGrid = (columnIndex: number, rowIndex: number) =>
+      Boolean(
+        rankInsert &&
+          columnIndex >= rankInsert.columnIndex &&
+          columnIndex < rankInsert.columnIndex + rankInsert.columnSpan &&
+          rowIndex >= rankInsert.rowIndex &&
+          rowIndex < rankInsert.rowIndex + rankInsert.rowSpan,
+      );
+
+    if (rankInsert) {
+      adapterHoles.push({
+        x: innerCenterX + rankInsert.x,
+        y: innerCenterY + rankInsert.y,
+        width: rankInsert.width,
+        depth: rankInsert.depth,
+      });
+    }
 
     rankCounts.forEach((rankCount, rowIndex) => {
       for (let columnIndex = 0; columnIndex < rankCount; columnIndex += 1) {
+        if (isInsideRankInsertGrid(columnIndex, rowIndex)) {
+          continue;
+        }
+
         adapterHoles.push({
           x: mainFloorX + columnIndex * dimensions.slotWidthMm + dimensions.slotWidthMm / 2,
           y: innerFrontY + rowIndex * dimensions.slotDepthMm + dimensions.slotDepthMm / 2,

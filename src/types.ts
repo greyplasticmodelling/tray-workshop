@@ -24,6 +24,12 @@ export type TraySettings = {
   adapterRemoveFloorEnabled: boolean;
   adapterFloorCutoutEnabled: boolean;
   adapterFloorCutoutBufferMm: number;
+  rankInsertEnabled: boolean;
+  rankInsertColumn: number;
+  rankInsertRow: number;
+  rankInsertColumnSpan: number;
+  rankInsertRowSpan: number;
+  rankInsertAlignRear: boolean;
   trayEdgeSlopeMm: number;
   trayRoundedCornersEnabled: boolean;
   trayCornerRadiusMm: number;

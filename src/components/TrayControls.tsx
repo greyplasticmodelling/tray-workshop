@@ -77,6 +77,8 @@ export function TrayControls({
   const isRectAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
+  const supportsRankInsert = (isAdapter && !settings.characterBayEnabled) || isAdapterCircle || isSkirmish;
+  const rankInsertUnavailable = !supportsRankInsert || settings.rows <= 1;
   const supportsOpenFloor = isAdapterTray || isSkirmish;
   const magnetCutoutsDisabledByRemovedFloor = supportsOpenFloor && settings.adapterRemoveFloorEnabled;
   const magnetCutoutsDisabled = magnetCutoutsDisabledByRemovedFloor;
@@ -611,6 +613,101 @@ export function TrayControls({
               </>
             )}
           </div>
+        </fieldset>
+      )}
+
+      {supportsRankInsert && (
+        <fieldset className="character-options">
+          <legend>Rank insert slot</legend>
+          <label
+            className="toggle"
+            title={
+              settings.rows <= 1
+                ? 'Rank insert slot needs at least two ranks.'
+                : 'Replace a block of normal cutouts with one larger compatible base slot derived from the selected coordinates and span.'
+            }
+          >
+            <input
+              type="checkbox"
+              title={
+                settings.rows <= 1
+                  ? 'Rank insert slot needs at least two ranks.'
+                  : 'Replace a block of normal cutouts with one larger compatible base slot derived from the selected coordinates and span.'
+              }
+              checked={settings.rankInsertEnabled && !rankInsertUnavailable}
+              disabled={rankInsertUnavailable}
+              onChange={(event) => updateToggle('rankInsertEnabled', event.target.checked)}
+            />
+            <span>Enable rank insert slot</span>
+          </label>
+
+          {settings.rankInsertEnabled && !rankInsertUnavailable && (
+            <>
+              <div className="field-grid">
+                <label className="field" title="Column coordinate where the insert starts, counted from the left of the tray.">
+                  <span>Origin column</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={settings.columns}
+                    step="1"
+                    title="Column coordinate where the insert starts, counted from the left of the tray."
+                    value={settings.rankInsertColumn}
+                    onChange={(event) => updateNumber('rankInsertColumn', event.target.value)}
+                  />
+                </label>
+
+                <label className="field" title="Rank coordinate where the insert starts, counted from the front of the tray.">
+                  <span>Origin rank</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={settings.rows}
+                    step="1"
+                    title="Rank coordinate where the insert starts, counted from the front of the tray."
+                    value={settings.rankInsertRow}
+                    onChange={(event) => updateNumber('rankInsertRow', event.target.value)}
+                  />
+                </label>
+
+                <label className="field" title="How many columns the insert occupies.">
+                  <span>Columns occupied</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={settings.columns}
+                    step="1"
+                    title="How many columns the insert occupies."
+                    value={settings.rankInsertColumnSpan}
+                    onChange={(event) => updateNumber('rankInsertColumnSpan', event.target.value)}
+                  />
+                </label>
+
+                <label className="field" title="How many ranks the insert occupies.">
+                  <span>Ranks occupied</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={settings.rows}
+                    step="1"
+                    title="How many ranks the insert occupies."
+                    value={settings.rankInsertRowSpan}
+                    onChange={(event) => updateNumber('rankInsertRowSpan', event.target.value)}
+                  />
+                </label>
+              </div>
+
+              <label className="toggle" title="Align the insert to the rear of the occupied rank block instead of the front.">
+                <input
+                  type="checkbox"
+                  title="Align the insert to the rear of the occupied rank block instead of the front."
+                  checked={settings.rankInsertAlignRear}
+                  onChange={(event) => updateToggle('rankInsertAlignRear', event.target.checked)}
+                />
+                <span>Rear align insert</span>
+              </label>
+            </>
+          )}
         </fieldset>
       )}
 

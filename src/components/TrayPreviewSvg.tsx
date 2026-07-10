@@ -1,5 +1,11 @@
 import type { TrayDimensions, TraySettings } from '../types';
-import { getCircleAdapterCenters, getMagnetCutoutCenters, getRankCounts, getSkirmishPlacements } from '../geometry/trayMath';
+import {
+  getCircleAdapterCenters,
+  getMagnetCutoutCenters,
+  getRankInsertSlot,
+  getRankCounts,
+  getSkirmishPlacements,
+} from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -68,6 +74,17 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const circleAdapterCenters = isAdapterCircle ? getCircleAdapterCenters(settings, dimensions) : [];
+  const rankInsert = getRankInsertSlot(settings, dimensions);
+  const isInsideRankInsertGrid = (columnIndex: number, rowIndex: number) =>
+    Boolean(
+      rankInsert &&
+        columnIndex >= rankInsert.columnIndex &&
+        columnIndex < rankInsert.columnIndex + rankInsert.columnSpan &&
+        rowIndex >= rankInsert.rowIndex &&
+        rowIndex < rankInsert.rowIndex + rankInsert.rowSpan,
+    );
+  const isInsideRankInsert = (x: number, y: number) =>
+    Boolean(rankInsert && x >= rankInsert.left && x <= rankInsert.right && y >= rankInsert.front && y <= rankInsert.back);
   const finishExpansion = settings.trayEdgeSlopeMm;
   const finishCornerRadius = settings.template === 'skirmish' && settings.trayRoundedCornersEnabled ? settings.trayCornerRadiusMm : 0;
   const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
@@ -368,6 +385,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             const rowY = innerY + rowIndex * dimensions.slotDepthMm;
 
             return Array.from({ length: rankCount }, (_, columnIndex) => {
+              if (isInsideRankInsertGrid(columnIndex, rowIndex)) {
+                return null;
+              }
+
               const cellX = mainAreaX + columnIndex * dimensions.slotWidthMm;
               const cellCenterX = cellX + dimensions.slotWidthMm / 2;
               const cellCenterY = rowY + dimensions.slotDepthMm / 2;
@@ -394,7 +415,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           })}
 
         {isAdapterCircle &&
-          circleAdapterCenters.map((placement, index) => {
+          circleAdapterCenters
+            .filter((placement) => !isInsideRankInsert(placement.x, placement.y))
+            .map((placement, index) => {
             const x = innerCenterScreenX + placement.x;
             const y = innerCenterScreenY + placement.y;
 
@@ -408,6 +431,16 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               />
             );
           })}
+
+        {rankInsert && (isAdapter || isAdapterCircle || isSkirmish) && (
+          <rect
+            x={innerCenterScreenX + rankInsert.x - rankInsert.width / 2}
+            y={innerCenterScreenY + rankInsert.y - rankInsert.depth / 2}
+            width={rankInsert.width}
+            height={rankInsert.depth}
+            className="adapter-cutout"
+          />
+        )}
 
         {isAdapterLance &&
           rankCounts.map((rankCount, rowIndex) => {
@@ -666,7 +699,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           />
         )}
         {isSkirmish &&
-          skirmishPlacements.map((placement) => {
+          skirmishPlacements.filter((placement) => !isInsideRankInsert(placement.x, placement.y)).map((placement) => {
             const x = innerCenterScreenX + placement.x;
             const y = innerCenterScreenY + placement.y;
             const size = settings.skirmishBaseSizeMm + settings.toleranceMm;
@@ -687,6 +720,28 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               />
             );
           })}
+        {rankInsert && (isAdapter || isAdapterCircle || isSkirmish) && settings.rankInsertEnabled && (
+          <g className="coordinate-labels" style={{ fontSize: Math.max(3, fontSize * 0.8) }}>
+            {Array.from({ length: settings.rows }, (_, rowIndex) =>
+              Array.from({ length: settings.columns }, (_, columnIndex) => {
+                const cellX = innerCenterScreenX - dimensions.mainInnerWidthMm / 2 + columnIndex * dimensions.slotWidthMm;
+                const cellY = innerCenterScreenY - dimensions.mainInnerDepthMm / 2 + rowIndex * dimensions.slotDepthMm;
+
+                return (
+                  <text
+                    key={`coord-${columnIndex}-${rowIndex}`}
+                    x={cellX + dimensions.slotWidthMm / 2}
+                    y={cellY + Math.min(5, dimensions.slotDepthMm * 0.22)}
+                    textAnchor="middle"
+                    className="dimension-label"
+                  >
+                    C{columnIndex + 1}/R{rowIndex + 1}
+                  </text>
+                );
+              }),
+            )}
+          </g>
+        )}
         {isLanceWedge &&
           rankCounts.map((rankCount, rowIndex) => {
             const rowWidth = rankCount * dimensions.slotWidthMm;

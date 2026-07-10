@@ -18,6 +18,13 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
     ...(settings.magnetCutoutsEnabled
       ? [['Magnet cutout side', settings.magnetCutoutsFromBottom ? 'Underside' : 'Top side']]
       : []),
+    ...(settings.rankInsertEnabled
+      ? [
+          ['Rank insert origin', `C${settings.rankInsertColumn} / R${settings.rankInsertRow}`],
+          ['Rank insert span', `${settings.rankInsertColumnSpan} columns x ${settings.rankInsertRowSpan} ranks`],
+          ['Rank insert alignment', settings.rankInsertAlignRear ? 'Rear' : 'Front'],
+        ]
+      : []),
     ...(settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance'
       ? [
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
