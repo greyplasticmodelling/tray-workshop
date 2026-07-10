@@ -259,11 +259,15 @@ export function getRankInsertSlot(settings: TraySettings, dimensions = calculate
   const occupiedWidth = columnSpan * dimensions.slotWidthMm;
   const occupiedDepth = rowSpan * dimensions.slotDepthMm;
   const width =
-    settings.template === 'adapterCircle'
+    settings.template === 'adapter'
+      ? columnSpan * dimensions.adapterCutoutWidthMm
+      : settings.template === 'adapterCircle'
       ? columnSpan * dimensions.adapterCutoutWidthMm + Math.max(0, columnSpan - 1) * settings.adapterCircleGapMm
       : occupiedWidth;
   const depth =
-    settings.template === 'adapterCircle'
+    settings.template === 'adapter'
+      ? rowSpan * dimensions.adapterCutoutDepthMm
+      : settings.template === 'adapterCircle'
       ? rowSpan * dimensions.adapterCutoutDepthMm + Math.max(0, rowSpan - 1) * settings.adapterCircleGapMm
       : occupiedDepth;
   const x = occupiedLeft + occupiedWidth / 2;

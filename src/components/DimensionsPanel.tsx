@@ -1,5 +1,5 @@
 import type { BuildPlateFit, TrayDimensions, TraySettings } from '../types';
-import { buildPlates, formatMm } from '../geometry/trayMath';
+import { buildPlates, formatMm, getRankInsertSlot } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -9,6 +9,7 @@ type Props = {
 };
 
 export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSettingsChange }: Props) {
+  const rankInsert = getRankInsertSlot(settings, dimensions);
   const items = [
     ['Inner width (mm)', formatMm(dimensions.innerWidthMm)],
     ['Inner depth (mm)', formatMm(dimensions.innerDepthMm)],
@@ -22,6 +23,7 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
       ? [
           ['Rank insert origin', `C${settings.rankInsertColumn} / R${settings.rankInsertRow}`],
           ['Rank insert span', `${settings.rankInsertColumnSpan} columns x ${settings.rankInsertRowSpan} ranks`],
+          ...(rankInsert ? [['Rank insert size (mm)', `${formatMm(rankInsert.width)} x ${formatMm(rankInsert.depth)}`]] : []),
           ['Rank insert alignment', settings.rankInsertAlignRear ? 'Rear' : 'Front'],
         ]
       : []),
