@@ -40,7 +40,7 @@ const standardDefaults: TraySettings = {
   rankInsertRow: 1,
   rankInsertColumnSpan: 1,
   rankInsertRowSpan: 2,
-  rankInsertAlignRear: false,
+  rankInsertAlignment: 'front',
   trayEdgeSlopeMm: 0,
   trayRoundedCornersEnabled: false,
   trayCornerRadiusMm: 2,
@@ -342,6 +342,16 @@ function TrayLibrary({
 
 function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
   let nextSettings = settings;
+  const legacyRankInsertAlignment =
+    settings.rankInsertAlignment ?? (settings.rankInsertAlignRear ? 'rear' : 'front');
+
+  if (nextSettings.rankInsertAlignment !== legacyRankInsertAlignment || nextSettings.rankInsertAlignRear !== undefined) {
+    const { rankInsertAlignRear, ...settingsWithoutLegacyAlignment } = nextSettings;
+    nextSettings = {
+      ...settingsWithoutLegacyAlignment,
+      rankInsertAlignment: legacyRankInsertAlignment,
+    };
+  }
 
   if (
     settings.template === 'adapterLance' &&

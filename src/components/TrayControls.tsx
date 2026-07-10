@@ -697,14 +697,22 @@ export function TrayControls({
                 </label>
               </div>
 
-              <label className="toggle" title="Align the insert to the rear of the occupied rank block instead of the front.">
-                <input
-                  type="checkbox"
-                  title="Align the insert to the rear of the occupied rank block instead of the front."
-                  checked={settings.rankInsertAlignRear}
-                  onChange={(event) => updateToggle('rankInsertAlignRear', event.target.checked)}
-                />
-                <span>Rear align insert</span>
+              <label className="field" title="Choose how the merged insert slot aligns within the occupied rank block.">
+                <span>Insert alignment</span>
+                <select
+                  value={settings.rankInsertAlignment}
+                  title="Choose how the merged insert slot aligns within the occupied rank block."
+                  onChange={(event) =>
+                    onChange({
+                      ...settings,
+                      rankInsertAlignment: event.target.value as TraySettings['rankInsertAlignment'],
+                    })
+                  }
+                >
+                  <option value="front">Front align</option>
+                  <option value="center">Center align</option>
+                  <option value="rear">Rear align</option>
+                </select>
               </label>
             </>
           )}
