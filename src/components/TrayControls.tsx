@@ -65,10 +65,25 @@ export function TrayControls({
   };
 
   const updateToggle = (key: keyof TraySettings, checked: boolean) => {
+    const usesCircularRankInsert =
+      settings.template === 'adapterCircle' || (settings.template === 'skirmish' && settings.skirmishBaseShape === 'circle');
+    const circularRankInsertDefaults =
+      key === 'rankInsertEnabled' && checked && usesCircularRankInsert
+        ? {
+            rankInsertColumnSpan: Math.min(settings.columns, Math.max(2, settings.rankInsertColumnSpan)),
+            rankInsertRowSpan: Math.min(settings.rows, Math.max(2, settings.rankInsertRowSpan)),
+            rankInsertCircleDiameterMm:
+              settings.template === 'adapterCircle'
+                ? settings.adapterCircleDiameterMm * 2
+                : settings.skirmishBaseSizeMm * 2,
+          }
+        : {};
+
     onChange({
       ...settings,
       [key]: checked,
       ...(key === 'adapterRemoveFloorEnabled' && checked ? { magnetCutoutsEnabled: false } : {}),
+      ...circularRankInsertDefaults,
     });
   };
   const isAdapter = settings.template === 'adapter';
@@ -79,6 +94,7 @@ export function TrayControls({
   const isSkirmish = settings.template === 'skirmish';
   const supportsRankInsert = (isAdapter && !settings.characterBayEnabled) || isAdapterCircle || isSkirmish;
   const rankInsertUnavailable = !supportsRankInsert || settings.rows <= 1;
+  const usesCircularRankInsert = isAdapterCircle || (isSkirmish && settings.skirmishBaseShape === 'circle');
   const supportsOpenFloor = isAdapterTray || isSkirmish;
   const magnetCutoutsDisabledByRemovedFloor = supportsOpenFloor && settings.adapterRemoveFloorEnabled;
   const magnetCutoutsDisabled = magnetCutoutsDisabledByRemovedFloor;
@@ -714,6 +730,23 @@ export function TrayControls({
                   <option value="rear">Rear align</option>
                 </select>
               </label>
+
+              {usesCircularRankInsert && (
+                <label
+                  className="field"
+                  title="Diameter of the circular insert slot before tolerance is added. It must fit inside the selected coordinate span with the required gap to neighbouring circles."
+                >
+                  <span>Insert circle diameter (mm)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title="Diameter of the circular insert slot before tolerance is added. It must fit inside the selected coordinate span with the required gap to neighbouring circles."
+                    value={settings.rankInsertCircleDiameterMm}
+                    onChange={(event) => updateNumber('rankInsertCircleDiameterMm', event.target.value)}
+                  />
+                </label>
+              )}
             </>
           )}
         </fieldset>

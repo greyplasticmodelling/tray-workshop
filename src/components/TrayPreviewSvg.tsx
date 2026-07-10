@@ -432,15 +432,24 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             );
           })}
 
-        {rankInsert && (isAdapter || isAdapterCircle || isSkirmish) && (
-          <rect
-            x={innerCenterScreenX + rankInsert.x - rankInsert.width / 2}
-            y={innerCenterScreenY + rankInsert.y - rankInsert.depth / 2}
-            width={rankInsert.width}
-            height={rankInsert.depth}
-            className="adapter-cutout"
-          />
-        )}
+        {rankInsert &&
+          (isAdapter || isAdapterCircle || isSkirmish) &&
+          (rankInsert.shape === 'circle' ? (
+            <circle
+              cx={innerCenterScreenX + rankInsert.x}
+              cy={innerCenterScreenY + rankInsert.y}
+              r={rankInsert.width / 2}
+              className="adapter-cutout"
+            />
+          ) : (
+            <rect
+              x={innerCenterScreenX + rankInsert.x - rankInsert.width / 2}
+              y={innerCenterScreenY + rankInsert.y - rankInsert.depth / 2}
+              width={rankInsert.width}
+              height={rankInsert.depth}
+              className="adapter-cutout"
+            />
+          ))}
 
         {isAdapterLance &&
           rankCounts.map((rankCount, rowIndex) => {

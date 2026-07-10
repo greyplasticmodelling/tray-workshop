@@ -26,6 +26,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   rankInsertRow: { min: 1, max: 12, label: 'Rank insert origin rank' },
   rankInsertColumnSpan: { min: 1, max: 20, label: 'Rank insert column span' },
   rankInsertRowSpan: { min: 1, max: 12, label: 'Rank insert rank span' },
+  rankInsertCircleDiameterMm: { min: 10, max: 160, label: 'Rank insert circle diameter', unit: 'mm' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
@@ -204,6 +205,7 @@ export type MagnetCutoutCenter = {
 };
 
 export type RankInsertSlot = {
+  shape: 'rect' | 'circle';
   columnIndex: number;
   rowIndex: number;
   columnSpan: number;
@@ -216,6 +218,7 @@ export type RankInsertSlot = {
   right: number;
   front: number;
   back: number;
+  diameter?: number;
 };
 
 export type SkirmishBasePlacement = {
@@ -258,25 +261,37 @@ export function getRankInsertSlot(settings: TraySettings, dimensions = calculate
   const occupiedFront = gridFront + rowIndex * dimensions.slotDepthMm;
   const occupiedWidth = columnSpan * dimensions.slotWidthMm;
   const occupiedDepth = rowSpan * dimensions.slotDepthMm;
+  const skirmishCutoutSizeMm = settings.skirmishBaseSizeMm + settings.toleranceMm;
+  const isCircleInsert = settings.template === 'adapterCircle' || (settings.template === 'skirmish' && settings.skirmishBaseShape === 'circle');
+  const circleInsertDiameterMm = settings.rankInsertCircleDiameterMm + settings.toleranceMm;
   const width =
-    settings.template === 'adapter'
+    isCircleInsert
+      ? circleInsertDiameterMm
+      : settings.template === 'adapter'
       ? columnSpan * dimensions.adapterCutoutWidthMm
-      : settings.template === 'adapterCircle'
-      ? columnSpan * dimensions.adapterCutoutWidthMm + Math.max(0, columnSpan - 1) * settings.adapterCircleGapMm
+      : settings.template === 'skirmish'
+      ? columnSpan * skirmishCutoutSizeMm
       : occupiedWidth;
   const depth =
-    settings.template === 'adapter'
+    isCircleInsert
+      ? circleInsertDiameterMm
+      : settings.template === 'adapter'
       ? rowSpan * dimensions.adapterCutoutDepthMm
-      : settings.template === 'adapterCircle'
-      ? rowSpan * dimensions.adapterCutoutDepthMm + Math.max(0, rowSpan - 1) * settings.adapterCircleGapMm
+      : settings.template === 'skirmish'
+      ? rowSpan * skirmishCutoutSizeMm
       : occupiedDepth;
   const x = occupiedLeft + occupiedWidth / 2;
   const firstAdapterCutoutFront = occupiedFront + dimensions.slotDepthMm / 2 - dimensions.adapterCutoutDepthMm / 2;
   const lastAdapterCutoutBack =
     occupiedFront + (rowSpan - 1) * dimensions.slotDepthMm + dimensions.slotDepthMm / 2 + dimensions.adapterCutoutDepthMm / 2;
+  const firstSkirmishCutoutFront = occupiedFront + dimensions.slotDepthMm / 2 - skirmishCutoutSizeMm / 2;
+  const lastSkirmishCutoutBack =
+    occupiedFront + (rowSpan - 1) * dimensions.slotDepthMm + dimensions.slotDepthMm / 2 + skirmishCutoutSizeMm / 2;
   const alignment = settings.rankInsertAlignment ?? (settings.rankInsertAlignRear ? 'rear' : 'front');
-  const alignFront = settings.template === 'adapter' ? firstAdapterCutoutFront : occupiedFront;
-  const alignBack = settings.template === 'adapter' ? lastAdapterCutoutBack : occupiedFront + occupiedDepth;
+  const alignFront =
+    settings.template === 'adapter' ? firstAdapterCutoutFront : settings.template === 'skirmish' ? firstSkirmishCutoutFront : occupiedFront;
+  const alignBack =
+    settings.template === 'adapter' ? lastAdapterCutoutBack : settings.template === 'skirmish' ? lastSkirmishCutoutBack : occupiedFront + occupiedDepth;
   const y =
     alignment === 'rear'
       ? alignBack - depth / 2
@@ -289,6 +304,7 @@ export function getRankInsertSlot(settings: TraySettings, dimensions = calculate
   const back = y + depth / 2;
 
   return {
+    shape: isCircleInsert ? 'circle' : 'rect',
     columnIndex,
     rowIndex,
     columnSpan,
@@ -301,7 +317,30 @@ export function getRankInsertSlot(settings: TraySettings, dimensions = calculate
     right,
     front,
     back,
+    diameter: isCircleInsert ? circleInsertDiameterMm : undefined,
   };
+}
+
+function getRankInsertCircleMaxDiameter(settings: TraySettings, dimensions = calculateTrayDimensions(settings)) {
+  const columnSpan = Math.max(1, Math.floor(settings.rankInsertColumnSpan));
+  const rowSpan = Math.max(1, Math.floor(settings.rankInsertRowSpan));
+
+  if (settings.template === 'adapterCircle') {
+    const baseDiameter = dimensions.adapterCutoutWidthMm;
+    const maxWidth = columnSpan * baseDiameter + Math.max(0, columnSpan - 1) * settings.adapterCircleGapMm;
+    const maxDepth = rowSpan * baseDiameter + Math.max(0, rowSpan - 1) * settings.adapterCircleGapMm;
+    return Math.min(maxWidth, maxDepth);
+  }
+
+  if (settings.template === 'skirmish' && settings.skirmishBaseShape === 'circle') {
+    const baseDiameter = settings.skirmishBaseSizeMm + settings.toleranceMm;
+    const gapAllowance = settings.skirmishMaxOffsetMm * 2 + skirmishMinimumGapMm;
+    const maxWidth = columnSpan * baseDiameter + Math.max(0, columnSpan - 1) * gapAllowance;
+    const maxDepth = rowSpan * baseDiameter + Math.max(0, rowSpan - 1) * gapAllowance;
+    return Math.min(maxWidth, maxDepth);
+  }
+
+  return Infinity;
 }
 
 export function getCircleAdapterCenters(settings: TraySettings, dimensions = calculateTrayDimensions(settings)): MagnetCutoutCenter[] {
@@ -519,8 +558,16 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       (key === 'rankInsertColumn' ||
         key === 'rankInsertRow' ||
         key === 'rankInsertColumnSpan' ||
-        key === 'rankInsertRowSpan') &&
+        key === 'rankInsertRowSpan' ||
+        key === 'rankInsertCircleDiameterMm') &&
       !settings.rankInsertEnabled
+    ) {
+      return;
+    }
+
+    if (
+      key === 'rankInsertCircleDiameterMm' &&
+      !(settings.template === 'adapterCircle' || (settings.template === 'skirmish' && settings.skirmishBaseShape === 'circle'))
     ) {
       return;
     }
@@ -598,6 +645,15 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
     if (settings.rankInsertRow + settings.rankInsertRowSpan - 1 > settings.rows) {
       messages.push('Rank insert rank span must stay inside the tray ranks.');
+    }
+
+    if (settings.template === 'adapterCircle' || (settings.template === 'skirmish' && settings.skirmishBaseShape === 'circle')) {
+      const maxDiameter = getRankInsertCircleMaxDiameter(settings, dimensions);
+      const requestedDiameter = settings.rankInsertCircleDiameterMm + settings.toleranceMm;
+
+      if (requestedDiameter > maxDiameter) {
+        messages.push(`Rank insert circle diameter must be ${formatMm(Math.max(0, maxDiameter - settings.toleranceMm))} or smaller for the selected coordinate span.`);
+      }
     }
   }
 

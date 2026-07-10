@@ -750,8 +750,9 @@ function createSkirmishFloorLayer(
   settings: TraySettings,
   z = 0,
   rectHoles: Array<{ x: number; y: number; width: number; depth: number }> = [],
+  circleHoles: Array<{ x: number; y: number; diameter: number }> = [],
 ) {
-  if (holes.length === 0 && rectHoles.length === 0) {
+  if (holes.length === 0 && rectHoles.length === 0 && circleHoles.length === 0) {
     const radius = getCornerRadius(settings, width, depth);
 
     if (radius <= 0) {
@@ -815,6 +816,12 @@ function createSkirmishFloorLayer(
     shape.holes.push(path);
   });
 
+  circleHoles.forEach((hole) => {
+    const path = new THREE.Path();
+    path.absellipse(hole.x, hole.y, hole.diameter / 2, hole.diameter / 2, 0, Math.PI * 2, true);
+    shape.holes.push(path);
+  });
+
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: height,
     bevelEnabled: false,
@@ -834,10 +841,11 @@ function createCircleAdapterCutoutLayer(
   height: number,
   holes: Array<{ x: number; y: number }>,
   rectHoles: Array<{ x: number; y: number; width: number; depth: number }>,
+  circleHoles: Array<{ x: number; y: number; diameter: number }>,
   z: number,
   settings: TraySettings,
 ) {
-  if (holes.length === 0 && rectHoles.length === 0) {
+  if (holes.length === 0 && rectHoles.length === 0 && circleHoles.length === 0) {
     return createRoundedBox(name, width, depth, height, 0, 0, z + height / 2, getCornerRadius(settings, width, depth));
   }
 
@@ -859,6 +867,12 @@ function createCircleAdapterCutoutLayer(
     path.lineTo(hole.x + halfWidth, hole.y + halfDepth);
     path.lineTo(hole.x + halfWidth, hole.y - halfDepth);
     path.lineTo(hole.x - halfWidth, hole.y - halfDepth);
+    shape.holes.push(path);
+  });
+
+  circleHoles.forEach((hole) => {
+    const path = new THREE.Path();
+    path.absellipse(hole.x, hole.y, hole.diameter / 2, hole.diameter / 2, 0, Math.PI * 2, true);
     shape.holes.push(path);
   });
 
@@ -1278,13 +1292,22 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         y: placement.y + innerCenterOffsetY,
         rotationDeg: placement.rotationDeg,
       }));
-    const skirmishRankInsertHoles = rankInsert
+    const skirmishRankInsertRectHoles = rankInsert && rankInsert.shape === 'rect'
       ? [
           {
             x: rankInsert.x + innerCenterOffsetX,
             y: rankInsert.y + innerCenterOffsetY,
             width: rankInsert.width,
             depth: rankInsert.depth,
+          },
+        ]
+      : [];
+    const skirmishRankInsertCircleHoles = rankInsert && rankInsert.shape === 'circle'
+      ? [
+          {
+            x: rankInsert.x + innerCenterOffsetX,
+            y: rankInsert.y + innerCenterOffsetY,
+            diameter: rankInsert.diameter ?? rankInsert.width,
           },
         ]
       : [];
@@ -1324,7 +1347,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           skirmishHoles,
           settings,
           skirmishCutoutZ,
-          skirmishRankInsertHoles,
+          skirmishRankInsertRectHoles,
+          skirmishRankInsertCircleHoles,
         ),
       );
     }
@@ -1365,13 +1389,22 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         x: center.x + innerCenterOffsetX,
         y: center.y + innerCenterOffsetY,
       }));
-    const circleRankInsertHoles = rankInsert
+    const circleRankInsertHoles = rankInsert && rankInsert.shape === 'rect'
       ? [
           {
             x: rankInsert.x + innerCenterOffsetX,
             y: rankInsert.y + innerCenterOffsetY,
             width: rankInsert.width,
             depth: rankInsert.depth,
+          },
+        ]
+      : [];
+    const circleRankInsertCircleHoles = rankInsert && rankInsert.shape === 'circle'
+      ? [
+          {
+            x: rankInsert.x + innerCenterOffsetX,
+            y: rankInsert.y + innerCenterOffsetY,
+            diameter: rankInsert.diameter ?? rankInsert.width,
           },
         ]
       : [];
@@ -1406,6 +1439,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         settings.adapterBaseHeightMm,
         circleCenters,
         circleRankInsertHoles,
+        circleRankInsertCircleHoles,
         adapterBlockZ,
         settings,
       ),

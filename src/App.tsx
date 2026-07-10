@@ -41,6 +41,7 @@ const standardDefaults: TraySettings = {
   rankInsertColumnSpan: 1,
   rankInsertRowSpan: 2,
   rankInsertAlignment: 'front',
+  rankInsertCircleDiameterMm: 50,
   trayEdgeSlopeMm: 0,
   trayRoundedCornersEnabled: false,
   trayCornerRadiusMm: 2,
