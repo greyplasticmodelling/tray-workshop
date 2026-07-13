@@ -598,14 +598,6 @@ function addTrayFinishSegments(
   }
 }
 
-function seededUnit(seed: number) {
-  let state = Math.max(1, Math.floor(seed)) % 2147483647;
-  return () => {
-    state = (state * 48271) % 2147483647;
-    return state / 2147483647;
-  };
-}
-
 function hashString(value: string) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -671,6 +663,13 @@ function pointInTextureHole(x: number, y: number, radius: number, hole: TextureH
   return ((x - hole.x) * (x - hole.x)) / (rx * rx) + ((y - hole.y) * (y - hole.y)) / (ry * ry) <= 1;
 }
 
+function textureNoise(x: number, y: number, seed: number) {
+  const value =
+    Math.sin(x * 12.9898 + y * 78.233 + seed * 0.017) * 43758.5453 +
+    Math.sin(x * 41.131 + y * 17.371 + seed * 0.013) * 19341.1197;
+  return value - Math.floor(value);
+}
+
 function addSandTextureLayer(
   group: THREE.Group,
   name: string,
@@ -683,8 +682,6 @@ function addSandTextureLayer(
     return;
   }
 
-  const textureGroup = new THREE.Group();
-  textureGroup.name = name;
   const inset = Math.max(0, settings.trayTexturePerimeterInsetMm);
   const bounds = rects.reduce(
     (acc, rect) => ({
@@ -695,41 +692,88 @@ function addSandTextureLayer(
     }),
     { left: Infinity, right: -Infinity, front: Infinity, back: -Infinity },
   );
-  const random = seededUnit(hashString(`${name}-${settings.template}-${settings.columns}-${settings.rows}`));
-  const spacing = 3.2;
-  const maxGrains = 650;
-  let grainCount = 0;
+  const seed = hashString(`${name}-${settings.template}-${settings.columns}-${settings.rows}`);
+  const cellSize = 1.15;
+  const baseThickness = 0.025;
+  const maxRelief = 0.18;
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const addVertex = (x: number, y: number, z: number) => {
+    vertices.push(x, y, z);
+    return vertices.length / 3 - 1;
+  };
+  const addQuad = (a: number, b: number, c: number, d: number) => {
+    indices.push(a, c, b, b, c, d);
+  };
+  const heightAt = (x: number, y: number) => {
+    const fine = textureNoise(x / 1.2, y / 1.2, seed);
+    const coarse = textureNoise(x / 3.1, y / 3.1, seed + 97);
+    const blended = fine * 0.7 + coarse * 0.3;
+    return topZ + 0.015 + Math.pow(blended, 2.4) * maxRelief;
+  };
+  const isTexturable = (x: number, y: number, margin = 0) =>
+    distanceToUnionExterior(x, y, rects) >= inset + margin &&
+    !holes.some((hole) => pointInTextureHole(x, y, margin, hole));
+  let cellCount = 0;
+  const maxCells = 6500;
 
-  for (let x = bounds.left + spacing / 2; x <= bounds.right - spacing / 2 && grainCount < maxGrains; x += spacing) {
-    for (let y = bounds.front + spacing / 2; y <= bounds.back - spacing / 2 && grainCount < maxGrains; y += spacing) {
-      const radius = 0.35 + random() * 0.45;
-      const jitterX = (random() - 0.5) * spacing * 0.75;
-      const jitterY = (random() - 0.5) * spacing * 0.75;
-      const grainX = x + jitterX;
-      const grainY = y + jitterY;
+  for (let x = bounds.left; x < bounds.right && cellCount < maxCells; x += cellSize) {
+    for (let y = bounds.front; y < bounds.back && cellCount < maxCells; y += cellSize) {
+      const x2 = Math.min(x + cellSize, bounds.right);
+      const y2 = Math.min(y + cellSize, bounds.back);
+      const centerX = (x + x2) / 2;
+      const centerY = (y + y2) / 2;
+      const margin = cellSize * 0.35;
 
-      if (distanceToUnionExterior(grainX, grainY, rects) < inset + radius) {
+      if (!isTexturable(centerX, centerY, margin)) {
         continue;
       }
 
-      if (holes.some((hole) => pointInTextureHole(grainX, grainY, radius, hole))) {
-        continue;
+      const bottomZ = topZ - baseThickness;
+      const topA = addVertex(x, y, heightAt(x, y));
+      const topB = addVertex(x2, y, heightAt(x2, y));
+      const topC = addVertex(x, y2, heightAt(x, y2));
+      const topD = addVertex(x2, y2, heightAt(x2, y2));
+      const bottomA = addVertex(x, y, bottomZ);
+      const bottomB = addVertex(x2, y, bottomZ);
+      const bottomC = addVertex(x, y2, bottomZ);
+      const bottomD = addVertex(x2, y2, bottomZ);
+
+      addQuad(topA, topB, topC, topD);
+      addQuad(bottomC, bottomD, bottomA, bottomB);
+
+      if (!isTexturable(centerX - cellSize, centerY, margin)) {
+        addQuad(topC, topA, bottomC, bottomA);
       }
 
-      const height = 0.08 + random() * 0.12;
-      const geometry = new THREE.CylinderGeometry(radius, radius * (0.75 + random() * 0.2), height, 8);
-      const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
-      const grain = new THREE.Mesh(geometry, material);
-      grain.name = `${name}-grain-${grainCount + 1}`;
-      grain.position.set(grainX, grainY, topZ + height / 2 - 0.015);
-      textureGroup.add(grain);
-      grainCount += 1;
+      if (!isTexturable(centerX + cellSize, centerY, margin)) {
+        addQuad(topB, topD, bottomB, bottomD);
+      }
+
+      if (!isTexturable(centerX, centerY - cellSize, margin)) {
+        addQuad(topA, topB, bottomA, bottomB);
+      }
+
+      if (!isTexturable(centerX, centerY + cellSize, margin)) {
+        addQuad(topD, topC, bottomD, bottomC);
+      }
+
+      cellCount += 1;
     }
   }
 
-  if (textureGroup.children.length > 0) {
-    group.add(textureGroup);
+  if (vertices.length === 0) {
+    return;
   }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = name;
+  group.add(mesh);
 }
 
 function createRectGridLayer(
