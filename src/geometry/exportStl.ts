@@ -28,6 +28,8 @@ export function downloadStl(settings: TraySettings): void {
       ? `adapter-lance-wedge-${settings.rows}-rows`
       : settings.template === 'adapterCircle'
         ? `adapter-circle-${settings.columns}x${settings.rows}-${settings.adapterCircleDiameterMm}mm`
+      : settings.template === 'adapterOval'
+        ? `adapter-oval-${settings.columns}x${settings.rows}-${settings.adapterOvalSize}mm`
       : settings.template === 'skirmish'
         ? `skirmish-${settings.columns}x${settings.rows}-${settings.skirmishBaseShape}-seed-${settings.skirmishSeed}`
       : settings.template === 'adapter'

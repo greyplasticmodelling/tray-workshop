@@ -4,6 +4,7 @@ import {
   calculateTrayDimensions,
   getCircleAdapterCenters,
   getMagnetCutoutCenters,
+  getOvalAdapterCenters,
   getRankInsertSlot,
   getRankCounts,
   getSkirmishPlacements,
@@ -879,6 +880,30 @@ function createCircleAdapterCutoutLayer(
   return createExtrudedShapeMesh(name, shape, height, 0, 0, z + height / 2);
 }
 
+function createOvalAdapterCutoutLayer(
+  name: string,
+  width: number,
+  depth: number,
+  height: number,
+  holes: Array<{ x: number; y: number; width: number; depth: number }>,
+  z: number,
+  settings: TraySettings,
+) {
+  if (holes.length === 0) {
+    return createRoundedBox(name, width, depth, height, 0, 0, z + height / 2, getCornerRadius(settings, width, depth));
+  }
+
+  const shape = createRoundedRectShape(width, depth, getCornerRadius(settings, width, depth));
+
+  holes.forEach((hole) => {
+    const path = new THREE.Path();
+    path.absellipse(hole.x, hole.y, hole.width / 2, hole.depth / 2, 0, Math.PI * 2, true);
+    shape.holes.push(path);
+  });
+
+  return createExtrudedShapeMesh(name, shape, height, 0, 0, z + height / 2);
+}
+
 function getRectHolesInRect(
   holes: Array<{ x: number; y: number; width: number; depth: number }>,
   centerX: number,
@@ -1462,6 +1487,78 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       group,
       'circle-adapter-tray-finish',
       [circleAdapterRect],
+      adapterBlockZ + settings.adapterBaseHeightMm,
+      settings,
+    );
+
+    return group;
+  }
+
+  if (settings.template === 'adapterOval') {
+    const innerCenterOffsetX = -dimensions.outerWidthMm / 2 + dimensions.leftRailMm + dimensions.innerWidthMm / 2;
+    const innerCenterOffsetY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
+    const ovalCenters = getOvalAdapterCenters(settings, dimensions).map((center) => ({
+      x: center.x + innerCenterOffsetX,
+      y: center.y + innerCenterOffsetY,
+    }));
+    const ovalHoles = ovalCenters.map((center) => ({
+      x: center.x,
+      y: center.y,
+      width: dimensions.adapterCutoutWidthMm,
+      depth: dimensions.adapterCutoutDepthMm,
+    }));
+    const ovalAdapterRect = {
+      left: -dimensions.outerWidthMm / 2,
+      right: dimensions.outerWidthMm / 2,
+      front: -dimensions.outerDepthMm / 2,
+      back: dimensions.outerDepthMm / 2,
+    };
+
+    if (!settings.adapterRemoveFloorEnabled) {
+      group.add(
+        createPerforatedFloorLayer(
+          'oval-adapter-floor',
+          dimensions.outerWidthMm,
+          dimensions.outerDepthMm,
+          settings.floorThicknessMm,
+          0,
+          0,
+          getHolesInRect(ovalCenters, 0, 0, dimensions.outerWidthMm, dimensions.outerDepthMm),
+          settings,
+          true,
+        ),
+      );
+    }
+
+    group.add(
+      createOvalAdapterCutoutLayer(
+        'oval-adapter-block',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        settings.adapterBaseHeightMm,
+        ovalHoles,
+        adapterBlockZ,
+        settings,
+      ),
+    );
+
+    if (settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled) {
+      const topBorder = createAdapterTopBorderLayer(
+        'oval-adapter-magnetic-sheet-border',
+        dimensions.outerWidthMm,
+        dimensions.outerDepthMm,
+        0,
+        0,
+        settings,
+      );
+      topBorder.position.z += settings.adapterBaseHeightMm;
+      group.add(topBorder);
+    }
+
+    addTrayFinishShell(
+      group,
+      'oval-adapter-tray-finish',
+      [ovalAdapterRect],
       adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );

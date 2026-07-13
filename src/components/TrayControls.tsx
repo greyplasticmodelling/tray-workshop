@@ -1,5 +1,5 @@
 import type { ThemeName, TraySettings } from '../types';
-import { trayTemplates } from '../geometry/trayMath';
+import { adapterOvalBaseSizes, trayTemplates } from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
@@ -88,7 +88,12 @@ export function TrayControls({
   };
   const isAdapter = settings.template === 'adapter';
   const isAdapterCircle = settings.template === 'adapterCircle';
-  const isAdapterTray = settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance';
+  const isAdapterOval = settings.template === 'adapterOval';
+  const isAdapterTray =
+    settings.template === 'adapter' ||
+    settings.template === 'adapterCircle' ||
+    settings.template === 'adapterOval' ||
+    settings.template === 'adapterLance';
   const isRectAdapterTray = settings.template === 'adapter' || settings.template === 'adapterLance';
   const isLanceFormation = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
   const isSkirmish = settings.template === 'skirmish';
@@ -151,7 +156,7 @@ export function TrayControls({
             return null;
           }
 
-          if (isAdapterCircle && (field.key === 'baseWidthMm' || field.key === 'baseDepthMm')) {
+          if ((isAdapterCircle || isAdapterOval) && (field.key === 'baseWidthMm' || field.key === 'baseDepthMm')) {
             return null;
           }
 
@@ -342,6 +347,54 @@ export function TrayControls({
         </fieldset>
       )}
 
+      {isAdapterOval && (
+        <fieldset className="character-options">
+          <legend>Oval adapter cutouts</legend>
+          <label className="field" title="Choose the oval base preset. Long edge runs left to right, short edge runs front to rear.">
+            <span>Oval base size</span>
+            <select
+              value={settings.adapterOvalSize}
+              title="Choose the oval base preset. Long edge runs left to right, short edge runs front to rear."
+              onChange={(event) =>
+                onChange({ ...settings, adapterOvalSize: event.target.value as TraySettings['adapterOvalSize'] })
+              }
+            >
+              {adapterOvalBaseSizes.map((size) => (
+                <option value={size.value} key={size.value}>
+                  {size.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="field-grid">
+            <label className="field" title="Solid gap between neighbouring oval cutout edges.">
+              <span>Gap between ovals (mm)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                title="Solid gap between neighbouring oval cutout edges."
+                value={settings.adapterOvalGapMm}
+                onChange={(event) => updateNumber('adapterOvalGapMm', event.target.value)}
+              />
+            </label>
+
+            <label className="field" title="Height of the solid adapter block above the floor.">
+              <span>{settings.adapterRemoveFloorEnabled ? 'Adapter block height (mm)' : 'Adapter block height above floor (mm)'}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                title="Height of the solid adapter block above the floor."
+                value={settings.adapterBaseHeightMm}
+                onChange={(event) => updateNumber('adapterBaseHeightMm', event.target.value)}
+              />
+            </label>
+          </div>
+        </fieldset>
+      )}
+
       {isRectAdapterTray && (
         <fieldset className="character-options">
           <legend>{settings.template === 'adapterLance' ? 'Lance adapter cutouts' : 'Adapter cutouts'}</legend>
@@ -386,7 +439,7 @@ export function TrayControls({
         </fieldset>
       )}
 
-      {(isAdapter || isAdapterCircle) && (
+      {(isAdapter || isAdapterCircle || isAdapterOval) && (
         <fieldset className="character-options">
           <legend>Adapter border</legend>
           <label

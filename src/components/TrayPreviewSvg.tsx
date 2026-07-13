@@ -2,6 +2,7 @@ import type { TrayDimensions, TraySettings } from '../types';
 import {
   getCircleAdapterCenters,
   getMagnetCutoutCenters,
+  getOvalAdapterCenters,
   getRankInsertSlot,
   getRankCounts,
   getSkirmishPlacements,
@@ -35,8 +36,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const isLanceWedge = settings.template === 'lanceWedge';
   const isAdapter = settings.template === 'adapter';
   const isAdapterCircle = settings.template === 'adapterCircle';
+  const isAdapterOval = settings.template === 'adapterOval';
   const isAdapterLance = settings.template === 'adapterLance';
-  const isAdapterTray = isAdapter || isAdapterCircle || isAdapterLance;
+  const isAdapterTray = isAdapter || isAdapterCircle || isAdapterOval || isAdapterLance;
   const isLanceFormation = isLanceWedge || isAdapterLance;
   const isSkirmish = settings.template === 'skirmish';
   const hasCharacterBay =
@@ -74,6 +76,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const circleAdapterCenters = isAdapterCircle ? getCircleAdapterCenters(settings, dimensions) : [];
+  const ovalAdapterCenters = isAdapterOval ? getOvalAdapterCenters(settings, dimensions) : [];
   const rankInsert = getRankInsertSlot(settings, dimensions);
   const isInsideRankInsertGrid = (columnIndex: number, rowIndex: number) =>
     Boolean(
@@ -91,7 +94,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const finishLines: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
 
   if (finishExpansion > 0) {
-    if (isSkirmish || isAdapter || isAdapterCircle) {
+    if (isSkirmish || isAdapter || isAdapterCircle || isAdapterOval) {
       finishRects.push({
         key: 'finish-outer',
         x: outerX,
@@ -320,10 +323,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="skirmish-floor" />
         )}
 
-        {!isLanceFormation && !isSkirmish && !hasCharacterBay && !isAdapterCircle && (
+        {!isLanceFormation && !isSkirmish && !hasCharacterBay && !isAdapterCircle && !isAdapterOval && (
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
         )}
-        {isAdapterCircle && (
+        {(isAdapterCircle || isAdapterOval) && (
           <rect x={outerX} y={outerY} width={dimensions.outerWidthMm} height={dimensions.outerDepthMm} className="floor" />
         )}
         {!isLanceWedge && hasCharacterBay && (
@@ -427,6 +430,23 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
                 cx={x}
                 cy={y}
                 r={dimensions.adapterCutoutWidthMm / 2}
+                className="adapter-cutout"
+              />
+            );
+          })}
+
+        {isAdapterOval &&
+          ovalAdapterCenters.map((placement, index) => {
+            const x = innerCenterScreenX + placement.x;
+            const y = innerCenterScreenY + placement.y;
+
+            return (
+              <ellipse
+                key={`oval-adapter-cutout-${index}`}
+                cx={x}
+                cy={y}
+                rx={dimensions.adapterCutoutWidthMm / 2}
+                ry={dimensions.adapterCutoutDepthMm / 2}
                 className="adapter-cutout"
               />
             );

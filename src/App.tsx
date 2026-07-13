@@ -23,6 +23,8 @@ const standardDefaults: TraySettings = {
   adapterCutoutDepthMm: 20,
   adapterCircleDiameterMm: 25,
   adapterCircleGapMm: 4,
+  adapterOvalSize: '60x35',
+  adapterOvalGapMm: 4,
   adapterFlankCutoutWidthMm: 20,
   adapterFlankCutoutDepthMm: 20,
   adapterBaseHeightMm: 3,
@@ -123,6 +125,18 @@ const adapterCircleDefaults: TraySettings = {
   characterBayEnabled: false,
 };
 
+const adapterOvalDefaults: TraySettings = {
+  ...adapterDefaults,
+  template: 'adapterOval',
+  columns: 3,
+  rows: 2,
+  adapterOvalSize: '60x35',
+  adapterOvalGapMm: 4,
+  adapterBaseHeightMm: 3,
+  adapterBorderUniformMm: 3,
+  characterBayEnabled: false,
+};
+
 const skirmishDefaults: TraySettings = {
   ...standardDefaults,
   template: 'skirmish',
@@ -149,6 +163,7 @@ const defaultSettingsByTemplate: Record<TrayTemplate, TraySettings> = {
   lanceWedge: lanceWedgeDefaults,
   adapter: adapterDefaults,
   adapterCircle: adapterCircleDefaults,
+  adapterOval: adapterOvalDefaults,
   adapterLance: adapterLanceDefaults,
   skirmish: skirmishDefaults,
 };
@@ -476,6 +491,8 @@ export default function App() {
         ? `Adapter Lance ${settings.rows} rows`
         : settings.template === 'adapterCircle'
         ? `Circle Adapter ${settings.columns} x ${settings.rows}`
+        : settings.template === 'adapterOval'
+        ? `Oval Adapter ${settings.columns} x ${settings.rows}`
         : settings.template === 'skirmish'
         ? `Skirmish ${settings.columns} x ${settings.rows}`
         : settings.template === 'adapter'

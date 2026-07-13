@@ -12,6 +12,8 @@ export type TraySettings = {
   adapterCutoutDepthMm: number;
   adapterCircleDiameterMm: number;
   adapterCircleGapMm: number;
+  adapterOvalSize: AdapterOvalSize;
+  adapterOvalGapMm: number;
   adapterFlankCutoutWidthMm: number;
   adapterFlankCutoutDepthMm: number;
   adapterBaseHeightMm: number;
@@ -59,7 +61,16 @@ export type TraySettings = {
   buildPlateSize: BuildPlateSize;
 };
 
-export type TrayTemplate = 'standard' | 'lanceWedge' | 'adapter' | 'adapterCircle' | 'adapterLance' | 'skirmish';
+export type TrayTemplate =
+  | 'standard'
+  | 'lanceWedge'
+  | 'adapter'
+  | 'adapterCircle'
+  | 'adapterOval'
+  | 'adapterLance'
+  | 'skirmish';
+
+export type AdapterOvalSize = '60x35' | '75x42' | '90x52' | '105x70' | '120x92' | '170x105';
 
 export type SavedTray = {
   id: string;

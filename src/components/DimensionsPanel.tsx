@@ -1,5 +1,5 @@
 import type { BuildPlateFit, TrayDimensions, TraySettings } from '../types';
-import { buildPlates, formatMm, getRankInsertSlot } from '../geometry/trayMath';
+import { buildPlates, formatMm, getAdapterOvalBaseSize, getRankInsertSlot } from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -30,13 +30,20 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
           ],
         ]
       : []),
-    ...(settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterLance'
+    ...(settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterOval' || settings.template === 'adapterLance'
       ? [
           ['Adapter block height (mm)', formatMm(settings.adapterBaseHeightMm)],
           ...(settings.template === 'adapterCircle'
             ? [
                 ['Circle cutout diameter (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
                 ['Gap between circles (mm)', formatMm(settings.adapterCircleGapMm)],
+              ]
+            : settings.template === 'adapterOval'
+            ? [
+                ['Oval base preset', getAdapterOvalBaseSize(settings.adapterOvalSize).label],
+                ['Oval cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
+                ['Oval cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
+                ['Gap between ovals (mm)', formatMm(settings.adapterOvalGapMm)],
               ]
             : [
                 ['Adapter cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
