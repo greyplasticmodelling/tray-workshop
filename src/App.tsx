@@ -50,6 +50,8 @@ const standardDefaults: TraySettings = {
   trayEdgeSlopeMm: 0,
   trayRoundedCornersEnabled: false,
   trayCornerRadiusMm: 2,
+  trayTextureEnabled: false,
+  trayTexturePerimeterInsetMm: 2,
   skirmishBaseShape: 'circle',
   skirmishBaseSizeMm: 25,
   skirmishSeed: 12025,
@@ -426,7 +428,11 @@ export default function App() {
   const [is3dPreviewEnabled, setIs3dPreviewEnabled] = useState(false);
   const [isAdvancedFinishEnabled, setIsAdvancedFinishEnabled] = useState(() => {
     const sharedSettings = readSharedSettings();
-    return Boolean(sharedSettings?.trayRoundedCornersEnabled || (sharedSettings?.trayEdgeSlopeMm ?? 0) > 0);
+    return Boolean(
+      sharedSettings?.trayRoundedCornersEnabled ||
+        sharedSettings?.trayTextureEnabled ||
+        (sharedSettings?.trayEdgeSlopeMm ?? 0) > 0,
+    );
   });
   const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
@@ -438,10 +444,10 @@ export default function App() {
   }, [savedTrays]);
 
   useEffect(() => {
-    if (settings.trayRoundedCornersEnabled || settings.trayEdgeSlopeMm > 0) {
+    if (settings.trayRoundedCornersEnabled || settings.trayTextureEnabled || settings.trayEdgeSlopeMm > 0) {
       setIsAdvancedFinishEnabled(true);
     }
-  }, [settings.trayEdgeSlopeMm, settings.trayRoundedCornersEnabled]);
+  }, [settings.trayEdgeSlopeMm, settings.trayRoundedCornersEnabled, settings.trayTextureEnabled]);
 
   const updateSettings = (nextSettings: TraySettings) => {
     const compatibleSettings = normaliseCompatibleSettings(nextSettings);
@@ -459,7 +465,7 @@ export default function App() {
     });
   };
 
-  const updateFinishSetting = (key: 'trayEdgeSlopeMm' | 'trayCornerRadiusMm', value: string) => {
+  const updateFinishSetting = (key: 'trayEdgeSlopeMm' | 'trayCornerRadiusMm' | 'trayTexturePerimeterInsetMm', value: string) => {
     const numericValue = Number(value);
     updateSettings({
       ...settings,
@@ -468,11 +474,11 @@ export default function App() {
     });
   };
 
-  const updateFinishToggle = (key: 'trayRoundedCornersEnabled', checked: boolean) => {
+  const updateFinishToggle = (key: 'trayRoundedCornersEnabled' | 'trayTextureEnabled', checked: boolean) => {
     updateSettings({
       ...settings,
       [key]: checked,
-      ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
+      ...(key === 'trayRoundedCornersEnabled' && checked ? { trayEdgeSlopeMm: 0 } : {}),
     });
   };
 
@@ -484,6 +490,7 @@ export default function App() {
         ...settings,
         trayEdgeSlopeMm: 0,
         trayRoundedCornersEnabled: false,
+        trayTextureEnabled: false,
       });
     }
   };
@@ -662,6 +669,34 @@ export default function App() {
               />
               <output>{settings.trayEdgeSlopeMm.toFixed(2)} mm</output>
             </label>
+            <label
+              className="finish-toggle"
+              title="Adds a low relief sand-like texture on the top tray surface. Texture avoids the outside perimeter inset but runs up to insert and cutout edges."
+            >
+              <input
+                type="checkbox"
+                checked={settings.trayTextureEnabled}
+                disabled={!isAdvancedFinishEnabled}
+                onChange={(event) => updateFinishToggle('trayTextureEnabled', event.target.checked)}
+              />
+              <span>Sand texture top</span>
+            </label>
+            <label
+              className="finish-slider"
+              title="Controls how far the sand texture stays away from the outside tray perimeter. Insert and cutout edges are not given this inset."
+            >
+              <span>Texture perimeter inset</span>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                step="0.5"
+                value={settings.trayTexturePerimeterInsetMm}
+                disabled={!isAdvancedFinishEnabled || !settings.trayTextureEnabled}
+                onChange={(event) => updateFinishSetting('trayTexturePerimeterInsetMm', event.target.value)}
+              />
+              <output>{settings.trayTexturePerimeterInsetMm.toFixed(1)} mm</output>
+            </label>
             </div>
           </fieldset>
           <button
@@ -689,7 +724,7 @@ export default function App() {
             />
             <span>3D preview</span>
           </label>
-          {is3dPreviewEnabled && (settings.trayRoundedCornersEnabled || settings.trayEdgeSlopeMm > 0) && (
+          {is3dPreviewEnabled && (settings.trayRoundedCornersEnabled || settings.trayTextureEnabled || settings.trayEdgeSlopeMm > 0) && (
             <p className="preview-warning">
               Advanced tray finish may not render correctly in 3D preview but will appear correct in the download STL.
             </p>

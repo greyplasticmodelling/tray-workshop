@@ -32,6 +32,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   rankInsertCustomDepthMm: { min: 1, max: 320, label: 'Custom rank insert depth', unit: 'mm' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
+  trayTexturePerimeterInsetMm: { min: 0, max: 20, label: 'Texture perimeter inset', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
   skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
@@ -686,6 +687,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (key === 'trayTexturePerimeterInsetMm' && !settings.trayTextureEnabled) {
+      return;
+    }
+
     const value = settings[key as keyof TraySettings];
     if (typeof value !== 'number') {
       return;
@@ -697,6 +702,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'skirmishDistributionChancePercent' ||
       key === 'adapterFloorCutoutBufferMm' ||
       key === 'trayEdgeSlopeMm' ||
+      key === 'trayTexturePerimeterInsetMm' ||
       key === 'adapterBorderUniformMm' ||
       key === 'adapterBorderFrontMm' ||
       key === 'adapterBorderRearMm' ||

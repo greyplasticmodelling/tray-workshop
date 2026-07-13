@@ -40,6 +40,8 @@ export type TraySettings = {
   trayEdgeSlopeMm: number;
   trayRoundedCornersEnabled: boolean;
   trayCornerRadiusMm: number;
+  trayTextureEnabled: boolean;
+  trayTexturePerimeterInsetMm: number;
   skirmishBaseShape: 'square' | 'circle';
   skirmishBaseSizeMm: number;
   skirmishSeed: number;
