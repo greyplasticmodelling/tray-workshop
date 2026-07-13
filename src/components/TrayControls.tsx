@@ -1,5 +1,10 @@
 import type { ThemeName, TraySettings } from '../types';
-import { adapterOvalBaseSizes, adapterOvalGwBaseAllowanceMm, trayTemplates } from '../geometry/trayMath';
+import {
+  adapterOvalBaseSizes,
+  adapterOvalGwBaseLengthAllowanceMm,
+  adapterOvalGwBaseWidthAllowanceMm,
+  trayTemplates,
+} from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
@@ -366,12 +371,12 @@ export function TrayControls({
           <legend>Oval adapter cutouts</legend>
           <label
             className="field"
-            title={`Choose the oval base preset. Cutouts are rotated with the long edge front to rear, and include an automatic ${adapterOvalGwBaseAllowanceMm} mm allowance for Games Workshop base shape.`}
+            title={`Choose the oval base preset. Cutouts are rotated with the long edge front to rear, and include automatic ${adapterOvalGwBaseWidthAllowanceMm} mm width and ${adapterOvalGwBaseLengthAllowanceMm} mm length allowances for Games Workshop base shape.`}
           >
             <span>Oval base size</span>
             <select
               value={settings.adapterOvalSize}
-              title={`Choose the oval base preset. Cutouts are rotated with the long edge front to rear, and include an automatic ${adapterOvalGwBaseAllowanceMm} mm allowance for Games Workshop base shape.`}
+              title={`Choose the oval base preset. Cutouts are rotated with the long edge front to rear, and include automatic ${adapterOvalGwBaseWidthAllowanceMm} mm width and ${adapterOvalGwBaseLengthAllowanceMm} mm length allowances for Games Workshop base shape.`}
               onChange={(event) =>
                 onChange({ ...settings, adapterOvalSize: event.target.value as TraySettings['adapterOvalSize'] })
               }
@@ -384,7 +389,8 @@ export function TrayControls({
             </select>
           </label>
           <p className="compatibility-note">
-            Adds an automatic {adapterOvalGwBaseAllowanceMm} mm allowance to oval width and length for Games Workshop base shape.
+            Adds automatic {adapterOvalGwBaseWidthAllowanceMm} mm width and {adapterOvalGwBaseLengthAllowanceMm} mm length
+            allowances for Games Workshop base shape.
           </p>
 
           <div className="field-grid">

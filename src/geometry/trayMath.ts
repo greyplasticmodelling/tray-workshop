@@ -50,7 +50,8 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
 };
 
 const skirmishMinimumGapMm = 4;
-export const adapterOvalGwBaseAllowanceMm = 2;
+export const adapterOvalGwBaseWidthAllowanceMm = 2.5;
+export const adapterOvalGwBaseLengthAllowanceMm = 1;
 
 export const buildPlates: BuildPlate[] = [
   { value: '180x180', widthMm: 180, depthMm: 180 },
@@ -141,8 +142,8 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
   const adapterCircleCutoutDiameterMm = settings.adapterCircleDiameterMm + settings.toleranceMm;
   const adapterCirclePitchMm = adapterCircleCutoutDiameterMm + settings.adapterCircleGapMm;
   const adapterOvalBaseSize = getAdapterOvalBaseSize(settings.adapterOvalSize);
-  const adapterOvalCutoutWidthMm = adapterOvalBaseSize.depthMm + adapterOvalGwBaseAllowanceMm + settings.toleranceMm;
-  const adapterOvalCutoutDepthMm = adapterOvalBaseSize.widthMm + adapterOvalGwBaseAllowanceMm + settings.toleranceMm;
+  const adapterOvalCutoutWidthMm = adapterOvalBaseSize.depthMm + adapterOvalGwBaseWidthAllowanceMm + settings.toleranceMm;
+  const adapterOvalCutoutDepthMm = adapterOvalBaseSize.widthMm + adapterOvalGwBaseLengthAllowanceMm + settings.toleranceMm;
   const adapterOvalPitchWidthMm = adapterOvalCutoutWidthMm + settings.adapterOvalGapMm;
   const adapterOvalPitchDepthMm = adapterOvalCutoutDepthMm + settings.adapterOvalGapMm;
   const slotWidthMm = isCircleAdapter

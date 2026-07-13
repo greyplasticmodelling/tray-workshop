@@ -1,5 +1,12 @@
 import type { BuildPlateFit, TrayDimensions, TraySettings } from '../types';
-import { buildPlates, formatMm, getAdapterOvalBaseSize, getRankInsertSlot, adapterOvalGwBaseAllowanceMm } from '../geometry/trayMath';
+import {
+  buildPlates,
+  formatMm,
+  getAdapterOvalBaseSize,
+  getRankInsertSlot,
+  adapterOvalGwBaseLengthAllowanceMm,
+  adapterOvalGwBaseWidthAllowanceMm,
+} from '../geometry/trayMath';
 
 type Props = {
   dimensions: TrayDimensions;
@@ -44,7 +51,8 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
             : settings.template === 'adapterOval'
             ? [
                 ['Oval base preset', getAdapterOvalBaseSize(settings.adapterOvalSize).label],
-                ['GW oval allowance (mm)', formatMm(adapterOvalGwBaseAllowanceMm)],
+                ['GW oval width allowance (mm)', formatMm(adapterOvalGwBaseWidthAllowanceMm)],
+                ['GW oval length allowance (mm)', formatMm(adapterOvalGwBaseLengthAllowanceMm)],
                 ['Oval cutout width (mm)', formatMm(dimensions.adapterCutoutWidthMm)],
                 ['Oval cutout depth (mm)', formatMm(dimensions.adapterCutoutDepthMm)],
                 ['Gap between ovals (mm)', formatMm(settings.adapterOvalGapMm)],
