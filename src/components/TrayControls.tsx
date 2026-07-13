@@ -1,5 +1,5 @@
 import type { ThemeName, TraySettings } from '../types';
-import { adapterOvalBaseSizes, trayTemplates } from '../geometry/trayMath';
+import { adapterOvalBaseSizes, adapterOvalGwBaseAllowanceMm, trayTemplates } from '../geometry/trayMath';
 
 type Props = {
   settings: TraySettings;
@@ -364,11 +364,14 @@ export function TrayControls({
       {isAdapterOval && (
         <fieldset className="character-options">
           <legend>Oval adapter cutouts</legend>
-          <label className="field" title="Choose the oval base preset. Long edge runs left to right, short edge runs front to rear.">
+          <label
+            className="field"
+            title={`Choose the oval base preset. Cutouts are rotated with the long edge front to rear, and include an automatic ${adapterOvalGwBaseAllowanceMm} mm allowance for Games Workshop base shape.`}
+          >
             <span>Oval base size</span>
             <select
               value={settings.adapterOvalSize}
-              title="Choose the oval base preset. Long edge runs left to right, short edge runs front to rear."
+              title={`Choose the oval base preset. Cutouts are rotated with the long edge front to rear, and include an automatic ${adapterOvalGwBaseAllowanceMm} mm allowance for Games Workshop base shape.`}
               onChange={(event) =>
                 onChange({ ...settings, adapterOvalSize: event.target.value as TraySettings['adapterOvalSize'] })
               }
@@ -380,6 +383,9 @@ export function TrayControls({
               ))}
             </select>
           </label>
+          <p className="compatibility-note">
+            Adds an automatic {adapterOvalGwBaseAllowanceMm} mm allowance to oval width and length for Games Workshop base shape.
+          </p>
 
           <div className="field-grid">
             <label className="field" title="Solid gap between neighbouring oval cutout edges.">
