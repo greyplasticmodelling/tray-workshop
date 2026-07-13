@@ -303,7 +303,78 @@ select {
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(290px, 360px) minmax(420px, 1fr) minmax(280px, 340px);
-  grid-template-areas: "controls preview output";
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "controls news output"
+    "controls preview output";
+}
+
+.news-banner {
+  grid-area: news;
+  width: calc(100% - 44px);
+  justify-self: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin: 22px 22px 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border));
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 58%),
+    var(--surface-soft);
+  box-shadow: 0 14px 28px rgb(0 0 0 / 0.18);
+}
+
+.news-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--button-text);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.news-banner p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.news-banner a {
+  justify-self: end;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  color: var(--heading);
+  font-size: 0.84rem;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.news-banner a:hover {
+  background: var(--accent);
+  color: var(--button-text);
+}
+
+.news-banner a:focus-visible {
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 2px;
 }
 
 .controls {
@@ -932,6 +1003,7 @@ footer span:first-child {
   .app-main {
     grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
     grid-template-areas:
+      "controls news"
       "controls preview"
       "controls output";
   }
@@ -969,10 +1041,17 @@ footer span:first-child {
 
   .app-main {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     grid-template-areas:
+      "news"
       "controls"
       "preview"
       "output";
+  }
+
+  .news-banner {
+    margin: 18px 20px 0;
+    width: calc(100% - 40px);
   }
 
   .controls {
@@ -1001,6 +1080,19 @@ footer span:first-child {
 @media (max-width: 560px) {
   .app-shell {
     padding-bottom: 76px;
+  }
+
+  .news-banner {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+    margin: 14px 12px 0;
+    width: calc(100% - 24px);
+  }
+
+  .news-label,
+  .news-banner a {
+    justify-self: start;
   }
 
   .site-banner {
