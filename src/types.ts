@@ -33,6 +33,9 @@ export type TraySettings = {
   rankInsertRowSpan: number;
   rankInsertAlignment: 'front' | 'center' | 'rear';
   rankInsertCircleDiameterMm: number;
+  rankInsertCustomSizeEnabled: boolean;
+  rankInsertCustomWidthMm: number;
+  rankInsertCustomDepthMm: number;
   rankInsertAlignRear?: boolean;
   trayEdgeSlopeMm: number;
   trayRoundedCornersEnabled: boolean;

@@ -67,6 +67,19 @@ export function TrayControls({
   const updateToggle = (key: keyof TraySettings, checked: boolean) => {
     const usesCircularRankInsert =
       settings.template === 'adapterCircle' || (settings.template === 'skirmish' && settings.skirmishBaseShape === 'circle');
+    const customRankInsertDefaults =
+      key === 'rankInsertCustomSizeEnabled' && checked && settings.template === 'adapter'
+        ? {
+            rankInsertCustomWidthMm: Math.min(
+              settings.rankInsertCustomWidthMm,
+              Math.max(1, settings.rankInsertColumnSpan * settings.baseWidthMm),
+            ),
+            rankInsertCustomDepthMm: Math.min(
+              settings.rankInsertCustomDepthMm,
+              Math.max(1, settings.rankInsertRowSpan * settings.baseDepthMm),
+            ),
+          }
+        : {};
     const circularRankInsertDefaults =
       key === 'rankInsertEnabled' && checked && usesCircularRankInsert
         ? {
@@ -83,6 +96,7 @@ export function TrayControls({
       ...settings,
       [key]: checked,
       ...(key === 'adapterRemoveFloorEnabled' && checked ? { magnetCutoutsEnabled: false } : {}),
+      ...customRankInsertDefaults,
       ...circularRankInsertDefaults,
     });
   };
@@ -799,6 +813,59 @@ export function TrayControls({
                     onChange={(event) => updateNumber('rankInsertCircleDiameterMm', event.target.value)}
                   />
                 </label>
+              )}
+
+              {isAdapter && (
+                <>
+                  <label
+                    className="toggle"
+                    title="Define the final rectangular insert cutout size manually instead of deriving it from the adapter cutout size."
+                  >
+                    <input
+                      type="checkbox"
+                      title="Define the final rectangular insert cutout size manually instead of deriving it from the adapter cutout size."
+                      checked={settings.rankInsertCustomSizeEnabled}
+                      onChange={(event) => updateToggle('rankInsertCustomSizeEnabled', event.target.checked)}
+                    />
+                    <span>Custom insert dimensions</span>
+                  </label>
+
+                  {settings.rankInsertCustomSizeEnabled && (
+                    <div className="field-grid">
+                      <label
+                        className="field"
+                        title="Final left-to-right width of the custom insert cutout. It must fit inside the selected column span."
+                      >
+                        <span>Custom insert width (mm)</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max={settings.rankInsertColumnSpan * settings.baseWidthMm}
+                          step="0.1"
+                          title="Final left-to-right width of the custom insert cutout. It must fit inside the selected column span."
+                          value={settings.rankInsertCustomWidthMm}
+                          onChange={(event) => updateNumber('rankInsertCustomWidthMm', event.target.value)}
+                        />
+                      </label>
+
+                      <label
+                        className="field"
+                        title="Final front-to-back depth of the custom insert cutout. It must fit inside the selected rank span."
+                      >
+                        <span>Custom insert depth (mm)</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max={settings.rankInsertRowSpan * settings.baseDepthMm}
+                          step="0.1"
+                          title="Final front-to-back depth of the custom insert cutout. It must fit inside the selected rank span."
+                          value={settings.rankInsertCustomDepthMm}
+                          onChange={(event) => updateNumber('rankInsertCustomDepthMm', event.target.value)}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

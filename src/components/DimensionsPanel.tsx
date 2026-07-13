@@ -23,6 +23,9 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
       ? [
           ['Rank insert origin', `C${settings.rankInsertColumn} / R${settings.rankInsertRow}`],
           ['Rank insert span', `${settings.rankInsertColumnSpan} columns x ${settings.rankInsertRowSpan} ranks`],
+          ...(settings.template === 'adapter' && settings.rankInsertCustomSizeEnabled
+            ? [['Rank insert sizing', 'Custom']]
+            : []),
           ...(rankInsert ? [['Rank insert size (mm)', `${formatMm(rankInsert.width)} x ${formatMm(rankInsert.depth)}`]] : []),
           [
             'Rank insert alignment',
