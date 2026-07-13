@@ -13,10 +13,6 @@ import {
 type Rect = { left: number; right: number; front: number; back: number };
 type PerimeterSegment = { start: THREE.Vector2; end: THREE.Vector2; normal: THREE.Vector2 };
 type CornerMask = { frontLeft?: boolean; frontRight?: boolean; backRight?: boolean; backLeft?: boolean };
-type TextureHole =
-  | { shape: 'rect'; x: number; y: number; width: number; depth: number }
-  | { shape: 'circle'; x: number; y: number; diameter: number }
-  | { shape: 'ellipse'; x: number; y: number; width: number; depth: number };
 
 function createBox(name: string, width: number, depth: number, height: number, x: number, y: number, z: number) {
   const geometry = new THREE.BoxGeometry(width, depth, height);
@@ -596,184 +592,6 @@ function addTrayFinishSegments(
   if (shell) {
     group.add(shell);
   }
-}
-
-function hashString(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function pointInRects(x: number, y: number, rects: Rect[]) {
-  return rects.some((rect) => x >= rect.left && x <= rect.right && y >= rect.front && y <= rect.back);
-}
-
-function distanceToUnionExterior(x: number, y: number, rects: Rect[]) {
-  if (!pointInRects(x, y, rects)) {
-    return 0;
-  }
-
-  const horizontalIntervals = rects
-    .filter((rect) => y >= rect.front && y <= rect.back)
-    .map((rect) => ({ start: rect.left, end: rect.right }))
-    .sort((a, b) => a.start - b.start);
-  const verticalIntervals = rects
-    .filter((rect) => x >= rect.left && x <= rect.right)
-    .map((rect) => ({ start: rect.front, end: rect.back }))
-    .sort((a, b) => a.start - b.start);
-  const mergeIntervals = (intervals: Array<{ start: number; end: number }>) =>
-    intervals.reduce<Array<{ start: number; end: number }>>((merged, interval) => {
-      const previous = merged[merged.length - 1];
-      if (previous && interval.start <= previous.end) {
-        previous.end = Math.max(previous.end, interval.end);
-      } else {
-        merged.push({ ...interval });
-      }
-      return merged;
-    }, []);
-  const horizontal = mergeIntervals(horizontalIntervals).find((interval) => x >= interval.start && x <= interval.end);
-  const vertical = mergeIntervals(verticalIntervals).find((interval) => y >= interval.start && y <= interval.end);
-
-  if (!horizontal || !vertical) {
-    return 0;
-  }
-
-  return Math.min(x - horizontal.start, horizontal.end - x, y - vertical.start, vertical.end - y);
-}
-
-function pointInTextureHole(x: number, y: number, radius: number, hole: TextureHole) {
-  if (hole.shape === 'rect') {
-    return (
-      x >= hole.x - hole.width / 2 - radius &&
-      x <= hole.x + hole.width / 2 + radius &&
-      y >= hole.y - hole.depth / 2 - radius &&
-      y <= hole.y + hole.depth / 2 + radius
-    );
-  }
-
-  if (hole.shape === 'circle') {
-    return Math.hypot(x - hole.x, y - hole.y) <= hole.diameter / 2 + radius;
-  }
-
-  const rx = hole.width / 2 + radius;
-  const ry = hole.depth / 2 + radius;
-  return ((x - hole.x) * (x - hole.x)) / (rx * rx) + ((y - hole.y) * (y - hole.y)) / (ry * ry) <= 1;
-}
-
-function textureNoise(x: number, y: number, seed: number) {
-  const value =
-    Math.sin(x * 12.9898 + y * 78.233 + seed * 0.017) * 43758.5453 +
-    Math.sin(x * 41.131 + y * 17.371 + seed * 0.013) * 19341.1197;
-  return value - Math.floor(value);
-}
-
-function addSandTextureLayer(
-  group: THREE.Group,
-  name: string,
-  rects: Rect[],
-  holes: TextureHole[],
-  topZ: number,
-  settings: TraySettings,
-) {
-  if (!settings.trayTextureEnabled || rects.length === 0) {
-    return;
-  }
-
-  const inset = Math.max(0, settings.trayTexturePerimeterInsetMm);
-  const bounds = rects.reduce(
-    (acc, rect) => ({
-      left: Math.min(acc.left, rect.left),
-      right: Math.max(acc.right, rect.right),
-      front: Math.min(acc.front, rect.front),
-      back: Math.max(acc.back, rect.back),
-    }),
-    { left: Infinity, right: -Infinity, front: Infinity, back: -Infinity },
-  );
-  const seed = hashString(`${name}-${settings.template}-${settings.columns}-${settings.rows}`);
-  const cellSize = 1.15;
-  const baseThickness = 0.025;
-  const maxRelief = 0.18;
-  const vertices: number[] = [];
-  const indices: number[] = [];
-  const addVertex = (x: number, y: number, z: number) => {
-    vertices.push(x, y, z);
-    return vertices.length / 3 - 1;
-  };
-  const addQuad = (a: number, b: number, c: number, d: number) => {
-    indices.push(a, c, b, b, c, d);
-  };
-  const heightAt = (x: number, y: number) => {
-    const fine = textureNoise(x / 1.2, y / 1.2, seed);
-    const coarse = textureNoise(x / 3.1, y / 3.1, seed + 97);
-    const blended = fine * 0.7 + coarse * 0.3;
-    return topZ + 0.015 + Math.pow(blended, 2.4) * maxRelief;
-  };
-  const isTexturable = (x: number, y: number, margin = 0) =>
-    distanceToUnionExterior(x, y, rects) >= inset + margin &&
-    !holes.some((hole) => pointInTextureHole(x, y, margin, hole));
-  let cellCount = 0;
-  const maxCells = 6500;
-
-  for (let x = bounds.left; x < bounds.right && cellCount < maxCells; x += cellSize) {
-    for (let y = bounds.front; y < bounds.back && cellCount < maxCells; y += cellSize) {
-      const x2 = Math.min(x + cellSize, bounds.right);
-      const y2 = Math.min(y + cellSize, bounds.back);
-      const centerX = (x + x2) / 2;
-      const centerY = (y + y2) / 2;
-      const margin = cellSize * 0.35;
-
-      if (!isTexturable(centerX, centerY, margin)) {
-        continue;
-      }
-
-      const bottomZ = topZ - baseThickness;
-      const topA = addVertex(x, y, heightAt(x, y));
-      const topB = addVertex(x2, y, heightAt(x2, y));
-      const topC = addVertex(x, y2, heightAt(x, y2));
-      const topD = addVertex(x2, y2, heightAt(x2, y2));
-      const bottomA = addVertex(x, y, bottomZ);
-      const bottomB = addVertex(x2, y, bottomZ);
-      const bottomC = addVertex(x, y2, bottomZ);
-      const bottomD = addVertex(x2, y2, bottomZ);
-
-      addQuad(topA, topB, topC, topD);
-      addQuad(bottomC, bottomD, bottomA, bottomB);
-
-      if (!isTexturable(centerX - cellSize, centerY, margin)) {
-        addQuad(topC, topA, bottomC, bottomA);
-      }
-
-      if (!isTexturable(centerX + cellSize, centerY, margin)) {
-        addQuad(topB, topD, bottomB, bottomD);
-      }
-
-      if (!isTexturable(centerX, centerY - cellSize, margin)) {
-        addQuad(topA, topB, bottomA, bottomB);
-      }
-
-      if (!isTexturable(centerX, centerY + cellSize, margin)) {
-        addQuad(topD, topC, bottomD, bottomC);
-      }
-
-      cellCount += 1;
-    }
-  }
-
-  if (vertices.length === 0) {
-    return;
-  }
-
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  const material = new THREE.MeshStandardMaterial({ color: 0x8f9f88 });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.name = name;
-  group.add(mesh);
 }
 
 function createRectGridLayer(
@@ -1499,24 +1317,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
         y: placement.y + innerCenterOffsetY,
         rotationDeg: placement.rotationDeg,
       }));
-    const skirmishTextureHoles: TextureHole[] = getSkirmishPlacements(settings, dimensions)
-      .filter((placement) => !isInsideRankInsert(placement.x, placement.y))
-      .map((placement) =>
-        settings.skirmishBaseShape === 'circle'
-          ? {
-              shape: 'circle',
-              x: placement.x + innerCenterOffsetX,
-              y: placement.y + innerCenterOffsetY,
-              diameter: settings.skirmishBaseSizeMm + settings.toleranceMm,
-            }
-          : {
-              shape: 'rect',
-              x: placement.x + innerCenterOffsetX,
-              y: placement.y + innerCenterOffsetY,
-              width: settings.skirmishBaseSizeMm + settings.toleranceMm,
-              depth: settings.skirmishBaseSizeMm + settings.toleranceMm,
-            },
-      );
     const skirmishRankInsertRectHoles = rankInsert && rankInsert.shape === 'rect'
       ? [
           {
@@ -1536,10 +1336,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           },
         ]
       : [];
-    const skirmishRankInsertTextureHoles: TextureHole[] = [
-      ...skirmishRankInsertRectHoles.map((hole) => ({ shape: 'rect' as const, ...hole })),
-      ...skirmishRankInsertCircleHoles.map((hole) => ({ shape: 'circle' as const, ...hole })),
-    ];
     const skirmishMagnetCenters = magnetCenters.map((center) => ({
       x: center.x + innerCenterOffsetX,
       y: center.y + innerCenterOffsetY,
@@ -1602,14 +1398,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       settings.skirmishTrayHeightMm,
       settings,
     );
-    addSandTextureLayer(
-      group,
-      'skirmish-sand-texture',
-      [{ left: -dimensions.outerWidthMm / 2, right: dimensions.outerWidthMm / 2, front: -dimensions.outerDepthMm / 2, back: dimensions.outerDepthMm / 2 }],
-      [...skirmishTextureHoles, ...skirmishRankInsertTextureHoles],
-      settings.skirmishTrayHeightMm,
-      settings,
-    );
 
     return group;
   }
@@ -1645,16 +1433,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           },
         ]
       : [];
-    const circleTextureHoles: TextureHole[] = [
-      ...circleCenters.map((center) => ({
-        shape: 'circle' as const,
-        x: center.x,
-        y: center.y,
-        diameter: dimensions.adapterCutoutWidthMm,
-      })),
-      ...circleRankInsertHoles.map((hole) => ({ shape: 'rect' as const, ...hole })),
-      ...circleRankInsertCircleHoles.map((hole) => ({ shape: 'circle' as const, ...hole })),
-    ];
     const circleAdapterRect = {
       left: -dimensions.outerWidthMm / 2,
       right: dimensions.outerWidthMm / 2,
@@ -1712,14 +1490,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );
-    addSandTextureLayer(
-      group,
-      'circle-adapter-sand-texture',
-      [circleAdapterRect],
-      circleTextureHoles,
-      adapterBlockZ + settings.adapterBaseHeightMm,
-      settings,
-    );
 
     return group;
   }
@@ -1737,7 +1507,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       width: dimensions.adapterCutoutWidthMm,
       depth: dimensions.adapterCutoutDepthMm,
     }));
-    const ovalTextureHoles: TextureHole[] = ovalHoles.map((hole) => ({ shape: 'ellipse', ...hole }));
     const ovalAdapterRect = {
       left: -dimensions.outerWidthMm / 2,
       right: dimensions.outerWidthMm / 2,
@@ -1790,14 +1559,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       group,
       'oval-adapter-tray-finish',
       [ovalAdapterRect],
-      adapterBlockZ + settings.adapterBaseHeightMm,
-      settings,
-    );
-    addSandTextureLayer(
-      group,
-      'oval-adapter-sand-texture',
-      [ovalAdapterRect],
-      ovalTextureHoles,
       adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );
@@ -1923,14 +1684,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       group,
       'adapter-lance-tray-finish',
       hasAdapterBorder ? [adapterOuterRect] : adapterLanceRects,
-      adapterBlockZ + settings.adapterBaseHeightMm,
-      settings,
-    );
-    addSandTextureLayer(
-      group,
-      'adapter-lance-sand-texture',
-      hasAdapterBorder ? [adapterOuterRect] : adapterLanceRects,
-      adapterLanceHoles.map((hole) => ({ shape: 'rect', ...hole })),
       adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );
@@ -2205,14 +1958,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       group,
       'adapter-tray-finish',
       adapterBodyRects,
-      adapterBlockZ + settings.adapterBaseHeightMm,
-      settings,
-    );
-    addSandTextureLayer(
-      group,
-      'adapter-sand-texture',
-      adapterBodyRects,
-      adapterHoles.map((hole) => ({ shape: 'rect', ...hole })),
       adapterBlockZ + settings.adapterBaseHeightMm,
       settings,
     );
@@ -2570,14 +2315,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     });
 
     addTrayFinishSegments(group, 'lance-tray-finish', lanceFinishSegments, settings.floorThicknessMm + railHeight, settings);
-    addSandTextureLayer(
-      group,
-      'lance-rail-sand-texture',
-      lanceRailRects,
-      [],
-      settings.floorThicknessMm + railHeight,
-      settings,
-    );
 
     return group;
   }
@@ -2896,91 +2633,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     );
   }
 
-  const standardRailTextureRects: Rect[] = [];
-
-  if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
-    standardRailTextureRects.push({
-      left: -dimensions.outerWidthMm / 2,
-      right: -dimensions.outerWidthMm / 2 + settings.railThicknessMm,
-      front: -dimensions.outerDepthMm / 2,
-      back: dimensions.outerDepthMm / 2,
-    });
-  }
-
-  if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
-    standardRailTextureRects.push({
-      left: dimensions.outerWidthMm / 2 - settings.railThicknessMm,
-      right: dimensions.outerWidthMm / 2,
-      front: -dimensions.outerDepthMm / 2,
-      back: dimensions.outerDepthMm / 2,
-    });
-  }
-
-  if (settings.frontRailEnabled) {
-    standardRailTextureRects.push({
-      left: -dimensions.innerWidthMm / 2,
-      right: dimensions.innerWidthMm / 2,
-      front: -dimensions.outerDepthMm / 2,
-      back: -dimensions.outerDepthMm / 2 + settings.railThicknessMm,
-    });
-  }
-
-  if (settings.rearRailEnabled) {
-    const rearRailWidth = hasCharacterBay ? dimensions.mainInnerWidthMm : dimensions.innerWidthMm;
-    const rearRailCenterX = hasCharacterBay ? mainAreaCenterX : 0;
-    standardRailTextureRects.push({
-      left: rearRailCenterX - rearRailWidth / 2,
-      right: rearRailCenterX + rearRailWidth / 2,
-      front: dimensions.outerDepthMm / 2 - settings.railThicknessMm,
-      back: dimensions.outerDepthMm / 2,
-    });
-  }
-
-  if (hasCharacterBay && characterSideRailMm > 0) {
-    const baySideRailCenterX =
-      settings.characterBaySide === 'left'
-        ? outerLeftX + settings.railThicknessMm / 2
-        : dimensions.outerWidthMm / 2 - settings.railThicknessMm / 2;
-    standardRailTextureRects.push({
-      left: baySideRailCenterX - settings.railThicknessMm / 2,
-      right: baySideRailCenterX + settings.railThicknessMm / 2,
-      front: characterFloorCenterY - characterFloorDepth / 2,
-      back: characterFloorCenterY + characterFloorDepth / 2,
-    });
-
-    if (hasCharacterReturnRail) {
-      const stepRailWidth = dimensions.characterSlotWidthMm + characterSideRailMm;
-      const stepRailCenterX =
-        settings.characterBaySide === 'left'
-          ? outerLeftX + stepRailWidth / 2
-          : innerLeftX + dimensions.mainInnerWidthMm + stepRailWidth / 2;
-      const stepRailCenterY = innerFrontY + dimensions.characterSlotDepthMm + settings.railThicknessMm / 2;
-      const mainSideRailDepth =
-        dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
-      const mainSideRailCenterX =
-        settings.characterBaySide === 'left'
-          ? outerLeftX + dimensions.characterSlotWidthMm + settings.railThicknessMm / 2
-          : innerLeftX + dimensions.mainInnerWidthMm + settings.railThicknessMm / 2;
-      const mainSideRailCenterY =
-        innerFrontY + dimensions.characterSlotDepthMm + mainSideRailDepth / 2;
-
-      standardRailTextureRects.push(
-        {
-          left: stepRailCenterX - stepRailWidth / 2,
-          right: stepRailCenterX + stepRailWidth / 2,
-          front: stepRailCenterY - settings.railThicknessMm / 2,
-          back: stepRailCenterY + settings.railThicknessMm / 2,
-        },
-        {
-          left: mainSideRailCenterX - settings.railThicknessMm / 2,
-          right: mainSideRailCenterX + settings.railThicknessMm / 2,
-          front: mainSideRailCenterY - mainSideRailDepth / 2,
-          back: mainSideRailCenterY + mainSideRailDepth / 2,
-        },
-      );
-    }
-  }
-
   const standardFinishSegments: PerimeterSegment[] = [];
 
   if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
@@ -3078,14 +2730,6 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
   }
 
   addTrayFinishSegments(group, 'standard-tray-finish', standardFinishSegments, settings.floorThicknessMm + railHeight, settings);
-  addSandTextureLayer(
-    group,
-    'standard-rail-sand-texture',
-    standardRailTextureRects,
-    [],
-    settings.floorThicknessMm + railHeight,
-    settings,
-  );
 
   return group;
 }

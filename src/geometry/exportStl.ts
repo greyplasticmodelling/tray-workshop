@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import type { TraySettings } from '../types';
+import { generateBaseMesh, getGeneratedBaseSpecs } from './generateBaseMesh';
 import { generateTrayMesh } from './generateTrayMesh';
 import { validateTraySettings } from './trayMath';
 
@@ -38,12 +39,24 @@ export function downloadStl(settings: TraySettings): void {
         ? `lance-wedge-${settings.rows}-rows`
         : `${settings.columns}x${settings.rows}`;
   const name = `movement-tray-${baseSize}-${formation}`;
-  const stl = exportAsciiStl(generateTrayMesh(settings), name);
-  const blob = new Blob([stl], { type: 'model/stl;charset=utf-8' });
+  downloadTextFile(`${name}.stl`, exportAsciiStl(generateTrayMesh(settings), name));
+
+  if (settings.generatedBaseEnabled) {
+    getGeneratedBaseSpecs(settings).forEach((baseSpec, index) => {
+      const baseName = `matching-base-${baseSpec.label}-${formation}`;
+      window.setTimeout(() => {
+        downloadTextFile(`${baseName}.stl`, exportAsciiStl(generateBaseMesh(settings, baseSpec), baseName));
+      }, 250 * (index + 1));
+    });
+  }
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'model/stl;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${name}.stl`;
+  link.download = filename;
   link.style.display = 'none';
   document.body.appendChild(link);
   link.click();

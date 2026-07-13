@@ -32,7 +32,9 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   rankInsertCustomDepthMm: { min: 1, max: 320, label: 'Custom rank insert depth', unit: 'mm' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
-  trayTexturePerimeterInsetMm: { min: 0, max: 20, label: 'Texture perimeter inset', unit: 'mm' },
+  generatedBaseHeightMm: { min: 1.5, max: 8, label: 'Generated base height', unit: 'mm' },
+  generatedBaseWallThicknessMm: { min: 1, max: 6, label: 'Generated base wall thickness', unit: 'mm' },
+  generatedBaseTopThicknessMm: { min: 1, max: 6, label: 'Generated base top thickness', unit: 'mm' },
   skirmishBaseSizeMm: { min: 10, max: 60, label: 'Skirmish base size', unit: 'mm' },
   skirmishSeed: { min: 1, max: 999999, label: 'Skirmish seed' },
   skirmishMaxRotationDeg: { min: 0, max: 10, label: 'Skirmish max rotation', unit: 'degrees' },
@@ -687,7 +689,19 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
-    if (key === 'trayTexturePerimeterInsetMm' && !settings.trayTextureEnabled) {
+    if (
+      (key === 'generatedBaseHeightMm' ||
+        key === 'generatedBaseWallThicknessMm' ||
+        key === 'generatedBaseTopThicknessMm') &&
+      !settings.generatedBaseEnabled
+    ) {
+      return;
+    }
+
+    if (
+      (key === 'generatedBaseWallThicknessMm' || key === 'generatedBaseTopThicknessMm') &&
+      !settings.generatedBaseHollow
+    ) {
       return;
     }
 
@@ -702,7 +716,6 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       key === 'skirmishDistributionChancePercent' ||
       key === 'adapterFloorCutoutBufferMm' ||
       key === 'trayEdgeSlopeMm' ||
-      key === 'trayTexturePerimeterInsetMm' ||
       key === 'adapterBorderUniformMm' ||
       key === 'adapterBorderFrontMm' ||
       key === 'adapterBorderRearMm' ||
@@ -950,6 +963,18 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
   if (dimensions.outerWidthMm > 320 || dimensions.outerDepthMm > 320) {
     messages.push('Overall tray dimensions must stay under 320 mm in each direction.');
+  }
+
+  if (settings.generatedBaseEnabled && settings.generatedBaseHollow) {
+    const smallestBaseSpan = Math.min(dimensions.adapterCutoutWidthMm, dimensions.adapterCutoutDepthMm, dimensions.slotWidthMm, dimensions.slotDepthMm);
+
+    if (settings.generatedBaseTopThicknessMm >= settings.generatedBaseHeightMm) {
+      messages.push('Generated base top thickness must be less than the base height.');
+    }
+
+    if (settings.generatedBaseWallThicknessMm * 2 >= smallestBaseSpan) {
+      messages.push('Generated base wall thickness must leave a hollow interior for the selected base size.');
+    }
   }
 
   return {
