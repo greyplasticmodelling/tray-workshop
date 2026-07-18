@@ -28,8 +28,8 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
       : []),
     ...(settings.rankInsertEnabled
       ? [
-          ['Rank insert origin', `C${settings.rankInsertColumn} / R${settings.rankInsertRow}`],
-          ['Rank insert span', `${settings.rankInsertColumnSpan} columns x ${settings.rankInsertRowSpan} ranks`],
+          ['Rank insert origin', `F${settings.rankInsertColumn} / R${settings.rankInsertRow}`],
+          ['Rank insert span', `${settings.rankInsertColumnSpan} files x ${settings.rankInsertRowSpan} ranks`],
           ...(settings.template === 'adapter' && settings.rankInsertCustomSizeEnabled
             ? [['Rank insert sizing', 'Custom']]
             : []),

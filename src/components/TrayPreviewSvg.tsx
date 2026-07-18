@@ -764,7 +764,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
                     textAnchor="middle"
                     className="dimension-label"
                   >
-                    C{columnIndex + 1}/R{rowIndex + 1}
+                    F{columnIndex + 1}/R{rowIndex + 1}
                   </text>
                 );
               }),

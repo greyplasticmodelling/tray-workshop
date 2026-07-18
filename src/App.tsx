@@ -524,18 +524,18 @@ export default function App() {
   const saveCurrentTray = () => {
     const defaultName =
       settings.template === 'adapterLance'
-        ? `Adapter Lance ${settings.rows} rows`
+        ? `Adapter Lance ${settings.rows} ranks`
         : settings.template === 'adapterCircle'
-        ? `Circle Adapter ${settings.columns} x ${settings.rows}`
+        ? `Circle Adapter ${settings.columns} files x ${settings.rows} ranks`
         : settings.template === 'adapterOval'
-        ? `Oval Adapter ${settings.columns} x ${settings.rows}`
+        ? `Oval Adapter ${settings.columns} files x ${settings.rows} ranks`
         : settings.template === 'skirmish'
-        ? `Skirmish ${settings.columns} x ${settings.rows}`
+        ? `Skirmish ${settings.columns} files x ${settings.rows} ranks`
         : settings.template === 'adapter'
-        ? `Adapter ${settings.columns} x ${settings.rows}`
+        ? `Adapter ${settings.columns} files x ${settings.rows} ranks`
         : settings.template === 'lanceWedge'
-        ? `Lance Wedge ${settings.rows} rows`
-        : `Standard ${settings.columns} x ${settings.rows}`;
+        ? `Lance Wedge ${settings.rows} ranks`
+        : `Standard ${settings.columns} files x ${settings.rows} ranks`;
     const name = window.prompt('Save tray as:', defaultName);
 
     if (!name?.trim()) {

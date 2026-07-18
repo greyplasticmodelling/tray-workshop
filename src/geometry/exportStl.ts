@@ -26,18 +26,18 @@ export function downloadStl(settings: TraySettings): void {
       : `${settings.baseWidthMm}x${settings.baseDepthMm}mm`;
   const formation =
     settings.template === 'adapterLance'
-      ? `adapter-lance-wedge-${settings.rows}-rows`
+      ? `adapter-lance-wedge-${settings.rows}-ranks`
       : settings.template === 'adapterCircle'
-        ? `adapter-circle-${settings.columns}x${settings.rows}-${settings.adapterCircleDiameterMm}mm`
+        ? `adapter-circle-${settings.columns}-files-${settings.rows}-ranks-${settings.adapterCircleDiameterMm}mm`
       : settings.template === 'adapterOval'
-        ? `adapter-oval-${settings.columns}x${settings.rows}-${settings.adapterOvalSize}mm`
+        ? `adapter-oval-${settings.columns}-files-${settings.rows}-ranks-${settings.adapterOvalSize}mm`
       : settings.template === 'skirmish'
-        ? `skirmish-${settings.columns}x${settings.rows}-${settings.skirmishBaseShape}-seed-${settings.skirmishSeed}`
+        ? `skirmish-${settings.columns}-files-${settings.rows}-ranks-${settings.skirmishBaseShape}-seed-${settings.skirmishSeed}`
       : settings.template === 'adapter'
-      ? `adapter-${settings.columns}x${settings.rows}`
+      ? `adapter-${settings.columns}-files-${settings.rows}-ranks`
       : settings.template === 'lanceWedge'
-        ? `lance-wedge-${settings.rows}-rows`
-        : `${settings.columns}x${settings.rows}`;
+        ? `lance-wedge-${settings.rows}-ranks`
+        : `${settings.columns}-files-${settings.rows}-ranks`;
   const name = `movement-tray-${baseSize}-${formation}`;
   downloadTextFile(`${name}.stl`, exportAsciiStl(generateTrayMesh(settings), name));
 

@@ -25,8 +25,8 @@ const numberFields: Array<{
 }> = [
   { key: 'baseWidthMm', label: 'Base width (mm)', step: 1, tooltip: 'Width of each model base from left to right.' },
   { key: 'baseDepthMm', label: 'Base depth (mm)', step: 1, tooltip: 'Depth of each model base from front to back.' },
-  { key: 'columns', label: 'Columns', step: 1, max: 20, tooltip: 'Number of bases across the tray frontage. Maximum 20.' },
-  { key: 'rows', label: 'Rows', step: 1, tooltip: 'Number of ranks from front to back.' },
+  { key: 'columns', label: 'Files', step: 1, max: 20, tooltip: 'Number of files across the tray frontage. Maximum 20.' },
+  { key: 'rows', label: 'Ranks', step: 1, tooltip: 'Number of ranks from front to back.' },
   { key: 'toleranceMm', label: 'Tolerance (mm)', step: 0.1, tooltip: 'Extra clearance added to each base slot.' },
   { key: 'floorThicknessMm', label: 'Floor thickness (mm)', step: 0.1, tooltip: 'Thickness of the flat bottom plate.' },
   { key: 'railThicknessMm', label: 'Rail thickness (mm)', step: 0.1, tooltip: 'Horizontal thickness of enabled edge rails.' },
@@ -197,7 +197,7 @@ export function TrayControls({
             isAdapterTray && adapterTooltips[field.key]
               ? adapterTooltips[field.key]
               : isLanceFormation && field.key === 'rows'
-              ? 'Number of wedge ranks. The rear rank will contain the same number of models as the row count.'
+              ? 'Number of wedge ranks. The rear rank will contain the same number of models as the rank count.'
               : field.tooltip;
           const label = isAdapterTray && adapterLabels[field.key] ? adapterLabels[field.key] : field.label;
 
@@ -739,14 +739,14 @@ export function TrayControls({
           {settings.rankInsertEnabled && !rankInsertUnavailable && (
             <>
               <div className="field-grid">
-                <label className="field" title="Column coordinate where the insert starts, counted from the left of the tray.">
-                  <span>Origin column</span>
+                <label className="field" title="File coordinate where the insert starts, counted from the left of the tray.">
+                  <span>Origin file</span>
                   <input
                     type="number"
                     min="1"
                     max={settings.columns}
                     step="1"
-                    title="Column coordinate where the insert starts, counted from the left of the tray."
+                    title="File coordinate where the insert starts, counted from the left of the tray."
                     value={settings.rankInsertColumn}
                     onChange={(event) => updateNumber('rankInsertColumn', event.target.value)}
                   />
@@ -765,14 +765,14 @@ export function TrayControls({
                   />
                 </label>
 
-                <label className="field" title="How many columns the insert occupies.">
-                  <span>Columns occupied</span>
+                <label className="field" title="How many files the insert occupies.">
+                  <span>Files occupied</span>
                   <input
                     type="number"
                     min="1"
                     max={settings.columns}
                     step="1"
-                    title="How many columns the insert occupies."
+                    title="How many files the insert occupies."
                     value={settings.rankInsertColumnSpan}
                     onChange={(event) => updateNumber('rankInsertColumnSpan', event.target.value)}
                   />
@@ -846,7 +846,7 @@ export function TrayControls({
                     <div className="field-grid">
                       <label
                         className="field"
-                        title="Final left-to-right width of the custom insert cutout. It must fit inside the selected column span."
+                        title="Final left-to-right width of the custom insert cutout. It must fit inside the selected file span."
                       >
                         <span>Custom insert width (mm)</span>
                         <input
@@ -854,7 +854,7 @@ export function TrayControls({
                           min="1"
                           max={settings.rankInsertColumnSpan * settings.baseWidthMm}
                           step="0.1"
-                          title="Final left-to-right width of the custom insert cutout. It must fit inside the selected column span."
+                          title="Final left-to-right width of the custom insert cutout. It must fit inside the selected file span."
                           value={settings.rankInsertCustomWidthMm}
                           onChange={(event) => updateNumber('rankInsertCustomWidthMm', event.target.value)}
                         />

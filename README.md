@@ -8,7 +8,7 @@ It runs entirely client-side. Tray geometry is generated in the browser with Thr
 
 - Flat rectangular infantry movement trays
 - Square or rectangular base dimensions
-- Configurable columns, rows, tolerance, floor thickness, rail thickness, and rail height
+- Configurable files, ranks, tolerance, floor thickness, rail thickness, and rail height
 - Optional front, rear, left, and right rails
 - Top-down SVG preview
 - ASCII STL download

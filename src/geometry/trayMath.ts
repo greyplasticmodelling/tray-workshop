@@ -3,8 +3,8 @@ import type { AdapterOvalSize, BuildPlate, BuildPlateFit, BuildPlateSize, TrayDi
 const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; label: string; unit?: string }>> = {
   baseWidthMm: { min: 10, max: 150, label: 'Base width', unit: 'mm' },
   baseDepthMm: { min: 10, max: 150, label: 'Base depth', unit: 'mm' },
-  columns: { min: 1, max: 20, label: 'Columns' },
-  rows: { min: 1, max: 12, label: 'Rows' },
+  columns: { min: 1, max: 20, label: 'Files' },
+  rows: { min: 1, max: 12, label: 'Ranks' },
   toleranceMm: { min: 0.1, max: 3, label: 'Tolerance', unit: 'mm' },
   floorThicknessMm: { min: 0.6, max: 8, label: 'Floor thickness', unit: 'mm' },
   railThicknessMm: { min: 0.6, max: 8, label: 'Rail thickness', unit: 'mm' },
@@ -23,9 +23,9 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   adapterBorderLeftMm: { min: -20, max: 60, label: 'Adapter left border adjustment', unit: 'mm' },
   adapterBorderRightMm: { min: -20, max: 60, label: 'Adapter right border adjustment', unit: 'mm' },
   adapterFloorCutoutBufferMm: { min: 0, max: 20, label: 'Magnetic sheet border width', unit: 'mm' },
-  rankInsertColumn: { min: 1, max: 20, label: 'Rank insert origin column' },
+  rankInsertColumn: { min: 1, max: 20, label: 'Rank insert origin file' },
   rankInsertRow: { min: 1, max: 12, label: 'Rank insert origin rank' },
-  rankInsertColumnSpan: { min: 1, max: 20, label: 'Rank insert column span' },
+  rankInsertColumnSpan: { min: 1, max: 20, label: 'Rank insert file span' },
   rankInsertRowSpan: { min: 1, max: 12, label: 'Rank insert rank span' },
   rankInsertCircleDiameterMm: { min: 10, max: 160, label: 'Rank insert circle diameter', unit: 'mm' },
   rankInsertCustomWidthMm: { min: 1, max: 320, label: 'Custom rank insert width', unit: 'mm' },
@@ -86,7 +86,7 @@ export const trayTemplates: Array<{ value: TraySettings['template']; label: stri
   {
     value: 'lanceWedge',
     label: 'Lance Wedge Movement Tray',
-    description: 'A wedge formation starting at one model and widening by one model for each row.',
+    description: 'A wedge formation starting at one model and widening by one model for each rank.',
   },
   {
     value: 'adapter',
@@ -733,11 +733,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
   });
 
   if (settings.template !== 'lanceWedge' && settings.template !== 'adapterLance' && !Number.isInteger(settings.columns)) {
-    messages.push('Columns must be a positive whole number.');
+    messages.push('Files must be a positive whole number.');
   }
 
   if (!Number.isInteger(settings.rows)) {
-    messages.push('Rows must be a positive whole number.');
+    messages.push('Ranks must be a positive whole number.');
   }
 
   const dimensions = calculateTrayDimensions(settings);
@@ -761,7 +761,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     if (settings.rankInsertColumn + settings.rankInsertColumnSpan - 1 > settings.columns) {
-      messages.push('Rank insert column span must stay inside the tray columns.');
+      messages.push('Rank insert file span must stay inside the tray files.');
     }
 
     if (settings.rankInsertRow + settings.rankInsertRowSpan - 1 > settings.rows) {
@@ -782,7 +782,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       const maxDepth = settings.rankInsertRowSpan * dimensions.slotDepthMm;
 
       if (settings.rankInsertCustomWidthMm > maxWidth) {
-        messages.push(`Custom rank insert width must be ${formatMm(maxWidth)} or smaller for the selected column span.`);
+        messages.push(`Custom rank insert width must be ${formatMm(maxWidth)} or smaller for the selected file span.`);
       }
 
       if (settings.rankInsertCustomDepthMm > maxDepth) {
