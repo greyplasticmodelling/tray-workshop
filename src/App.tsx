@@ -815,6 +815,13 @@ export default function App() {
 
       <footer>
         <span>Tray Workshop v1.0</span>
+        <nav className="footer-guides" aria-label="Tray Workshop guides">
+          <a href="/guides/free-wargaming-movement-tray-stl-generator.html">Movement tray STL guide</a>
+          <a href="/guides/old-world-base-adapter-stl-generator.html">Old World adapters</a>
+          <a href="/guides/chaos-dragon-base-adapter.html">Chaos Dragon adapter</a>
+          <a href="/guides/magnet-cutout-movement-trays.html">Magnet trays</a>
+          <a href="/guides/circle-oval-base-adapter-trays.html">Circle and oval adapters</a>
+        </nav>
         <span>Unofficial fan-made utility. Not affiliated with or endorsed by any tabletop wargame publisher.</span>
       </footer>
     </div>
