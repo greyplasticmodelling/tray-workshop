@@ -667,20 +667,29 @@ export function TrayControls({
                   />
                 </label>
 
-                {isAdapter && (
-                  <label className="field" title="Number of repeated irregular adapter slots in the left flank column.">
-                    <span>Left irregular slots</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      step="1"
-                      title="Number of repeated irregular adapter slots in the left flank column."
-                      value={settings.characterLeftBaseCount}
-                      onChange={(event) => updateNumber('characterLeftBaseCount', event.target.value)}
-                    />
-                  </label>
-                )}
+                <label
+                  className="field"
+                  title={
+                    isAdapter
+                      ? 'Number of irregular adapter files added to the left flank.'
+                      : 'Number of character slot files added to the left flank.'
+                  }
+                >
+                  <span>{isAdapter ? 'Left irregular files' : 'Left slot files'}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    title={
+                      isAdapter
+                        ? 'Number of irregular adapter files added to the left flank.'
+                        : 'Number of character slot files added to the left flank.'
+                    }
+                    value={settings.characterLeftBaseCount}
+                    onChange={(event) => updateNumber('characterLeftBaseCount', event.target.value)}
+                  />
+                </label>
 
                 <label
                   className="field"
@@ -712,20 +721,29 @@ export function TrayControls({
                   />
                 </label>
 
-                {isAdapter && (
-                  <label className="field" title="Number of repeated irregular adapter slots in the right flank column.">
-                    <span>Right irregular slots</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      step="1"
-                      title="Number of repeated irregular adapter slots in the right flank column."
-                      value={settings.characterRightBaseCount}
-                      onChange={(event) => updateNumber('characterRightBaseCount', event.target.value)}
-                    />
-                  </label>
-                )}
+                <label
+                  className="field"
+                  title={
+                    isAdapter
+                      ? 'Number of irregular adapter files added to the right flank.'
+                      : 'Number of character slot files added to the right flank.'
+                  }
+                >
+                  <span>{isAdapter ? 'Right irregular files' : 'Right slot files'}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    title={
+                      isAdapter
+                        ? 'Number of irregular adapter files added to the right flank.'
+                        : 'Number of character slot files added to the right flank.'
+                    }
+                    value={settings.characterRightBaseCount}
+                    onChange={(event) => updateNumber('characterRightBaseCount', event.target.value)}
+                  />
+                </label>
               </>
             ) : (
               <>
@@ -775,20 +793,29 @@ export function TrayControls({
                   />
                 </label>
 
-                {isAdapter && (
-                  <label className="field" title="Number of repeated irregular adapter slots in the selected flank column.">
-                    <span>Irregular slots</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      step="1"
-                      title="Number of repeated irregular adapter slots in the selected flank column."
-                      value={settings.characterBaseCount}
-                      onChange={(event) => updateNumber('characterBaseCount', event.target.value)}
-                    />
-                  </label>
-                )}
+                <label
+                  className="field"
+                  title={
+                    isAdapter
+                      ? 'Number of irregular adapter files added to the selected flank.'
+                      : 'Number of character slot files added to the selected flank.'
+                  }
+                >
+                  <span>{isAdapter ? 'Irregular files' : 'Flank slot files'}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    step="1"
+                    title={
+                      isAdapter
+                        ? 'Number of irregular adapter files added to the selected flank.'
+                        : 'Number of character slot files added to the selected flank.'
+                    }
+                    value={settings.characterBaseCount}
+                    onChange={(event) => updateNumber('characterBaseCount', event.target.value)}
+                  />
+                </label>
               </>
             )}
 

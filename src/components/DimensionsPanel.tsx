@@ -34,6 +34,12 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
           ],
           ...(settings.characterBaySide === 'both'
             ? [
+                ['Left flank files', String(settings.characterLeftBaseCount)],
+                ['Right flank files', String(settings.characterRightBaseCount)],
+              ]
+            : [['Flank files', String(settings.characterBaseCount)]]),
+          ...(settings.characterBaySide === 'both'
+            ? [
                 ['Left flank slot (mm)', `${formatMm(dimensions.characterLeftSlotWidthMm)} x ${formatMm(dimensions.characterLeftSlotDepthMm)}`],
                 ['Right flank slot (mm)', `${formatMm(dimensions.characterRightSlotWidthMm)} x ${formatMm(dimensions.characterRightSlotDepthMm)}`],
               ]
@@ -87,10 +93,10 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
                 ],
                 ...(settings.characterBaySide === 'both'
                   ? [
-                      ['Left flank slots', String(settings.characterLeftBaseCount)],
-                      ['Right flank slots', String(settings.characterRightBaseCount)],
+                      ['Left flank files', String(settings.characterLeftBaseCount)],
+                      ['Right flank files', String(settings.characterRightBaseCount)],
                     ]
-                  : [['Flank slots', String(settings.characterBaseCount)]]),
+                  : [['Flank files', String(settings.characterBaseCount)]]),
                 ['Flank cutout width (mm)', formatMm(dimensions.adapterFlankCutoutWidthMm)],
                 ['Flank cutout depth (mm)', formatMm(dimensions.adapterFlankCutoutDepthMm)],
               ]

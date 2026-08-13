@@ -46,13 +46,13 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   lanceMagnetOffsetMm: { min: 0, max: 40, label: 'Lance magnet offset', unit: 'mm' },
   characterBaseWidthMm: { min: 10, max: 150, label: 'Character base width', unit: 'mm' },
   characterBaseDepthMm: { min: 10, max: 150, label: 'Character base depth', unit: 'mm' },
-  characterBaseCount: { min: 1, max: 10, label: 'Irregular flank slot count' },
+  characterBaseCount: { min: 1, max: 10, label: 'Flank slot files' },
   characterLeftBaseWidthMm: { min: 10, max: 150, label: 'Left flank base width', unit: 'mm' },
   characterLeftBaseDepthMm: { min: 10, max: 150, label: 'Left flank base depth', unit: 'mm' },
-  characterLeftBaseCount: { min: 1, max: 10, label: 'Left irregular flank slot count' },
+  characterLeftBaseCount: { min: 1, max: 10, label: 'Left flank slot files' },
   characterRightBaseWidthMm: { min: 10, max: 150, label: 'Right flank base width', unit: 'mm' },
   characterRightBaseDepthMm: { min: 10, max: 150, label: 'Right flank base depth', unit: 'mm' },
-  characterRightBaseCount: { min: 1, max: 10, label: 'Right irregular flank slot count' },
+  characterRightBaseCount: { min: 1, max: 10, label: 'Right flank slot files' },
   frontRailEnabled: { min: 0, max: 1, label: 'Front rail' },
   rearRailEnabled: { min: 0, max: 1, label: 'Rear rail' },
   leftRailEnabled: { min: 0, max: 1, label: 'Left rail' },
@@ -200,46 +200,40 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
   const hasLeftCharacterBay = hasCharacterBay && (settings.characterBaySide === 'left' || settings.characterBaySide === 'both');
   const hasRightCharacterBay = hasCharacterBay && (settings.characterBaySide === 'right' || settings.characterBaySide === 'both');
-  const singleCharacterCount = isAdapter ? Math.max(1, Math.floor(settings.characterBaseCount)) : 1;
-  const leftCharacterCount = isAdapter
-    ? settings.characterBaySide === 'both'
-      ? Math.max(1, Math.floor(settings.characterLeftBaseCount))
-      : singleCharacterCount
-    : 1;
-  const rightCharacterCount = isAdapter
-    ? settings.characterBaySide === 'both'
-      ? Math.max(1, Math.floor(settings.characterRightBaseCount))
-      : singleCharacterCount
-    : 1;
+  const singleCharacterCount = Math.max(1, Math.floor(settings.characterBaseCount));
+  const leftCharacterCount =
+    settings.characterBaySide === 'both' ? Math.max(1, Math.floor(settings.characterLeftBaseCount)) : singleCharacterCount;
+  const rightCharacterCount =
+    settings.characterBaySide === 'both' ? Math.max(1, Math.floor(settings.characterRightBaseCount)) : singleCharacterCount;
   const singleCharacterWidthMm = isAdapter ? settings.characterBaseWidthMm : settings.characterBaseWidthMm + settings.toleranceMm;
   const singleCharacterDepthMm = isAdapter ? settings.characterBaseDepthMm : settings.characterBaseDepthMm + settings.toleranceMm;
   const characterLeftSlotWidthMm = hasLeftCharacterBay
     ? settings.characterBaySide === 'both'
       ? isAdapter
-        ? settings.characterLeftBaseWidthMm
-        : settings.characterLeftBaseWidthMm + settings.toleranceMm
-      : singleCharacterWidthMm
+        ? settings.characterLeftBaseWidthMm * leftCharacterCount
+        : (settings.characterLeftBaseWidthMm + settings.toleranceMm) * leftCharacterCount
+      : singleCharacterWidthMm * leftCharacterCount
     : 0;
   const characterLeftSlotDepthMm = hasLeftCharacterBay
     ? settings.characterBaySide === 'both'
       ? isAdapter
-        ? settings.characterLeftBaseDepthMm * leftCharacterCount
+        ? settings.characterLeftBaseDepthMm
         : settings.characterLeftBaseDepthMm + settings.toleranceMm
-      : singleCharacterDepthMm * leftCharacterCount
+      : singleCharacterDepthMm
     : 0;
   const characterRightSlotWidthMm = hasRightCharacterBay
     ? settings.characterBaySide === 'both'
       ? isAdapter
-        ? settings.characterRightBaseWidthMm
-        : settings.characterRightBaseWidthMm + settings.toleranceMm
-      : singleCharacterWidthMm
+        ? settings.characterRightBaseWidthMm * rightCharacterCount
+        : (settings.characterRightBaseWidthMm + settings.toleranceMm) * rightCharacterCount
+      : singleCharacterWidthMm * rightCharacterCount
     : 0;
   const characterRightSlotDepthMm = hasRightCharacterBay
     ? settings.characterBaySide === 'both'
       ? isAdapter
-        ? settings.characterRightBaseDepthMm * rightCharacterCount
+        ? settings.characterRightBaseDepthMm
         : settings.characterRightBaseDepthMm + settings.toleranceMm
-      : singleCharacterDepthMm * rightCharacterCount
+      : singleCharacterDepthMm
     : 0;
   const characterSlotWidthMm =
     settings.characterBaySide === 'left'
@@ -620,22 +614,15 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     (settings.characterBaySide === 'left' || settings.characterBaySide === 'both')
   ) {
     const slotCount =
-      settings.template === 'adapter'
-        ? settings.characterBaySide === 'both'
-          ? Math.max(1, Math.floor(settings.characterLeftBaseCount))
-          : Math.max(1, Math.floor(settings.characterBaseCount))
-        : 1;
-    const cellDepth =
-      settings.template === 'adapter'
-        ? settings.characterBaySide === 'both'
-          ? settings.characterLeftBaseDepthMm
-          : settings.characterBaseDepthMm
-        : dimensions.characterLeftSlotDepthMm;
+      settings.characterBaySide === 'both'
+        ? Math.max(1, Math.floor(settings.characterLeftBaseCount))
+        : Math.max(1, Math.floor(settings.characterBaseCount));
+    const cellWidth = dimensions.characterLeftSlotWidthMm / slotCount;
 
     for (let slotIndex = 0; slotIndex < slotCount; slotIndex += 1) {
       centers.push({
-        x: -dimensions.innerWidthMm / 2 + dimensions.characterLeftSlotWidthMm / 2,
-        y: -dimensions.innerDepthMm / 2 + slotIndex * cellDepth + cellDepth / 2,
+        x: -dimensions.innerWidthMm / 2 + slotIndex * cellWidth + cellWidth / 2,
+        y: -dimensions.innerDepthMm / 2 + dimensions.characterLeftSlotDepthMm / 2,
         rowIndex: 0,
       });
     }
@@ -647,22 +634,15 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     (settings.characterBaySide === 'right' || settings.characterBaySide === 'both')
   ) {
     const slotCount =
-      settings.template === 'adapter'
-        ? settings.characterBaySide === 'both'
-          ? Math.max(1, Math.floor(settings.characterRightBaseCount))
-          : Math.max(1, Math.floor(settings.characterBaseCount))
-        : 1;
-    const cellDepth =
-      settings.template === 'adapter'
-        ? settings.characterBaySide === 'both'
-          ? settings.characterRightBaseDepthMm
-          : settings.characterBaseDepthMm
-        : dimensions.characterRightSlotDepthMm;
+      settings.characterBaySide === 'both'
+        ? Math.max(1, Math.floor(settings.characterRightBaseCount))
+        : Math.max(1, Math.floor(settings.characterBaseCount));
+    const cellWidth = dimensions.characterRightSlotWidthMm / slotCount;
 
     for (let slotIndex = 0; slotIndex < slotCount; slotIndex += 1) {
       centers.push({
-        x: dimensions.innerWidthMm / 2 - dimensions.characterRightSlotWidthMm / 2,
-        y: -dimensions.innerDepthMm / 2 + slotIndex * cellDepth + cellDepth / 2,
+        x: dimensions.innerWidthMm / 2 - dimensions.characterRightSlotWidthMm + slotIndex * cellWidth + cellWidth / 2,
+        y: -dimensions.innerDepthMm / 2 + dimensions.characterRightSlotDepthMm / 2,
         rowIndex: 0,
       });
     }
@@ -837,14 +817,14 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     messages.push('Ranks must be a positive whole number.');
   }
 
-  if (settings.template === 'adapter' && settings.characterBayEnabled) {
+  if ((settings.template === 'standard' || settings.template === 'adapter') && settings.characterBayEnabled) {
     const countValues =
       settings.characterBaySide === 'both'
         ? [settings.characterLeftBaseCount, settings.characterRightBaseCount]
         : [settings.characterBaseCount];
 
     if (countValues.some((count) => !Number.isInteger(count))) {
-      messages.push('Irregular flank slot counts must be positive whole numbers.');
+      messages.push('Flank slot files must be positive whole numbers.');
     }
   }
 
@@ -857,6 +837,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
             label: 'left',
             slotWidth: dimensions.characterLeftSlotWidthMm,
             slotDepth: dimensions.characterLeftSlotDepthMm,
+            cellWidth:
+              dimensions.characterLeftSlotWidthMm /
+              (settings.characterBaySide === 'both'
+                ? Math.max(1, Math.floor(settings.characterLeftBaseCount))
+                : Math.max(1, Math.floor(settings.characterBaseCount))),
             cellDepth:
               settings.template === 'adapter'
                 ? settings.characterBaySide === 'both'
@@ -873,6 +858,11 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
             label: 'right',
             slotWidth: dimensions.characterRightSlotWidthMm,
             slotDepth: dimensions.characterRightSlotDepthMm,
+            cellWidth:
+              dimensions.characterRightSlotWidthMm /
+              (settings.characterBaySide === 'both'
+                ? Math.max(1, Math.floor(settings.characterRightBaseCount))
+                : Math.max(1, Math.floor(settings.characterBaseCount))),
             cellDepth:
               settings.template === 'adapter'
                 ? settings.characterBaySide === 'both'
@@ -952,7 +942,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
     if (settings.template === 'adapter' && settings.characterBayEnabled) {
       activeCharacterFlanks.forEach((flank) => {
-        const flankSideWallMm = (flank.slotWidth - dimensions.adapterFlankCutoutWidthMm) / 2;
+        const flankSideWallMm = (flank.cellWidth - dimensions.adapterFlankCutoutWidthMm) / 2;
         const flankFrontBackWallMm = (flank.cellDepth - dimensions.adapterFlankCutoutDepthMm) / 2;
 
         if (dimensions.frontRailMm + flankFrontBackWallMm < minimumWallMm) {
@@ -1009,7 +999,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
     if (settings.template === 'adapter' && settings.characterBayEnabled) {
       activeCharacterFlanks.forEach((flank) => {
-        if (dimensions.adapterFlankCutoutWidthMm > flank.slotWidth) {
+        if (dimensions.adapterFlankCutoutWidthMm > flank.cellWidth) {
           messages.push(`Flank adapter cutout width must fit inside the ${flank.label} irregular flank base width.`);
         }
 
