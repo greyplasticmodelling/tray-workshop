@@ -667,6 +667,21 @@ export function TrayControls({
                   />
                 </label>
 
+                {isAdapter && (
+                  <label className="field" title="Number of repeated irregular adapter slots in the left flank column.">
+                    <span>Left irregular slots</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      step="1"
+                      title="Number of repeated irregular adapter slots in the left flank column."
+                      value={settings.characterLeftBaseCount}
+                      onChange={(event) => updateNumber('characterLeftBaseCount', event.target.value)}
+                    />
+                  </label>
+                )}
+
                 <label
                   className="field"
                   title={isAdapter ? 'Width of the right irregular base footprint.' : 'Width of the right character flank slot.'}
@@ -696,6 +711,21 @@ export function TrayControls({
                     onChange={(event) => updateNumber('characterRightBaseDepthMm', event.target.value)}
                   />
                 </label>
+
+                {isAdapter && (
+                  <label className="field" title="Number of repeated irregular adapter slots in the right flank column.">
+                    <span>Right irregular slots</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      step="1"
+                      title="Number of repeated irregular adapter slots in the right flank column."
+                      value={settings.characterRightBaseCount}
+                      onChange={(event) => updateNumber('characterRightBaseCount', event.target.value)}
+                    />
+                  </label>
+                )}
               </>
             ) : (
               <>
@@ -744,6 +774,21 @@ export function TrayControls({
                     onChange={(event) => updateNumber('characterBaseDepthMm', event.target.value)}
                   />
                 </label>
+
+                {isAdapter && (
+                  <label className="field" title="Number of repeated irregular adapter slots in the selected flank column.">
+                    <span>Irregular slots</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      step="1"
+                      title="Number of repeated irregular adapter slots in the selected flank column."
+                      value={settings.characterBaseCount}
+                      onChange={(event) => updateNumber('characterBaseCount', event.target.value)}
+                    />
+                  </label>
+                )}
               </>
             )}
 

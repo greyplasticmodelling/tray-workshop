@@ -72,10 +72,13 @@ const standardDefaults: TraySettings = {
   characterBaySide: 'right',
   characterBaseWidthMm: 30,
   characterBaseDepthMm: 60,
+  characterBaseCount: 1,
   characterLeftBaseWidthMm: 30,
   characterLeftBaseDepthMm: 60,
+  characterLeftBaseCount: 1,
   characterRightBaseWidthMm: 30,
   characterRightBaseDepthMm: 60,
+  characterRightBaseCount: 1,
   frontRailEnabled: true,
   rearRailEnabled: false,
   leftRailEnabled: true,
@@ -429,15 +432,21 @@ function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
   if (
     nextSettings.characterLeftBaseWidthMm === undefined ||
     nextSettings.characterLeftBaseDepthMm === undefined ||
+    nextSettings.characterLeftBaseCount === undefined ||
     nextSettings.characterRightBaseWidthMm === undefined ||
-    nextSettings.characterRightBaseDepthMm === undefined
+    nextSettings.characterRightBaseDepthMm === undefined ||
+    nextSettings.characterRightBaseCount === undefined ||
+    nextSettings.characterBaseCount === undefined
   ) {
     nextSettings = {
       ...nextSettings,
+      characterBaseCount: nextSettings.characterBaseCount ?? 1,
       characterLeftBaseWidthMm: nextSettings.characterLeftBaseWidthMm ?? nextSettings.characterBaseWidthMm,
       characterLeftBaseDepthMm: nextSettings.characterLeftBaseDepthMm ?? nextSettings.characterBaseDepthMm,
+      characterLeftBaseCount: nextSettings.characterLeftBaseCount ?? nextSettings.characterBaseCount ?? 1,
       characterRightBaseWidthMm: nextSettings.characterRightBaseWidthMm ?? nextSettings.characterBaseWidthMm,
       characterRightBaseDepthMm: nextSettings.characterRightBaseDepthMm ?? nextSettings.characterBaseDepthMm,
+      characterRightBaseCount: nextSettings.characterRightBaseCount ?? nextSettings.characterBaseCount ?? 1,
     };
   }
 

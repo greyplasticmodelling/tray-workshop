@@ -60,6 +60,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             slotX: leftCharacterBayX,
             slotWidth: dimensions.characterLeftSlotWidthMm,
             slotDepth: dimensions.characterLeftSlotDepthMm,
+            cellDepth:
+              isAdapter && settings.characterBaySide === 'both' ? settings.characterLeftBaseDepthMm : settings.characterBaseDepthMm,
+            slotCount: isAdapter && settings.characterBaySide === 'both' ? settings.characterLeftBaseCount : settings.characterBaseCount,
             railEnabled: settings.leftRailEnabled,
             railMm: dimensions.leftRailMm,
             floorX: outerX,
@@ -76,6 +79,9 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             slotX: rightCharacterBayX,
             slotWidth: dimensions.characterRightSlotWidthMm,
             slotDepth: dimensions.characterRightSlotDepthMm,
+            cellDepth:
+              isAdapter && settings.characterBaySide === 'both' ? settings.characterRightBaseDepthMm : settings.characterBaseDepthMm,
+            slotCount: isAdapter && settings.characterBaySide === 'both' ? settings.characterRightBaseCount : settings.characterBaseCount,
             railEnabled: settings.rightRailEnabled,
             railMm: dimensions.rightRailMm,
             floorX: innerX + dimensions.characterLeftSlotWidthMm + dimensions.mainInnerWidthMm,
@@ -558,13 +564,20 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
                 height={bay.slotDepth}
                 className="inner-area"
               />
-              <rect
-                x={bay.slotX + bay.slotWidth / 2 - dimensions.adapterFlankCutoutWidthMm / 2}
-                y={characterSlotY + bay.slotDepth / 2 - dimensions.adapterFlankCutoutDepthMm / 2}
-                width={dimensions.adapterFlankCutoutWidthMm}
-                height={dimensions.adapterFlankCutoutDepthMm}
-                className="adapter-cutout"
-              />
+              {Array.from({ length: Math.max(1, Math.floor(bay.slotCount)) }, (_, slotIndex) => {
+                const cellCenterY = characterSlotY + slotIndex * bay.cellDepth + bay.cellDepth / 2;
+
+                return (
+                  <rect
+                    key={`adapter-flank-cutout-${bay.side}-${slotIndex}`}
+                    x={bay.slotX + bay.slotWidth / 2 - dimensions.adapterFlankCutoutWidthMm / 2}
+                    y={cellCenterY - dimensions.adapterFlankCutoutDepthMm / 2}
+                    width={dimensions.adapterFlankCutoutWidthMm}
+                    height={dimensions.adapterFlankCutoutDepthMm}
+                    className="adapter-cutout"
+                  />
+                );
+              })}
             </g>
           ))}
 

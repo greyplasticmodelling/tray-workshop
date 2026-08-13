@@ -85,6 +85,12 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
                   'Flank side',
                   settings.characterBaySide === 'both' ? 'Both flanks' : settings.characterBaySide === 'left' ? 'Left flank' : 'Right flank',
                 ],
+                ...(settings.characterBaySide === 'both'
+                  ? [
+                      ['Left flank slots', String(settings.characterLeftBaseCount)],
+                      ['Right flank slots', String(settings.characterRightBaseCount)],
+                    ]
+                  : [['Flank slots', String(settings.characterBaseCount)]]),
                 ['Flank cutout width (mm)', formatMm(dimensions.adapterFlankCutoutWidthMm)],
                 ['Flank cutout depth (mm)', formatMm(dimensions.adapterFlankCutoutDepthMm)],
               ]

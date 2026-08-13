@@ -1724,6 +1724,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
               floorX: innerLeftX,
               width: dimensions.characterLeftSlotWidthMm,
               depth: dimensions.characterLeftSlotDepthMm,
+              cellDepth: settings.characterBaySide === 'both' ? settings.characterLeftBaseDepthMm : settings.characterBaseDepthMm,
+              slotCount: settings.characterBaySide === 'both' ? settings.characterLeftBaseCount : settings.characterBaseCount,
             },
           ]
         : []),
@@ -1734,6 +1736,8 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
               floorX: innerLeftX + dimensions.characterLeftSlotWidthMm + dimensions.mainInnerWidthMm,
               width: dimensions.characterRightSlotWidthMm,
               depth: dimensions.characterRightSlotDepthMm,
+              cellDepth: settings.characterBaySide === 'both' ? settings.characterRightBaseDepthMm : settings.characterBaseDepthMm,
+              slotCount: settings.characterBaySide === 'both' ? settings.characterRightBaseCount : settings.characterBaseCount,
             },
           ]
         : []),
@@ -1785,11 +1789,13 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     });
 
     flankAdapters.forEach((flank) => {
-      adapterHoles.push({
-        x: flank.centerX,
-        y: flank.centerY,
-        width: dimensions.adapterFlankCutoutWidthMm,
-        depth: dimensions.adapterFlankCutoutDepthMm,
+      Array.from({ length: Math.max(1, Math.floor(flank.slotCount)) }, (_, slotIndex) => {
+        adapterHoles.push({
+          x: flank.centerX,
+          y: innerFrontY + slotIndex * flank.cellDepth + flank.cellDepth / 2,
+          width: dimensions.adapterFlankCutoutWidthMm,
+          depth: dimensions.adapterFlankCutoutDepthMm,
+        });
       });
     });
 

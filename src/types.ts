@@ -62,10 +62,13 @@ export type TraySettings = {
   characterBaySide: 'left' | 'right' | 'both';
   characterBaseWidthMm: number;
   characterBaseDepthMm: number;
+  characterBaseCount: number;
   characterLeftBaseWidthMm: number;
   characterLeftBaseDepthMm: number;
+  characterLeftBaseCount: number;
   characterRightBaseWidthMm: number;
   characterRightBaseDepthMm: number;
+  characterRightBaseCount: number;
   frontRailEnabled: boolean;
   rearRailEnabled: boolean;
   leftRailEnabled: boolean;
