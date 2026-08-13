@@ -630,55 +630,122 @@ export function TrayControls({
             >
               <option value="left">Left flank</option>
               <option value="right">Right flank</option>
+              <option value="both">Both flanks</option>
             </select>
           </label>
 
           <div className="field-grid">
-            <label
-              className="field"
-              title={
-                isAdapter
-                  ? 'Width of the larger irregular base footprint on the flank.'
-                  : 'Width of the character flank slot from left to right.'
-              }
-            >
-              <span>{isAdapter ? 'Irregular target width (mm)' : 'Flank slot width (mm)'}</span>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                title={
-                  isAdapter
-                    ? 'Width of the larger irregular base footprint on the flank.'
-                    : 'Width of the character flank slot from left to right.'
-                }
-                value={settings.characterBaseWidthMm}
-                onChange={(event) => updateNumber('characterBaseWidthMm', event.target.value)}
-              />
-            </label>
+            {settings.characterBaySide === 'both' ? (
+              <>
+                <label
+                  className="field"
+                  title={isAdapter ? 'Width of the left irregular base footprint.' : 'Width of the left character flank slot.'}
+                >
+                  <span>{isAdapter ? 'Left irregular width (mm)' : 'Left slot width (mm)'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title={isAdapter ? 'Width of the left irregular base footprint.' : 'Width of the left character flank slot.'}
+                    value={settings.characterLeftBaseWidthMm}
+                    onChange={(event) => updateNumber('characterLeftBaseWidthMm', event.target.value)}
+                  />
+                </label>
 
-            <label
-              className="field"
-              title={
-                isAdapter
-                  ? 'Depth of the larger irregular base footprint on the flank.'
-                  : 'Depth of the character flank slot from front to back.'
-              }
-            >
-              <span>{isAdapter ? 'Irregular target depth (mm)' : 'Flank slot depth (mm)'}</span>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                title={
-                  isAdapter
-                    ? 'Depth of the larger irregular base footprint on the flank.'
-                    : 'Depth of the character flank slot from front to back.'
-                }
-                value={settings.characterBaseDepthMm}
-                onChange={(event) => updateNumber('characterBaseDepthMm', event.target.value)}
-              />
-            </label>
+                <label
+                  className="field"
+                  title={isAdapter ? 'Depth of the left irregular base footprint.' : 'Depth of the left character flank slot.'}
+                >
+                  <span>{isAdapter ? 'Left irregular depth (mm)' : 'Left slot depth (mm)'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title={isAdapter ? 'Depth of the left irregular base footprint.' : 'Depth of the left character flank slot.'}
+                    value={settings.characterLeftBaseDepthMm}
+                    onChange={(event) => updateNumber('characterLeftBaseDepthMm', event.target.value)}
+                  />
+                </label>
+
+                <label
+                  className="field"
+                  title={isAdapter ? 'Width of the right irregular base footprint.' : 'Width of the right character flank slot.'}
+                >
+                  <span>{isAdapter ? 'Right irregular width (mm)' : 'Right slot width (mm)'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title={isAdapter ? 'Width of the right irregular base footprint.' : 'Width of the right character flank slot.'}
+                    value={settings.characterRightBaseWidthMm}
+                    onChange={(event) => updateNumber('characterRightBaseWidthMm', event.target.value)}
+                  />
+                </label>
+
+                <label
+                  className="field"
+                  title={isAdapter ? 'Depth of the right irregular base footprint.' : 'Depth of the right character flank slot.'}
+                >
+                  <span>{isAdapter ? 'Right irregular depth (mm)' : 'Right slot depth (mm)'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title={isAdapter ? 'Depth of the right irregular base footprint.' : 'Depth of the right character flank slot.'}
+                    value={settings.characterRightBaseDepthMm}
+                    onChange={(event) => updateNumber('characterRightBaseDepthMm', event.target.value)}
+                  />
+                </label>
+              </>
+            ) : (
+              <>
+                <label
+                  className="field"
+                  title={
+                    isAdapter
+                      ? 'Width of the larger irregular base footprint on the flank.'
+                      : 'Width of the character flank slot from left to right.'
+                  }
+                >
+                  <span>{isAdapter ? 'Irregular target width (mm)' : 'Flank slot width (mm)'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title={
+                      isAdapter
+                        ? 'Width of the larger irregular base footprint on the flank.'
+                        : 'Width of the character flank slot from left to right.'
+                    }
+                    value={settings.characterBaseWidthMm}
+                    onChange={(event) => updateNumber('characterBaseWidthMm', event.target.value)}
+                  />
+                </label>
+
+                <label
+                  className="field"
+                  title={
+                    isAdapter
+                      ? 'Depth of the larger irregular base footprint on the flank.'
+                      : 'Depth of the character flank slot from front to back.'
+                  }
+                >
+                  <span>{isAdapter ? 'Irregular target depth (mm)' : 'Flank slot depth (mm)'}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    title={
+                      isAdapter
+                        ? 'Depth of the larger irregular base footprint on the flank.'
+                        : 'Depth of the character flank slot from front to back.'
+                    }
+                    value={settings.characterBaseDepthMm}
+                    onChange={(event) => updateNumber('characterBaseDepthMm', event.target.value)}
+                  />
+                </label>
+              </>
+            )}
 
             {isAdapter && (
               <>

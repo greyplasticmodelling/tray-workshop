@@ -175,12 +175,29 @@ export function getGeneratedBaseSpecs(settings: TraySettings): GeneratedBaseSpec
   }
 
   if (settings.characterBayEnabled && settings.template === 'standard') {
-    specs.push({
-      shape: 'rect',
-      width: settings.characterBaseWidthMm,
-      depth: settings.characterBaseDepthMm,
-      label: 'character-flank-slot',
-    });
+    if (settings.characterBaySide === 'both') {
+      specs.push(
+        {
+          shape: 'rect',
+          width: settings.characterLeftBaseWidthMm,
+          depth: settings.characterLeftBaseDepthMm,
+          label: 'left-character-flank-slot',
+        },
+        {
+          shape: 'rect',
+          width: settings.characterRightBaseWidthMm,
+          depth: settings.characterRightBaseDepthMm,
+          label: 'right-character-flank-slot',
+        },
+      );
+    } else {
+      specs.push({
+        shape: 'rect',
+        width: settings.characterBaseWidthMm,
+        depth: settings.characterBaseDepthMm,
+        label: 'character-flank-slot',
+      });
+    }
   }
 
   return uniqueSpecs(specs);

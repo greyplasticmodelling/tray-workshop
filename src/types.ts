@@ -59,9 +59,13 @@ export type TraySettings = {
   lanceDoubleMagnetsEnabled: boolean;
   lanceMagnetOffsetMm: number;
   characterBayEnabled: boolean;
-  characterBaySide: 'left' | 'right';
+  characterBaySide: 'left' | 'right' | 'both';
   characterBaseWidthMm: number;
   characterBaseDepthMm: number;
+  characterLeftBaseWidthMm: number;
+  characterLeftBaseDepthMm: number;
+  characterRightBaseWidthMm: number;
+  characterRightBaseDepthMm: number;
   frontRailEnabled: boolean;
   rearRailEnabled: boolean;
   leftRailEnabled: boolean;
@@ -115,6 +119,10 @@ export type TrayDimensions = {
   mainInnerDepthMm: number;
   characterSlotWidthMm: number;
   characterSlotDepthMm: number;
+  characterLeftSlotWidthMm: number;
+  characterLeftSlotDepthMm: number;
+  characterRightSlotWidthMm: number;
+  characterRightSlotDepthMm: number;
   characterDividerMm: number;
   innerWidthMm: number;
   innerDepthMm: number;

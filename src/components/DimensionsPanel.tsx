@@ -26,6 +26,20 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
     ...(settings.magnetCutoutsEnabled
       ? [['Magnet cutout side', settings.magnetCutoutsFromBottom ? 'Underside' : 'Top side']]
       : []),
+    ...(settings.template === 'standard' && settings.characterBayEnabled
+      ? [
+          [
+            'Flank side',
+            settings.characterBaySide === 'both' ? 'Both flanks' : settings.characterBaySide === 'left' ? 'Left flank' : 'Right flank',
+          ],
+          ...(settings.characterBaySide === 'both'
+            ? [
+                ['Left flank slot (mm)', `${formatMm(dimensions.characterLeftSlotWidthMm)} x ${formatMm(dimensions.characterLeftSlotDepthMm)}`],
+                ['Right flank slot (mm)', `${formatMm(dimensions.characterRightSlotWidthMm)} x ${formatMm(dimensions.characterRightSlotDepthMm)}`],
+              ]
+            : [['Flank slot (mm)', `${formatMm(dimensions.characterSlotWidthMm)} x ${formatMm(dimensions.characterSlotDepthMm)}`]]),
+        ]
+      : []),
     ...(settings.rankInsertEnabled
       ? [
           ['Rank insert origin', `F${settings.rankInsertColumn} / R${settings.rankInsertRow}`],
@@ -67,6 +81,10 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
             : []),
           ...(settings.characterBayEnabled
             ? [
+                [
+                  'Flank side',
+                  settings.characterBaySide === 'both' ? 'Both flanks' : settings.characterBaySide === 'left' ? 'Left flank' : 'Right flank',
+                ],
                 ['Flank cutout width (mm)', formatMm(dimensions.adapterFlankCutoutWidthMm)],
                 ['Flank cutout depth (mm)', formatMm(dimensions.adapterFlankCutoutDepthMm)],
               ]

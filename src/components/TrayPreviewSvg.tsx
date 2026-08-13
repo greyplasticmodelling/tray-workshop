@@ -43,36 +43,66 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const isSkirmish = settings.template === 'skirmish';
   const hasCharacterBay =
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
-  const characterBayX =
-    settings.characterBaySide === 'left'
-      ? innerX
-      : innerX + dimensions.mainInnerWidthMm;
+  const hasLeftCharacterBay = hasCharacterBay && (settings.characterBaySide === 'left' || settings.characterBaySide === 'both');
+  const hasRightCharacterBay = hasCharacterBay && (settings.characterBaySide === 'right' || settings.characterBaySide === 'both');
   const characterBayY = innerY;
   const characterSlotY = characterBayY;
-  const mainAreaX =
-    innerX + (hasCharacterBay && settings.characterBaySide === 'left' ? dimensions.characterSlotWidthMm : 0);
+  const mainAreaX = innerX + (hasLeftCharacterBay ? dimensions.characterLeftSlotWidthMm : 0);
   const mainAreaY = innerY;
-  const mainFloorX = hasCharacterBay && settings.characterBaySide === 'left' ? innerX + dimensions.characterSlotWidthMm : innerX;
-  const characterFloorX =
-    settings.characterBaySide === 'left' ? innerX : innerX + dimensions.mainInnerWidthMm;
-  const baySideRailEnabled =
-    hasCharacterBay &&
-    (settings.characterBaySide === 'left' ? settings.leftRailEnabled : settings.rightRailEnabled);
-  const baySideRailMm = settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm;
-  const hasCharacterReturnRail = baySideRailEnabled && dimensions.characterSlotDepthMm < dimensions.mainInnerDepthMm;
-  const characterFloorWidth = dimensions.characterSlotWidthMm + baySideRailMm;
-  const characterFloorHeight =
-    dimensions.frontRailMm + dimensions.characterSlotDepthMm + (hasCharacterReturnRail ? settings.railThicknessMm : 0);
-  const baySideRailX =
-    settings.characterBaySide === 'left' ? outerX : outerX + dimensions.outerWidthMm - baySideRailMm;
-  const mainSideRailX =
-    settings.characterBaySide === 'left'
-      ? outerX + dimensions.characterSlotWidthMm
-      : innerX + dimensions.mainInnerWidthMm;
-  const stepRailX = settings.characterBaySide === 'left' ? outerX : innerX + dimensions.mainInnerWidthMm;
-  const stepRailY = innerY + dimensions.characterSlotDepthMm;
-  const stepRailWidth = dimensions.characterSlotWidthMm + baySideRailMm;
-  const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - dimensions.characterSlotDepthMm;
+  const mainFloorX = hasLeftCharacterBay ? innerX + dimensions.characterLeftSlotWidthMm : innerX;
+  const leftCharacterBayX = innerX;
+  const rightCharacterBayX = innerX + dimensions.characterLeftSlotWidthMm + dimensions.mainInnerWidthMm;
+  const characterBays = [
+    ...(hasLeftCharacterBay
+      ? [
+          {
+            side: 'left' as const,
+            slotX: leftCharacterBayX,
+            slotWidth: dimensions.characterLeftSlotWidthMm,
+            slotDepth: dimensions.characterLeftSlotDepthMm,
+            railEnabled: settings.leftRailEnabled,
+            railMm: dimensions.leftRailMm,
+            floorX: outerX,
+            sideRailX: outerX,
+            stepRailX: outerX,
+            mainSideRailX: outerX + dimensions.characterLeftSlotWidthMm,
+          },
+        ]
+      : []),
+    ...(hasRightCharacterBay
+      ? [
+          {
+            side: 'right' as const,
+            slotX: rightCharacterBayX,
+            slotWidth: dimensions.characterRightSlotWidthMm,
+            slotDepth: dimensions.characterRightSlotDepthMm,
+            railEnabled: settings.rightRailEnabled,
+            railMm: dimensions.rightRailMm,
+            floorX: innerX + dimensions.characterLeftSlotWidthMm + dimensions.mainInnerWidthMm,
+            sideRailX: outerX + dimensions.outerWidthMm - dimensions.rightRailMm,
+            stepRailX: innerX + dimensions.characterLeftSlotWidthMm + dimensions.mainInnerWidthMm,
+            mainSideRailX: innerX + dimensions.characterLeftSlotWidthMm + dimensions.mainInnerWidthMm,
+          },
+        ]
+      : []),
+  ].map((bay) => {
+    const hasReturnRail = bay.railEnabled && bay.railMm > 0 && bay.slotDepth < dimensions.mainInnerDepthMm;
+    const floorWidth = bay.slotWidth + bay.railMm;
+    const floorHeight = dimensions.frontRailMm + bay.slotDepth + (hasReturnRail ? settings.railThicknessMm : 0);
+    const stepRailWidth = bay.slotWidth + bay.railMm;
+    const stepRailY = innerY + bay.slotDepth;
+    const mainSideRailHeight = dimensions.outerDepthMm - dimensions.frontRailMm - bay.slotDepth;
+
+    return {
+      ...bay,
+      hasReturnRail,
+      floorWidth,
+      floorHeight,
+      stepRailWidth,
+      stepRailY,
+      mainSideRailHeight,
+    };
+  });
   const magnetCenters = getMagnetCutoutCenters(settings, dimensions);
   const skirmishPlacements = isSkirmish ? getSkirmishPlacements(settings, dimensions) : [];
   const circleAdapterCenters = isAdapterCircle ? getCircleAdapterCenters(settings, dimensions) : [];
@@ -112,21 +142,21 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             width: dimensions.mainInnerWidthMm,
             height: dimensions.mainInnerDepthMm,
           },
-          {
-            key: 'finish-adapter-flank',
-            x: characterFloorX,
+          ...characterBays.map((bay) => ({
+            key: `finish-adapter-flank-${bay.side}`,
+            x: bay.slotX,
             y: outerY,
-            width: dimensions.characterSlotWidthMm,
-            height: dimensions.characterSlotDepthMm,
-          },
+            width: bay.slotWidth,
+            height: bay.slotDepth,
+          })),
         );
       }
     } else if (!isLanceFormation) {
-      if (settings.leftRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'right')) {
+      if (settings.leftRailEnabled && !hasLeftCharacterBay) {
         finishLines.push({ key: 'finish-left-rail', x1: outerX, y1: outerY, x2: outerX, y2: outerY + dimensions.outerDepthMm });
       }
 
-      if (settings.rightRailEnabled && (!hasCharacterBay || settings.characterBaySide === 'left')) {
+      if (settings.rightRailEnabled && !hasRightCharacterBay) {
         const railX = outerX + dimensions.outerWidthMm;
         finishLines.push({ key: 'finish-right-rail', x1: railX, y1: outerY + dimensions.outerDepthMm, x2: railX, y2: outerY });
       }
@@ -149,39 +179,36 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         finishLines.push({ key: 'finish-rear-rail', x1: rearLeftX, y1: rearY, x2: rearRightX, y2: rearY });
       }
 
-      if (hasCharacterBay && baySideRailEnabled) {
-        const bayOuterX = settings.characterBaySide === 'left' ? outerX : outerX + dimensions.outerWidthMm;
+      characterBays.filter((bay) => bay.railEnabled).forEach((bay) => {
+        const bayOuterX = bay.side === 'left' ? outerX : outerX + dimensions.outerWidthMm;
         finishLines.push({
-          key: 'finish-bay-side-rail',
+          key: `finish-bay-side-rail-${bay.side}`,
           x1: bayOuterX,
           y1: outerY,
           x2: bayOuterX,
-          y2: outerY + characterFloorHeight,
+          y2: outerY + bay.floorHeight,
         });
 
-        if (hasCharacterReturnRail) {
-          const mainSideOuterX =
-            settings.characterBaySide === 'left'
-              ? outerX + dimensions.characterSlotWidthMm
-              : innerX + dimensions.mainInnerWidthMm + settings.railThicknessMm;
+        if (bay.hasReturnRail) {
+          const mainSideOuterX = bay.side === 'left' ? outerX + bay.slotWidth : bay.mainSideRailX + settings.railThicknessMm;
           finishLines.push(
             {
-              key: 'finish-character-return-rail',
-              x1: stepRailX,
-              y1: stepRailY + settings.railThicknessMm,
-              x2: stepRailX + stepRailWidth,
-              y2: stepRailY + settings.railThicknessMm,
+              key: `finish-character-return-rail-${bay.side}`,
+              x1: bay.stepRailX,
+              y1: bay.stepRailY + settings.railThicknessMm,
+              x2: bay.stepRailX + bay.stepRailWidth,
+              y2: bay.stepRailY + settings.railThicknessMm,
             },
             {
-              key: 'finish-main-side-rail',
+              key: `finish-main-side-rail-${bay.side}`,
               x1: mainSideOuterX,
-              y1: stepRailY,
+              y1: bay.stepRailY,
               x2: mainSideOuterX,
-              y2: stepRailY + mainSideRailHeight,
+              y2: bay.stepRailY + bay.mainSideRailHeight,
             },
           );
         }
-      }
+      });
     } else if (isLanceFormation) {
       rankCounts.forEach((rankCount, rowIndex) => {
         const rowWidth = rankCount * dimensions.slotWidthMm;
@@ -273,18 +300,18 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
       );
     }
   }
-  if (hasCharacterBay) {
+  characterBays.forEach((bay) => {
     footprints.push(
       <rect
-        key="character-bay"
-        x={characterBayX}
+        key={`character-bay-${bay.side}`}
+        x={bay.slotX}
         y={characterSlotY}
-        width={dimensions.characterSlotWidthMm}
-        height={dimensions.characterSlotDepthMm}
+        width={bay.slotWidth}
+        height={bay.slotDepth}
         className="footprint"
       />,
     );
-  }
+  });
 
   return (
     <div className="preview-frame">
@@ -338,13 +365,16 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               height={dimensions.outerDepthMm}
               className="floor"
             />
-            <rect
-              x={characterFloorX}
-              y={innerY}
-              width={characterFloorWidth}
-              height={characterFloorHeight}
-              className="floor"
-            />
+            {characterBays.map((bay) => (
+              <rect
+                key={`character-floor-${bay.side}`}
+                x={bay.floorX}
+                y={innerY}
+                width={bay.floorWidth}
+                height={bay.floorHeight}
+                className="floor"
+              />
+            ))}
           </>
         )}
 
@@ -518,24 +548,25 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             });
           })}
 
-        {isAdapter && hasCharacterBay && (
-          <g>
-            <rect
-              x={characterBayX}
-              y={characterSlotY}
-              width={dimensions.characterSlotWidthMm}
-              height={dimensions.characterSlotDepthMm}
-              className="inner-area"
-            />
-            <rect
-              x={characterBayX + dimensions.characterSlotWidthMm / 2 - dimensions.adapterFlankCutoutWidthMm / 2}
-              y={characterSlotY + dimensions.characterSlotDepthMm / 2 - dimensions.adapterFlankCutoutDepthMm / 2}
-              width={dimensions.adapterFlankCutoutWidthMm}
-              height={dimensions.adapterFlankCutoutDepthMm}
-              className="adapter-cutout"
-            />
-          </g>
-        )}
+        {isAdapter &&
+          characterBays.map((bay) => (
+            <g key={`adapter-flank-${bay.side}`}>
+              <rect
+                x={bay.slotX}
+                y={characterSlotY}
+                width={bay.slotWidth}
+                height={bay.slotDepth}
+                className="inner-area"
+              />
+              <rect
+                x={bay.slotX + bay.slotWidth / 2 - dimensions.adapterFlankCutoutWidthMm / 2}
+                y={characterSlotY + bay.slotDepth / 2 - dimensions.adapterFlankCutoutDepthMm / 2}
+                width={dimensions.adapterFlankCutoutWidthMm}
+                height={dimensions.adapterFlankCutoutDepthMm}
+                className="adapter-cutout"
+              />
+            </g>
+          ))}
 
         {settings.frontRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && (
           <rect x={innerX} y={outerY} width={dimensions.innerWidthMm} height={settings.railThicknessMm} className="rail" />
@@ -570,10 +601,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {hasCharacterBay && settings.leftRailEnabled && settings.characterBaySide === 'right' && (
+        {settings.leftRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && !hasLeftCharacterBay && hasCharacterBay && (
           <rect x={outerX} y={outerY} width={settings.railThicknessMm} height={dimensions.outerDepthMm} className="rail" />
         )}
-        {hasCharacterBay && settings.rightRailEnabled && settings.characterBaySide === 'left' && (
+        {settings.rightRailEnabled && !isLanceFormation && !isAdapterTray && !isSkirmish && !hasRightCharacterBay && hasCharacterBay && (
           <rect
             x={outerX + dimensions.outerWidthMm - settings.railThicknessMm}
             y={outerY}
@@ -582,35 +613,37 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="rail"
           />
         )}
-        {baySideRailEnabled && (
-          <>
+        {characterBays
+          .filter((bay) => bay.railEnabled)
+          .map((bay) => (
+          <g key={`bay-rails-${bay.side}`}>
             <rect
-              x={baySideRailX}
+              x={bay.sideRailX}
               y={outerY}
-              width={baySideRailMm}
-              height={characterFloorHeight}
+              width={bay.railMm}
+              height={bay.floorHeight}
               className="rail"
             />
-            {hasCharacterReturnRail && (
+            {bay.hasReturnRail && (
               <>
                 <rect
-                  x={stepRailX}
-                  y={stepRailY}
-                  width={stepRailWidth}
+                  x={bay.stepRailX}
+                  y={bay.stepRailY}
+                  width={bay.stepRailWidth}
                   height={settings.railThicknessMm}
                   className="rail"
                 />
                 <rect
-                  x={mainSideRailX}
-                  y={stepRailY}
+                  x={bay.mainSideRailX}
+                  y={bay.stepRailY}
                   width={settings.railThicknessMm}
-                  height={mainSideRailHeight}
+                  height={bay.mainSideRailHeight}
                   className="rail"
                 />
               </>
             )}
-          </>
-        )}
+          </g>
+          ))}
 
         {isLanceWedge &&
           rankCounts.map((rankCount, rowIndex) => {
@@ -718,15 +751,16 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
         {!isLanceFormation && !isAdapterTray && !isSkirmish && (
           <rect x={mainAreaX} y={mainAreaY} width={dimensions.mainInnerWidthMm} height={dimensions.mainInnerDepthMm} className="inner-area" />
         )}
-        {hasCharacterBay && (
+        {characterBays.map((bay) => (
           <rect
-            x={characterBayX}
+            key={`character-inner-${bay.side}`}
+            x={bay.slotX}
             y={characterSlotY}
-            width={dimensions.characterSlotWidthMm}
-            height={dimensions.characterSlotDepthMm}
+            width={bay.slotWidth}
+            height={bay.slotDepth}
             className="inner-area"
           />
-        )}
+        ))}
         {isSkirmish &&
           skirmishPlacements.filter((placement) => !isInsideRankInsert(placement.x, placement.y)).map((placement) => {
             const x = innerCenterScreenX + placement.x;

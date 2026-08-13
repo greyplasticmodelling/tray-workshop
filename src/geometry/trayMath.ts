@@ -46,6 +46,10 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   lanceMagnetOffsetMm: { min: 0, max: 40, label: 'Lance magnet offset', unit: 'mm' },
   characterBaseWidthMm: { min: 10, max: 150, label: 'Character base width', unit: 'mm' },
   characterBaseDepthMm: { min: 10, max: 150, label: 'Character base depth', unit: 'mm' },
+  characterLeftBaseWidthMm: { min: 10, max: 150, label: 'Left flank base width', unit: 'mm' },
+  characterLeftBaseDepthMm: { min: 10, max: 150, label: 'Left flank base depth', unit: 'mm' },
+  characterRightBaseWidthMm: { min: 10, max: 150, label: 'Right flank base width', unit: 'mm' },
+  characterRightBaseDepthMm: { min: 10, max: 150, label: 'Right flank base depth', unit: 'mm' },
   frontRailEnabled: { min: 0, max: 1, label: 'Front rail' },
   rearRailEnabled: { min: 0, max: 1, label: 'Rear rail' },
   leftRailEnabled: { min: 0, max: 1, label: 'Left rail' },
@@ -191,19 +195,53 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
     : rankCounts.length * slotDepthMm + (isSkirmish ? skirmishMinimumGapMm : 0);
   const hasCharacterBay =
     settings.characterBayEnabled && (settings.template === 'standard' || settings.template === 'adapter');
-  const characterSlotWidthMm = hasCharacterBay
-    ? isAdapter
-      ? settings.characterBaseWidthMm
-      : settings.characterBaseWidthMm + settings.toleranceMm
+  const hasLeftCharacterBay = hasCharacterBay && (settings.characterBaySide === 'left' || settings.characterBaySide === 'both');
+  const hasRightCharacterBay = hasCharacterBay && (settings.characterBaySide === 'right' || settings.characterBaySide === 'both');
+  const singleCharacterWidthMm = isAdapter ? settings.characterBaseWidthMm : settings.characterBaseWidthMm + settings.toleranceMm;
+  const singleCharacterDepthMm = isAdapter ? settings.characterBaseDepthMm : settings.characterBaseDepthMm + settings.toleranceMm;
+  const characterLeftSlotWidthMm = hasLeftCharacterBay
+    ? settings.characterBaySide === 'both'
+      ? isAdapter
+        ? settings.characterLeftBaseWidthMm
+        : settings.characterLeftBaseWidthMm + settings.toleranceMm
+      : singleCharacterWidthMm
     : 0;
-  const characterSlotDepthMm = hasCharacterBay
-    ? isAdapter
-      ? settings.characterBaseDepthMm
-      : settings.characterBaseDepthMm + settings.toleranceMm
+  const characterLeftSlotDepthMm = hasLeftCharacterBay
+    ? settings.characterBaySide === 'both'
+      ? isAdapter
+        ? settings.characterLeftBaseDepthMm
+        : settings.characterLeftBaseDepthMm + settings.toleranceMm
+      : singleCharacterDepthMm
     : 0;
+  const characterRightSlotWidthMm = hasRightCharacterBay
+    ? settings.characterBaySide === 'both'
+      ? isAdapter
+        ? settings.characterRightBaseWidthMm
+        : settings.characterRightBaseWidthMm + settings.toleranceMm
+      : singleCharacterWidthMm
+    : 0;
+  const characterRightSlotDepthMm = hasRightCharacterBay
+    ? settings.characterBaySide === 'both'
+      ? isAdapter
+        ? settings.characterRightBaseDepthMm
+        : settings.characterRightBaseDepthMm + settings.toleranceMm
+      : singleCharacterDepthMm
+    : 0;
+  const characterSlotWidthMm =
+    settings.characterBaySide === 'left'
+      ? characterLeftSlotWidthMm
+      : settings.characterBaySide === 'right'
+      ? characterRightSlotWidthMm
+      : Math.max(characterLeftSlotWidthMm, characterRightSlotWidthMm);
+  const characterSlotDepthMm =
+    settings.characterBaySide === 'left'
+      ? characterLeftSlotDepthMm
+      : settings.characterBaySide === 'right'
+      ? characterRightSlotDepthMm
+      : Math.max(characterLeftSlotDepthMm, characterRightSlotDepthMm);
   const characterDividerMm = 0;
-  const innerWidthMm = mainInnerWidthMm + characterSlotWidthMm;
-  const innerDepthMm = Math.max(mainInnerDepthMm, characterSlotDepthMm);
+  const innerWidthMm = mainInnerWidthMm + characterLeftSlotWidthMm + characterRightSlotWidthMm;
+  const innerDepthMm = Math.max(mainInnerDepthMm, characterLeftSlotDepthMm, characterRightSlotDepthMm);
   const supportsAdapterBorder = settings.template === 'adapter' || settings.template === 'adapterCircle' || settings.template === 'adapterOval';
   const useCustomAdapterBorder = supportsAdapterBorder && settings.adapterBorderCustomEnabled;
   const adapterBorderLeftMm = supportsAdapterBorder
@@ -234,6 +272,10 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
     mainInnerDepthMm,
     characterSlotWidthMm,
     characterSlotDepthMm,
+    characterLeftSlotWidthMm,
+    characterLeftSlotDepthMm,
+    characterRightSlotWidthMm,
+    characterRightSlotDepthMm,
     characterDividerMm,
     innerWidthMm,
     innerDepthMm,
@@ -535,8 +577,8 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     const standardMainOffsetX =
       settings.characterBayEnabled &&
       (settings.template === 'standard' || settings.template === 'adapter') &&
-      settings.characterBaySide === 'left'
-        ? dimensions.characterSlotWidthMm
+      (settings.characterBaySide === 'left' || settings.characterBaySide === 'both')
+        ? dimensions.characterLeftSlotWidthMm
         : 0;
     const rowStartX =
       settings.template === 'lanceWedge' || settings.template === 'adapterLance'
@@ -558,15 +600,26 @@ export function getMagnetCutoutCenters(settings: TraySettings, dimensions = calc
     }
   });
 
-  if ((settings.template === 'standard' || settings.template === 'adapter') && settings.characterBayEnabled) {
-    const characterX =
-      settings.characterBaySide === 'left'
-        ? -dimensions.innerWidthMm / 2 + dimensions.characterSlotWidthMm / 2
-        : dimensions.innerWidthMm / 2 - dimensions.characterSlotWidthMm / 2;
-
+  if (
+    (settings.template === 'standard' || settings.template === 'adapter') &&
+    settings.characterBayEnabled &&
+    (settings.characterBaySide === 'left' || settings.characterBaySide === 'both')
+  ) {
     centers.push({
-      x: characterX,
-      y: -dimensions.innerDepthMm / 2 + dimensions.characterSlotDepthMm / 2,
+      x: -dimensions.innerWidthMm / 2 + dimensions.characterLeftSlotWidthMm / 2,
+      y: -dimensions.innerDepthMm / 2 + dimensions.characterLeftSlotDepthMm / 2,
+      rowIndex: 0,
+    });
+  }
+
+  if (
+    (settings.template === 'standard' || settings.template === 'adapter') &&
+    settings.characterBayEnabled &&
+    (settings.characterBaySide === 'right' || settings.characterBaySide === 'both')
+  ) {
+    centers.push({
+      x: dimensions.innerWidthMm / 2 - dimensions.characterRightSlotWidthMm / 2,
+      y: -dimensions.innerDepthMm / 2 + dimensions.characterRightSlotDepthMm / 2,
       rowIndex: 0,
     });
   }
@@ -742,6 +795,28 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
   const dimensions = calculateTrayDimensions(settings);
   const rankInsertSupported = supportsRankInsert(settings);
+  const activeCharacterFlanks = [
+    ...(settings.characterBayEnabled && (settings.characterBaySide === 'left' || settings.characterBaySide === 'both')
+      ? [
+          {
+            label: 'left',
+            slotWidth: dimensions.characterLeftSlotWidthMm,
+            slotDepth: dimensions.characterLeftSlotDepthMm,
+            edgeMm: dimensions.leftRailMm,
+          },
+        ]
+      : []),
+    ...(settings.characterBayEnabled && (settings.characterBaySide === 'right' || settings.characterBaySide === 'both')
+      ? [
+          {
+            label: 'right',
+            slotWidth: dimensions.characterRightSlotWidthMm,
+            slotDepth: dimensions.characterRightSlotDepthMm,
+            edgeMm: dimensions.rightRailMm,
+          },
+        ]
+      : []),
+  ];
 
   if (settings.rankInsertEnabled) {
     if (!rankInsertSupported) {
@@ -809,23 +884,22 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     });
 
     if (settings.template === 'adapter' && settings.characterBayEnabled) {
-      const flankSideWallMm = (dimensions.characterSlotWidthMm - dimensions.adapterFlankCutoutWidthMm) / 2;
-      const flankFrontBackWallMm = (dimensions.characterSlotDepthMm - dimensions.adapterFlankCutoutDepthMm) / 2;
+      activeCharacterFlanks.forEach((flank) => {
+      const flankSideWallMm = (flank.slotWidth - dimensions.adapterFlankCutoutWidthMm) / 2;
+      const flankFrontBackWallMm = (flank.slotDepth - dimensions.adapterFlankCutoutDepthMm) / 2;
 
       if (dimensions.frontRailMm + flankFrontBackWallMm < minimumWallMm) {
-        messages.push(`Adapter front edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
+        messages.push(`Adapter front edge must leave at least ${minimumWallMm} mm around the ${flank.label} flank cutout.`);
       }
 
       if (dimensions.rearRailMm + flankFrontBackWallMm < minimumWallMm) {
-        messages.push(`Adapter rear edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
+        messages.push(`Adapter rear edge must leave at least ${minimumWallMm} mm around the ${flank.label} flank cutout.`);
       }
 
-      if (
-        (settings.characterBaySide === 'left' ? dimensions.leftRailMm : dimensions.rightRailMm) + flankSideWallMm <
-        minimumWallMm
-      ) {
-        messages.push(`Adapter flank edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
+      if (flank.edgeMm + flankSideWallMm < minimumWallMm) {
+        messages.push(`Adapter ${flank.label} flank edge must leave at least ${minimumWallMm} mm around the flank cutout.`);
       }
+      });
     }
   }
 
@@ -867,13 +941,15 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     if (settings.template === 'adapter' && settings.characterBayEnabled) {
-      if (dimensions.adapterFlankCutoutWidthMm > dimensions.characterSlotWidthMm) {
-        messages.push('Flank adapter cutout width must fit inside the irregular flank base width.');
-      }
+      activeCharacterFlanks.forEach((flank) => {
+        if (dimensions.adapterFlankCutoutWidthMm > flank.slotWidth) {
+          messages.push(`Flank adapter cutout width must fit inside the ${flank.label} irregular flank base width.`);
+        }
 
-      if (dimensions.adapterFlankCutoutDepthMm > dimensions.characterSlotDepthMm) {
-        messages.push('Flank adapter cutout depth must fit inside the irregular flank base depth.');
-      }
+        if (dimensions.adapterFlankCutoutDepthMm > flank.slotDepth) {
+          messages.push(`Flank adapter cutout depth must fit inside the ${flank.label} irregular flank base depth.`);
+        }
+      });
     }
 
     if (settings.adapterFloorCutoutEnabled && settings.adapterRemoveFloorEnabled) {
@@ -888,13 +964,15 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       }
 
       if (settings.template === 'adapter' && settings.characterBayEnabled) {
-        if (minimumOpeningWidthMm >= dimensions.characterSlotWidthMm) {
-          messages.push('Magnetic sheet border width must leave an opening inside the irregular flank width.');
-        }
+        activeCharacterFlanks.forEach((flank) => {
+          if (minimumOpeningWidthMm >= flank.slotWidth) {
+            messages.push(`Magnetic sheet border width must leave an opening inside the ${flank.label} irregular flank width.`);
+          }
 
-        if (minimumOpeningWidthMm >= dimensions.characterSlotDepthMm) {
-          messages.push('Magnetic sheet border width must leave an opening inside the irregular flank depth.');
-        }
+          if (minimumOpeningWidthMm >= flank.slotDepth) {
+            messages.push(`Magnetic sheet border width must leave an opening inside the ${flank.label} irregular flank depth.`);
+          }
+        });
       }
     }
   }
@@ -947,7 +1025,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       settings.magnetDiameterMm >
         (settings.template === 'adapter'
           ? Math.min(dimensions.adapterFlankCutoutWidthMm, dimensions.adapterFlankCutoutDepthMm)
-          : Math.min(dimensions.characterSlotWidthMm, dimensions.characterSlotDepthMm))
+          : Math.min(...activeCharacterFlanks.map((flank) => Math.min(flank.slotWidth, flank.slotDepth))))
     ) {
       messages.push('Magnet diameter must fit inside the character flank slot.');
     }

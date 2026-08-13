@@ -72,6 +72,10 @@ const standardDefaults: TraySettings = {
   characterBaySide: 'right',
   characterBaseWidthMm: 30,
   characterBaseDepthMm: 60,
+  characterLeftBaseWidthMm: 30,
+  characterLeftBaseDepthMm: 60,
+  characterRightBaseWidthMm: 30,
+  characterRightBaseDepthMm: 60,
   frontRailEnabled: true,
   rearRailEnabled: false,
   leftRailEnabled: true,
@@ -419,6 +423,21 @@ function normaliseCompatibleSettings(settings: TraySettings): TraySettings {
     nextSettings = {
       ...nextSettings,
       magnetCutoutsEnabled: false,
+    };
+  }
+
+  if (
+    nextSettings.characterLeftBaseWidthMm === undefined ||
+    nextSettings.characterLeftBaseDepthMm === undefined ||
+    nextSettings.characterRightBaseWidthMm === undefined ||
+    nextSettings.characterRightBaseDepthMm === undefined
+  ) {
+    nextSettings = {
+      ...nextSettings,
+      characterLeftBaseWidthMm: nextSettings.characterLeftBaseWidthMm ?? nextSettings.characterBaseWidthMm,
+      characterLeftBaseDepthMm: nextSettings.characterLeftBaseDepthMm ?? nextSettings.characterBaseDepthMm,
+      characterRightBaseWidthMm: nextSettings.characterRightBaseWidthMm ?? nextSettings.characterBaseWidthMm,
+      characterRightBaseDepthMm: nextSettings.characterRightBaseDepthMm ?? nextSettings.characterBaseDepthMm,
     };
   }
 
