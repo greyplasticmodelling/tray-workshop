@@ -19,9 +19,9 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
   const rankInsert = getRankInsertSlot(settings, dimensions);
   const items = [
     ['Inner width (mm)', formatMm(dimensions.innerWidthMm)],
-    ['Inner depth (mm)', formatMm(dimensions.innerDepthMm)],
+    ['Inner length (mm)', formatMm(dimensions.innerDepthMm)],
     ['Outer width (mm)', formatMm(dimensions.outerWidthMm)],
-    ['Outer depth (mm)', formatMm(dimensions.outerDepthMm)],
+    ['Outer length (mm)', formatMm(dimensions.outerDepthMm)],
     ['Floor thickness (mm)', formatMm(settings.floorThicknessMm)],
     ...(settings.magnetCutoutsEnabled
       ? [['Magnet cutout side', settings.magnetCutoutsFromBottom ? 'Underside' : 'Top side']]
@@ -115,7 +115,7 @@ export function DimensionsPanel({ dimensions, settings, buildPlateFit, onSetting
       : 'Likely needs splitting';
   const fitDetail = fitsOnPlate
     ? `${buildPlateFit.plate.widthMm} x ${buildPlateFit.plate.depthMm} mm build plate`
-    : `Over by ${formatMm(buildPlateFit.overWidthMm)} wide and ${formatMm(buildPlateFit.overDepthMm)} deep`;
+    : `Over by ${formatMm(buildPlateFit.overWidthMm)} wide and ${formatMm(buildPlateFit.overDepthMm)} long`;
 
   return (
     <div className="output-summary">

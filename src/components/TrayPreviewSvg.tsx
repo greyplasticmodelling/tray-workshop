@@ -28,7 +28,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const widthLineY = outerY + dimensions.outerDepthMm + dimensionGap;
   const depthLineX = outerX + dimensions.outerWidthMm + dimensionGap;
   const widthLabel = `${dimensions.outerWidthMm.toFixed(1)} mm exterior width`;
-  const depthLabel = `${dimensions.outerDepthMm.toFixed(1)} mm exterior depth`;
+  const depthLabel = `${dimensions.outerDepthMm.toFixed(1)} mm exterior length`;
   const innerCenterScreenX = innerX + dimensions.innerWidthMm / 2;
   const innerCenterScreenY = innerY + dimensions.innerDepthMm / 2;
 

@@ -997,7 +997,7 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
     }
 
     if (minimumOpeningWidthMm >= dimensions.outerDepthMm) {
-      messages.push('Magnetic sheet border width must leave an opening inside the skirmish tray depth.');
+      messages.push('Magnetic sheet border width must leave an opening inside the skirmish tray length.');
     }
   }
 
