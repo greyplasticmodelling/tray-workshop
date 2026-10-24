@@ -375,16 +375,86 @@ const chaosDragonAdapterUrl =
   'https://trayworkshop.co.uk/?settings=eyJ0ZW1wbGF0ZSI6ImFkYXB0ZXIiLCJiYXNlV2lkdGhNbSI6MTAwLCJiYXNlRGVwdGhNbSI6MTUwLCJjb2x1bW5zIjoxLCJyb3dzIjoxLCJ0b2xlcmFuY2VNbSI6MC4yLCJmbG9vclRoaWNrbmVzc01tIjoxLjYsInJhaWxUaGlja25lc3NNbSI6MiwicmFpbEhlaWdodE1tIjoyLCJhZGFwdGVyQ3V0b3V0V2lkdGhNbSI6NjAsImFkYXB0ZXJDdXRvdXREZXB0aE1tIjoxMDAsImFkYXB0ZXJDaXJjbGVEaWFtZXRlck1tIjoyNSwiYWRhcHRlckNpcmNsZUdhcE1tIjo0LCJhZGFwdGVyT3ZhbFNpemUiOiI2MHgzNSIsImFkYXB0ZXJPdmFsR2FwTW0iOjQsImFkYXB0ZXJGbGFua0N1dG91dFdpZHRoTW0iOjIwLCJhZGFwdGVyRmxhbmtDdXRvdXREZXB0aE1tIjoyMCwiYWRhcHRlckJhc2VIZWlnaHRNbSI6MywiYWRhcHRlckJvcmRlclVuaWZvcm1NbSI6MCwiYWRhcHRlckJvcmRlckN1c3RvbUVuYWJsZWQiOmZhbHNlLCJhZGFwdGVyQm9yZGVyRnJvbnRNbSI6MCwiYWRhcHRlckJvcmRlclJlYXJNbSI6MCwiYWRhcHRlckJvcmRlckxlZnRNbSI6MCwiYWRhcHRlckJvcmRlclJpZ2h0TW0iOjAsImFkYXB0ZXJSZW1vdmVGbG9vckVuYWJsZWQiOmZhbHNlLCJhZGFwdGVyRmxvb3JDdXRvdXRFbmFibGVkIjpmYWxzZSwiYWRhcHRlckZsb29yQ3V0b3V0QnVmZmVyTW0iOjIsInJhbmtJbnNlcnRFbmFibGVkIjpmYWxzZSwicmFua0luc2VydENvbHVtbiI6MSwicmFua0luc2VydFJvdyI6MSwicmFua0luc2VydENvbHVtblNwYW4iOjEsInJhbmtJbnNlcnRSb3dTcGFuIjoyLCJyYW5rSW5zZXJ0QWxpZ25tZW50IjoiZnJvbnQiLCJyYW5rSW5zZXJ0Q2lyY2xlRGlhbWV0ZXJNbSI6NTAsInJhbmtJbnNlcnRDdXN0b21TaXplRW5hYmxlZCI6ZmFsc2UsInJhbmtJbnNlcnRDdXN0b21XaWR0aE1tIjozMCwicmFua0luc2VydEN1c3RvbURlcHRoTW0iOjYwLCJ0cmF5RWRnZVNsb3BlTW0iOjAsInRyYXlSb3VuZGVkQ29ybmVyc0VuYWJsZWQiOmZhbHNlLCJ0cmF5Q29ybmVyUmFkaXVzTW0iOjIsImdlbmVyYXRlZEJhc2VFbmFibGVkIjpmYWxzZSwiZ2VuZXJhdGVkQmFzZUhvbGxvdyI6ZmFsc2UsImdlbmVyYXRlZEJhc2VIZWlnaHRNbSI6MywiZ2VuZXJhdGVkQmFzZVdhbGxUaGlja25lc3NNbSI6MSwiZ2VuZXJhdGVkQmFzZVRvcFRoaWNrbmVzc01tIjoxLCJza2lybWlzaEJhc2VTaGFwZSI6ImNpcmNsZSIsInNraXJtaXNoQmFzZVNpemVNbSI6MjUsInNraXJtaXNoU2VlZCI6MTIwMjUsInNraXJtaXNoTWF4Um90YXRpb25EZWciOjYsInNraXJtaXNoTWF4T2Zmc2V0TW0iOjIsInNraXJtaXNoRGlzdHJpYnV0aW9uQ2hhbmNlUGVyY2VudCI6MTAwLCJza2lybWlzaFRyYXlIZWlnaHRNbSI6NCwibWFnbmV0Q3V0b3V0c0VuYWJsZWQiOmZhbHNlLCJtYWduZXRDdXRvdXRzRnJvbUJvdHRvbSI6ZmFsc2UsIm1hZ25ldERpYW1ldGVyTW0iOjUsIm1hZ25ldEN1dG91dERlcHRoTW0iOjEsImxhbmNlRG91YmxlTWFnbmV0c0VuYWJsZWQiOmZhbHNlLCJsYW5jZU1hZ25ldE9mZnNldE1tIjoxMiwiY2hhcmFjdGVyQmF5RW5hYmxlZCI6ZmFsc2UsImNoYXJhY3RlckJheVNpZGUiOiJyaWdodCIsImNoYXJhY3RlckJhc2VXaWR0aE1tIjozMCwiY2hhcmFjdGVyQmFzZURlcHRoTW0iOjYwLCJmcm9udFJhaWxFbmFibGVkIjpmYWxzZSwicmVhclJhaWxFbmFibGVkIjpmYWxzZSwibGVmdFJhaWxFbmFibGVkIjpmYWxzZSwicmlnaHRSYWlsRW5hYmxlZCI6ZmFsc2UsImJ1aWxkUGxhdGVTaXplIjoiMjU2eDI1NiJ9';
 
 function NewsBanner() {
+  const [activeNotice, setActiveNotice] = useState<'tombKings' | 'warriorsOfChaos'>('tombKings');
+  const tombKingsChariotAdapterUrl = createShareUrl({
+    ...adapterDefaults,
+    baseWidthMm: 60,
+    baseDepthMm: 120,
+    adapterCutoutWidthMm: 50,
+    adapterCutoutDepthMm: 100,
+    columns: 1,
+    rows: 1,
+  });
+
   return (
     <aside className="news-banner" aria-label="Latest news">
-      <span className="news-label">Latest news</span>
-      <p>
-        With the latest changes to the Chaos Dragon base size from 60 x 100 mm to 100 x 150 mm, why not make yourself
-        an adapter?
-      </p>
-      <a href={chaosDragonAdapterUrl} title="Open Tray Workshop with the Chaos Dragon adapter settings loaded.">
-        Open Chaos Dragon adapter
-      </a>
+      <div className="news-heading">
+        <span className="news-label">Latest news</span>
+        <div className="news-tabs" role="tablist" aria-label="Army news">
+          <button
+            id="news-tab-tomb-kings"
+            type="button"
+            role="tab"
+            aria-selected={activeNotice === 'tombKings'}
+            aria-controls="news-panel"
+            tabIndex={activeNotice === 'tombKings' ? 0 : -1}
+            onClick={() => setActiveNotice('tombKings')}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                setActiveNotice('warriorsOfChaos');
+                document.getElementById('news-tab-warriors-of-chaos')?.focus();
+              }
+            }}
+          >
+            Tomb Kings
+          </button>
+          <button
+            id="news-tab-warriors-of-chaos"
+            type="button"
+            role="tab"
+            aria-selected={activeNotice === 'warriorsOfChaos'}
+            aria-controls="news-panel"
+            tabIndex={activeNotice === 'warriorsOfChaos' ? 0 : -1}
+            onClick={() => setActiveNotice('warriorsOfChaos')}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                setActiveNotice('tombKings');
+                document.getElementById('news-tab-tomb-kings')?.focus();
+              }
+            }}
+          >
+            Warriors of Chaos
+          </button>
+        </div>
+      </div>
+      <div
+        id="news-panel"
+        className="news-content"
+        role="tabpanel"
+        aria-labelledby={activeNotice === 'tombKings' ? 'news-tab-tomb-kings' : 'news-tab-warriors-of-chaos'}
+      >
+        {activeNotice === 'tombKings' ? (
+          <>
+            <p>
+              New Tomb Kings of Khemri Skeleton Chariots use 60 x 120 mm bases. Have older 50 x 100 mm chariots? Open an
+              adapter preset for the new footprint.
+            </p>
+            <a href={tombKingsChariotAdapterUrl} title="Open a 60 x 120 mm adapter tray for a 50 x 100 mm chariot base.">
+              Open chariot adapter
+            </a>
+          </>
+        ) : (
+          <>
+            <p>
+              With the latest changes to the Chaos Dragon base size from 60 x 100 mm to 100 x 150 mm, why not make yourself
+              an adapter?
+            </p>
+            <a href={chaosDragonAdapterUrl} title="Open Tray Workshop with the Chaos Dragon adapter settings loaded.">
+              Open Chaos Dragon adapter
+            </a>
+          </>
+        )}
+      </div>
     </aside>
   );
 }
