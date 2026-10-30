@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { DimensionsPanel } from './components/DimensionsPanel';
+import { TrayBevelControl } from './components/TrayBevelControl';
 import { TrayControls } from './components/TrayControls';
 import { TrayPreviewSvg } from './components/TrayPreviewSvg';
 import { calculateBuildPlateFit, calculateTrayDimensions, validateTraySettings } from './geometry/trayMath';
@@ -50,6 +51,10 @@ const standardDefaults: TraySettings = {
   trayEdgeSlopeMm: 0,
   trayRoundedCornersEnabled: false,
   trayCornerRadiusMm: 2,
+  trayBevelEnabled: false,
+  trayBevelWidthMm: 0.75,
+  trayBevelCornerStyle: 'mitred',
+  trayBevelProfile: 'single',
   generatedBaseEnabled: false,
   generatedBaseHollow: false,
   generatedBaseHeightMm: 3,
@@ -547,7 +552,7 @@ export default function App() {
   const [is3dPreviewEnabled, setIs3dPreviewEnabled] = useState(false);
   const [isAdvancedFinishEnabled, setIsAdvancedFinishEnabled] = useState(() => {
     const sharedSettings = readSharedSettings();
-    return Boolean(sharedSettings?.trayRoundedCornersEnabled || (sharedSettings?.trayEdgeSlopeMm ?? 0) > 0);
+    return Boolean(sharedSettings?.trayRoundedCornersEnabled || (sharedSettings?.trayEdgeSlopeMm ?? 0) > 0 || sharedSettings?.trayBevelEnabled);
   });
   const settings = settingsByTemplate[activeTemplate];
   const dimensions = useMemo(() => calculateTrayDimensions(settings), [settings]);
@@ -559,10 +564,10 @@ export default function App() {
   }, [savedTrays]);
 
   useEffect(() => {
-    if (settings.trayRoundedCornersEnabled || settings.trayEdgeSlopeMm > 0) {
+    if (settings.trayRoundedCornersEnabled || settings.trayEdgeSlopeMm > 0 || settings.trayBevelEnabled) {
       setIsAdvancedFinishEnabled(true);
     }
-  }, [settings.trayEdgeSlopeMm, settings.trayRoundedCornersEnabled]);
+  }, [settings.trayEdgeSlopeMm, settings.trayRoundedCornersEnabled, settings.trayBevelEnabled]);
 
   const updateSettings = (nextSettings: TraySettings) => {
     const compatibleSettings = normaliseCompatibleSettings(nextSettings);
@@ -585,7 +590,7 @@ export default function App() {
     updateSettings({
       ...settings,
       [key]: numericValue,
-      ...(key === 'trayEdgeSlopeMm' && numericValue > 0 ? { trayRoundedCornersEnabled: false } : {}),
+      ...(key === 'trayEdgeSlopeMm' && numericValue > 0 ? { trayRoundedCornersEnabled: false, trayBevelEnabled: false } : {}),
     });
   };
 
@@ -593,7 +598,7 @@ export default function App() {
     updateSettings({
       ...settings,
       [key]: checked,
-      ...(checked ? { trayEdgeSlopeMm: 0 } : {}),
+      ...(checked ? { trayEdgeSlopeMm: 0, trayBevelEnabled: false } : {}),
     });
   };
 
@@ -605,6 +610,7 @@ export default function App() {
         ...settings,
         trayEdgeSlopeMm: 0,
         trayRoundedCornersEnabled: false,
+        trayBevelEnabled: false,
       });
     }
   };
@@ -690,6 +696,14 @@ export default function App() {
       window.alert(error instanceof Error ? error.message : 'Unable to export this tray as an STL.');
     }
   };
+  const handleBambuDownload = async () => {
+    try {
+      const { downloadBambu3mf } = await import('./geometry/export3mf');
+      downloadBambu3mf(settings);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to export this tray for Bambu Studio.');
+    }
+  };
   const roundedCornersTooltip =
     'Rounds eligible outside tray corners. On rail trays this applies where enabled rails meet; on solid trays it applies to the outside perimeter.';
 
@@ -741,7 +755,7 @@ export default function App() {
             <legend>Advanced Tray Finish</legend>
             <label
               className="finish-toggle finish-master-toggle"
-              title="Enable advanced finishing options such as mitred edge slope or flat rounded corners."
+              title="Enable perimeter slope, rounded corners, or a top outside edge profile."
             >
               <input
                 type="checkbox"
@@ -795,6 +809,7 @@ export default function App() {
               />
               <output>{settings.trayEdgeSlopeMm.toFixed(2)} mm</output>
             </label>
+            <TrayBevelControl enabled={isAdvancedFinishEnabled} settings={settings} onChange={updateSettings} />
             </div>
           </fieldset>
           <fieldset className={`tray-finish-panel ${settings.generatedBaseEnabled ? '' : 'is-collapsed'}`}>
@@ -864,15 +879,28 @@ export default function App() {
               </p>
             </div>
           </fieldset>
-          <button
-            className="download-button"
-            type="button"
-            title="Download the current tray as an STL file."
-            disabled={validation.messages.length > 0}
-            onClick={handleDownload}
-          >
-            Download STL
-          </button>
+          <div className="download-actions">
+            <button
+              className="download-button"
+              type="button"
+              title="Download the current tray as an STL file."
+              disabled={validation.messages.length > 0}
+              onClick={handleDownload}
+            >
+              Download STL
+            </button>
+            <button
+              className="download-button bambu-download-button"
+              type="button"
+              title="Download a 3MF file ready to open in Bambu Studio. This beta export does not include printer or filament settings."
+              disabled={validation.messages.length > 0}
+              onClick={handleBambuDownload}
+            >
+              <span>Download for Bambu Studio</span>
+              <span className="beta-badge">Beta</span>
+            </button>
+            <p className="bambu-beta-note">Beta: opens via the downloaded 3MF. Check slicing, printer, and filament settings in Bambu Studio before printing.</p>
+          </div>
           <TrayLibrary
             savedTrays={savedTrays}
             shareStatus={shareStatus}

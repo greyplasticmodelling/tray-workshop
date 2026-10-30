@@ -40,6 +40,10 @@ export type TraySettings = {
   trayEdgeSlopeMm: number;
   trayRoundedCornersEnabled: boolean;
   trayCornerRadiusMm: number;
+  trayBevelEnabled: boolean;
+  trayBevelWidthMm: number;
+  trayBevelCornerStyle: 'mitred' | 'curved';
+  trayBevelProfile: 'single' | 'rounded' | 'double';
   generatedBaseEnabled: boolean;
   generatedBaseHollow: boolean;
   generatedBaseHeightMm: number;

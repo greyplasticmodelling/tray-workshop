@@ -76,11 +76,16 @@ export function TrayPreview3d({ settings }: Props) {
       const center = bounds.getCenter(new THREE.Vector3());
       const size = bounds.getSize(new THREE.Vector3());
       const maxSize = Math.max(size.x, size.y, size.z, 1);
-      const cameraDistance = maxSize * 1.35;
+      const isLance = settings.template === 'lanceWedge' || settings.template === 'adapterLance';
+      const cameraDistance = maxSize * (isLance ? 1.35 : 1.9);
 
       tray.position.sub(center);
       controls.target.set(0, 0, Math.max(0, size.z * 0.15));
-      camera.position.set(cameraDistance * 0.62, -cameraDistance * 0.82, cameraDistance * 0.5);
+      camera.position.set(
+        cameraDistance * (isLance ? 0.85 : 0.62),
+        -cameraDistance * (isLance ? 0.5 : 0.82),
+        cameraDistance * (isLance ? 0.85 : 0.5),
+      );
       camera.near = Math.max(0.1, maxSize / 1200);
       camera.far = maxSize * 8;
       camera.updateProjectionMatrix();

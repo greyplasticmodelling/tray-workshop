@@ -13,6 +13,30 @@ type Props = {
   settings: TraySettings;
 };
 
+type PreviewRect = { key: string; x: number; y: number; width: number; height: number };
+
+function getVisibleRectEdges(rects: PreviewRect[]) {
+  const xs = Array.from(new Set(rects.flatMap((rect) => [rect.x, rect.x + rect.width]))).sort((a, b) => a - b);
+  const ys = Array.from(new Set(rects.flatMap((rect) => [rect.y, rect.y + rect.height]))).sort((a, b) => a - b);
+  const inside = (x: number, y: number) => rects.some((rect) => x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height);
+  const edges: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
+
+  for (let xIndex = 0; xIndex < xs.length - 1; xIndex += 1) {
+    for (let yIndex = 0; yIndex < ys.length - 1; yIndex += 1) {
+      const [left, right] = [xs[xIndex], xs[xIndex + 1]];
+      const [front, back] = [ys[yIndex], ys[yIndex + 1]];
+      const centerX = (left + right) / 2;
+      const centerY = (front + back) / 2;
+      if (!inside(centerX, centerY)) continue;
+      if (!inside(left - 0.001, centerY)) edges.push({ key: `left-${xIndex}-${yIndex}`, x1: left, y1: front, x2: left, y2: back });
+      if (!inside(right + 0.001, centerY)) edges.push({ key: `right-${xIndex}-${yIndex}`, x1: right, y1: front, x2: right, y2: back });
+      if (!inside(centerX, front - 0.001)) edges.push({ key: `front-${xIndex}-${yIndex}`, x1: left, y1: front, x2: right, y2: front });
+      if (!inside(centerX, back + 0.001)) edges.push({ key: `back-${xIndex}-${yIndex}`, x1: left, y1: back, x2: right, y2: back });
+    }
+  }
+  return edges;
+}
+
 export function TrayPreviewSvg({ dimensions, settings }: Props) {
   const fontSize = Math.min(6, Math.max(3.2, Math.min(dimensions.outerWidthMm, dimensions.outerDepthMm) * 0.045));
   const dimensionGap = fontSize * 3;
@@ -122,10 +146,10 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
     Boolean(rankInsert && x >= rankInsert.left && x <= rankInsert.right && y >= rankInsert.front && y <= rankInsert.back);
   const finishExpansion = settings.trayEdgeSlopeMm;
   const finishCornerRadius = settings.template === 'skirmish' && settings.trayRoundedCornersEnabled ? settings.trayCornerRadiusMm : 0;
-  const finishRects: Array<{ key: string; x: number; y: number; width: number; height: number }> = [];
+  const finishRects: PreviewRect[] = [];
   const finishLines: Array<{ key: string; x1: number; y1: number; x2: number; y2: number }> = [];
 
-  if (finishExpansion > 0) {
+  if (finishExpansion > 0 || settings.trayBevelEnabled) {
     if (isSkirmish || isAdapter || isAdapterCircle || isAdapterOval) {
       finishRects.push({
         key: 'finish-outer',
@@ -282,6 +306,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
       }
     }
   }
+  const bevelGuideLines = settings.trayBevelEnabled ? [...finishLines, ...getVisibleRectEdges(finishRects)] : [];
   const footprints = [];
   if (!isSkirmish) for (let row = 0; row < rankCounts.length; row += 1) {
     const rankCount = rankCounts[row];
@@ -324,7 +349,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
           </marker>
         </defs>
 
-        {finishRects.map((rect) => (
+        {finishExpansion > 0 && finishRects.map((rect) => (
           <rect
             key={rect.key}
             x={rect.x - finishExpansion}
@@ -336,7 +361,7 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
             className="finish-footprint"
           />
         ))}
-        {finishLines.map((line) => (
+        {finishExpansion > 0 && finishLines.map((line) => (
           <line
             key={line.key}
             x1={line.x1}
@@ -841,6 +866,17 @@ export function TrayPreviewSvg({ dimensions, settings }: Props) {
               className="magnet-cutout"
             />
           ))}
+
+        {bevelGuideLines.map((line) => (
+          <line
+            key={`bevel-${line.key}`}
+            x1={line.x1}
+            y1={line.y1}
+            x2={line.x2}
+            y2={line.y2}
+            className="bevel-edge-guide"
+          />
+        ))}
 
         <g className="dimension-annotations" style={{ fontSize }}>
           <line

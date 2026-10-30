@@ -32,6 +32,7 @@ const bounds: Partial<Record<keyof TraySettings, { min: number; max: number; lab
   rankInsertCustomDepthMm: { min: 1, max: 320, label: 'Custom rank insert depth', unit: 'mm' },
   trayEdgeSlopeMm: { min: 0, max: 6, label: 'Tray edge slope', unit: 'mm' },
   trayCornerRadiusMm: { min: 0.5, max: 12, label: 'Corner roundness', unit: 'mm' },
+  trayBevelWidthMm: { min: 0.25, max: 3, label: 'Top edge bevel width', unit: 'mm' },
   generatedBaseHeightMm: { min: 1.5, max: 8, label: 'Generated base height', unit: 'mm' },
   generatedBaseWallThicknessMm: { min: 1, max: 6, label: 'Generated base wall thickness', unit: 'mm' },
   generatedBaseTopThicknessMm: { min: 1, max: 6, label: 'Generated base top thickness', unit: 'mm' },
@@ -294,6 +295,53 @@ export function calculateTrayDimensions(settings: TraySettings): TrayDimensions 
     frontRailMm,
     rearRailMm,
   };
+}
+
+export function getMaxTrayBevelWidthMm(settings: TraySettings): number {
+  const dimensions = calculateTrayDimensions(settings);
+  const isRailTray = settings.template === 'standard' || settings.template === 'lanceWedge';
+
+  if (isRailTray) {
+    const hasRail = settings.frontRailEnabled || settings.rearRailEnabled || settings.leftRailEnabled || settings.rightRailEnabled;
+    const cornerLimit = settings.trayBevelCornerStyle === 'curved' ? settings.railThicknessMm / 2 : 3;
+    return hasRail ? Math.max(0, Math.min(3, settings.railThicknessMm - 0.25, settings.railHeightMm - 0.25, cornerLimit)) : 0;
+  }
+
+  if (settings.template === 'skirmish') {
+    const sheetLimit = settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled
+      ? settings.adapterFloorCutoutBufferMm - 0.25
+      : 3;
+    return Math.max(0, Math.min(3, settings.skirmishTrayHeightMm - 0.25, 1.75, sheetLimit));
+  }
+
+  const baseMarginX = settings.template === 'adapterCircle' || settings.template === 'adapterOval'
+    ? 0
+    : (dimensions.slotWidthMm - dimensions.adapterCutoutWidthMm) / 2;
+  const baseMarginY = settings.template === 'adapterCircle' || settings.template === 'adapterOval'
+    ? 0
+    : (dimensions.slotDepthMm - dimensions.adapterCutoutDepthMm) / 2;
+  const edgeMargin = Math.min(
+    baseMarginX + dimensions.leftRailMm,
+    baseMarginX + dimensions.rightRailMm,
+    baseMarginY + dimensions.frontRailMm,
+    baseMarginY + dimensions.rearRailMm,
+  );
+  const flankSides: Array<'left' | 'right'> = settings.characterBayEnabled && settings.template === 'adapter'
+    ? settings.characterBaySide === 'both' ? ['left', 'right'] : [settings.characterBaySide]
+    : [];
+  const flankMargin = flankSides.reduce<number>((margin, side) => {
+    const width = side === 'left' ? dimensions.characterLeftSlotWidthMm : dimensions.characterRightSlotWidthMm;
+    const depth = side === 'left' ? dimensions.characterLeftSlotDepthMm : dimensions.characterRightSlotDepthMm;
+    const count = settings.characterBaySide === 'both'
+      ? side === 'left' ? settings.characterLeftBaseCount : settings.characterRightBaseCount
+      : settings.characterBaseCount;
+    return Math.min(margin, (width / Math.max(1, count) - dimensions.adapterFlankCutoutWidthMm) / 2,
+      (depth - dimensions.adapterFlankCutoutDepthMm) / 2);
+  }, edgeMargin);
+  const sheetLimit = settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled
+    ? settings.adapterFloorCutoutBufferMm - 0.25
+    : 3;
+  return Math.max(0, Math.min(3, settings.adapterBaseHeightMm - 0.25, flankMargin - 0.25, sheetLimit));
 }
 
 export type MagnetCutoutCenter = {
@@ -766,6 +814,10 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
       return;
     }
 
+    if (key === 'trayBevelWidthMm' && !settings.trayBevelEnabled) {
+      return;
+    }
+
     if (
       (key === 'generatedBaseHeightMm' ||
         key === 'generatedBaseWallThicknessMm' ||
@@ -1098,6 +1150,26 @@ export function validateTraySettings(settings: TraySettings): ValidationResult {
 
   if (dimensions.outerWidthMm > 320 || dimensions.outerDepthMm > 320) {
     messages.push('Overall tray dimensions must stay under 320 mm in each direction.');
+  }
+
+  if (settings.trayBevelEnabled) {
+    const isRailTray = settings.template === 'standard' || settings.template === 'lanceWedge';
+    const hasRail = settings.frontRailEnabled || settings.rearRailEnabled || settings.leftRailEnabled || settings.rightRailEnabled;
+    if (isRailTray && !hasRail) {
+      messages.push('Top edge bevel needs at least one enabled rail.');
+    }
+    if (settings.trayEdgeSlopeMm > 0 || settings.trayRoundedCornersEnabled) {
+      messages.push('Top edge bevel cannot be combined with outside edge slope or rounded corners.');
+    }
+    if (settings.trayBevelWidthMm > getMaxTrayBevelWidthMm(settings) + 0.0001) {
+      messages.push('Top edge bevel is too wide for the available rail height or perimeter wall.');
+    }
+    if (settings.trayBevelCornerStyle !== 'mitred' && settings.trayBevelCornerStyle !== 'curved') {
+      messages.push('Choose a mitred or curved bevel corner.');
+    }
+    if (!['single', 'rounded', 'double'].includes(settings.trayBevelProfile)) {
+      messages.push('Choose a single bevel, rounded edge, or double bevel profile.');
+    }
   }
 
   if (settings.generatedBaseEnabled && settings.generatedBaseHollow) {

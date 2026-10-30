@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { TraySettings } from '../types';
+import { applyTopBevel } from './applyTopBevel';
 import {
   calculateTrayDimensions,
   getCircleAdapterCenters,
@@ -337,7 +338,13 @@ function roundedPointKey(point: THREE.Vector2) {
 }
 
 function getOrderedPerimeterPoints(rects: Rect[]) {
-  const segments = getUnionPerimeterSegments(rects);
+  const snap = (value: number) => Math.round(value * 10000) / 10000;
+  const segments = getUnionPerimeterSegments(rects.map((rect) => ({
+    left: snap(rect.left),
+    right: snap(rect.right),
+    front: snap(rect.front),
+    back: snap(rect.back),
+  })));
 
   if (segments.length === 0) {
     return [];
@@ -387,7 +394,13 @@ function getOrderedPerimeterPoints(rects: Rect[]) {
     points.push(nextPoint);
   }
 
-  return points;
+  return points.filter((point, index) => {
+    const previous = points[(index - 1 + points.length) % points.length];
+    const next = points[(index + 1) % points.length];
+    const incoming = point.clone().sub(previous);
+    const outgoing = next.clone().sub(point);
+    return Math.abs(incoming.x * outgoing.y - incoming.y * outgoing.x) > 0.0001 || incoming.dot(outgoing) <= 0;
+  });
 }
 
 function createRoundedPolygonShape(points: THREE.Vector2[], radius: number) {
@@ -450,7 +463,7 @@ function createUnionCutoutLayer(
   const points = getOrderedPerimeterPoints(rects);
   const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
 
-  if (points.length < 3 || radius <= 0) {
+  if (points.length < 3 || (radius <= 0 && !settings.trayBevelEnabled)) {
     return createUnionRectGridLayer(name, rects, height, holes, z);
   }
 
@@ -579,6 +592,9 @@ function addTrayFinishShell(group: THREE.Group, name: string, rects: Rect[], hei
   if (shell) {
     group.add(shell);
   }
+  if (settings.trayBevelEnabled) {
+    applyTopBevel(group, getUnionPerimeterSegments(rects), settings.trayBevelWidthMm, settings.trayBevelCornerStyle, settings.trayBevelProfile);
+  }
 }
 
 function addTrayFinishSegments(
@@ -591,6 +607,9 @@ function addTrayFinishSegments(
   const shell = createTrayFinishShellFromSegments(name, segments, height, settings);
   if (shell) {
     group.add(shell);
+  }
+  if (settings.trayBevelEnabled) {
+    applyTopBevel(group, segments, settings.trayBevelWidthMm, settings.trayBevelCornerStyle, settings.trayBevelProfile);
   }
 }
 
@@ -1111,6 +1130,22 @@ function createRoundedUnionPerimeterBorderLayer(
   const points = getOrderedPerimeterPoints(outerRects);
   const radius = settings.trayRoundedCornersEnabled ? Math.max(0, settings.trayCornerRadiusMm) : 0;
 
+  if (settings.trayBevelEnabled && outerRects.length === 1) {
+    const rect = outerRects[0];
+    const width = rect.right - rect.left;
+    const depth = rect.back - rect.front;
+    return createRectCutoutLayer(
+      name,
+      width,
+      depth,
+      height,
+      width > inset * 2 && depth > inset * 2 ? [{ x: 0, y: 0, width: width - inset * 2, depth: depth - inset * 2 }] : [],
+      rect.left + width / 2,
+      rect.front + depth / 2,
+      z,
+    );
+  }
+
   if (points.length < 3 || radius <= 0) {
     return createUnionPerimeterBorderLayer(name, rects, height, z, borderWidth);
   }
@@ -1257,7 +1292,7 @@ function createAdapterBlockLayer(
 ) {
   const radius = settings ? getCornerRadius(settings, width, depth) : 0;
 
-  if (radius > 0) {
+  if (radius > 0 || settings?.trayBevelEnabled) {
     return createRectCutoutLayer(name, width, depth, height, holes, x, y, z, radius);
   }
 
@@ -1272,6 +1307,20 @@ function createAdapterTopBorderLayer(
   y: number,
   settings: TraySettings,
 ) {
+  if (settings.trayBevelEnabled) {
+    const inset = Math.max(0, settings.adapterFloorCutoutBufferMm);
+    return createRectCutoutLayer(
+      name,
+      width,
+      depth,
+      settings.floorThicknessMm,
+      width > inset * 2 && depth > inset * 2 ? [{ x: 0, y: 0, width: width - inset * 2, depth: depth - inset * 2 }] : [],
+      x,
+      y,
+      0,
+    );
+  }
+
   if (settings.trayRoundedCornersEnabled) {
     return createRoundedPerimeterBorderLayer(
       name,
@@ -1587,7 +1636,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
       x: innerCenterX + center.x,
       y: innerCenterY + center.y,
     }));
-    const useUnionBody = settings.trayRoundedCornersEnabled || hasAdapterBorder;
+    const useUnionBody = settings.trayRoundedCornersEnabled || hasAdapterBorder || settings.trayBevelEnabled;
 
     rankCounts.forEach((rankCount, rowIndex) => {
       const rowWidth = rankCount * dimensions.slotWidthMm;
@@ -1905,7 +1954,9 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
           mainFloorCenterX,
           mainFloorCenterY,
           adapterBlockZ,
-          hasFlankAdapter ? undefined : settings,
+          hasFlankAdapter || (settings.trayBevelEnabled && settings.adapterRemoveFloorEnabled && settings.adapterFloorCutoutEnabled)
+            ? undefined
+            : settings,
         ),
       );
     }
@@ -2005,7 +2056,7 @@ export function generateTrayMesh(settings: TraySettings): THREE.Group {
     const lanceFinishSegments: PerimeterSegment[] = [];
     const lanceFloorRects: Rect[] = [];
     const lanceRailRects: Rect[] = [];
-    const useRoundedLanceUnion = settings.trayRoundedCornersEnabled;
+    const useRoundedLanceUnion = settings.trayRoundedCornersEnabled || settings.trayBevelEnabled;
     const lanceInnerCenterY = -dimensions.outerDepthMm / 2 + dimensions.frontRailMm + dimensions.innerDepthMm / 2;
     const lanceMagnetCenters = magnetCenters.map((center) => ({
       x: center.x,

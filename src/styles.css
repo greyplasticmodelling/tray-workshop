@@ -582,6 +582,46 @@ h1 {
   cursor: pointer;
 }
 
+.download-actions {
+  width: min(100%, 520px);
+  display: grid;
+  justify-self: center;
+  gap: 10px;
+}
+
+.download-actions .download-button {
+  width: 100%;
+}
+
+.bambu-download-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--heading);
+  border: 2px solid var(--accent);
+  background: var(--surface);
+}
+
+.beta-badge {
+  border-radius: 999px;
+  padding: 3px 7px;
+  color: #ffffff;
+  background: var(--accent);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.bambu-beta-note {
+  margin: -2px 4px 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .secondary-button {
   min-height: 40px;
   border: 1px solid var(--border-strong);
@@ -788,6 +828,159 @@ h1 {
   accent-color: var(--accent);
 }
 
+.rail-bevel-mockup {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.rail-bevel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rail-bevel-heading .finish-toggle input:disabled + span {
+  opacity: 0.55;
+}
+
+.rail-bevel-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin-top: 14px;
+}
+
+.rail-bevel-style {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  color: var(--label);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.rail-bevel-profile {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  color: var(--label);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.rail-bevel-profile select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.rail-bevel-profile select:focus-visible {
+  outline: 3px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.rail-bevel-segments {
+  display: flex;
+  width: fit-content;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rail-bevel-segments button {
+  min-height: 36px;
+  border: 0;
+  padding: 6px 12px;
+  background: var(--surface);
+  color: var(--label);
+  cursor: pointer;
+}
+
+.rail-bevel-segments button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.rail-bevel-segments button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--heading);
+}
+
+.rail-bevel-segments button:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -3px;
+}
+
+.rail-bevel-diagrams {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  border-block: 1px solid var(--border);
+  padding-block: 8px;
+}
+
+.rail-bevel-diagrams figure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+
+.rail-bevel-diagrams svg {
+  flex: 0 0 104px;
+  width: 104px;
+  height: 88px;
+}
+
+.rail-bevel-diagrams figcaption {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rail-bevel-solid {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+
+.rail-bevel-outline,
+.rail-bevel-cut {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rail-bevel-outline {
+  stroke: var(--border-strong);
+}
+
+.rail-bevel-cut {
+  stroke: var(--accent-strong);
+}
+
+.rail-bevel-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 560px) {
+  .rail-bevel-details,
+  .rail-bevel-diagrams {
+    grid-template-columns: 1fr;
+  }
+}
+
 .preview-toggle {
   justify-self: center;
   display: flex;
@@ -864,6 +1057,14 @@ h1 {
   stroke-dasharray: 3 2;
   stroke-linecap: square;
   stroke-opacity: 0.45;
+}
+
+.bevel-edge-guide {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 1.1;
+  stroke-opacity: 0.85;
+  stroke-linecap: square;
 }
 
 .rail {
