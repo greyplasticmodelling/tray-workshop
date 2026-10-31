@@ -340,6 +340,23 @@ select {
   min-width: 0;
 }
 
+.news-actions {
+  display: flex;
+  flex: 0 1 250px;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.news-banner .news-actions a {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 8px 12px;
+  white-space: normal;
+  text-align: center;
+}
+
 .news-tabs button {
   min-height: 30px;
   padding: 4px 10px;
