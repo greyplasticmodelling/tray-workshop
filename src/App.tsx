@@ -5,6 +5,7 @@ import { TrayControls } from './components/TrayControls';
 import { TrayPreviewSvg } from './components/TrayPreviewSvg';
 import { calculateBuildPlateFit, calculateTrayDimensions, validateTraySettings } from './geometry/trayMath';
 import type { SavedTray, ThemeName, TraySettings, TrayTemplate } from './types';
+import { encodeSettings, decodeSettings as decodeSharedSettings } from './shareSettings';
 
 const TrayPreview3d = lazy(() =>
   import('./components/TrayPreview3d').then((module) => ({ default: module.TrayPreview3d })),
@@ -195,29 +196,8 @@ function isTrayTemplate(value: unknown): value is TrayTemplate {
   return typeof value === 'string' && value in defaultSettingsByTemplate;
 }
 
-function encodeSettings(settings: TraySettings): string {
-  const json = JSON.stringify(settings);
-  return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
 function decodeSettings(value: string): TraySettings | null {
-  try {
-    const normalised = value.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalised.padEnd(Math.ceil(normalised.length / 4) * 4, '=');
-    const parsed = JSON.parse(decodeURIComponent(escape(atob(padded)))) as Partial<TraySettings>;
-
-    if (!isTrayTemplate(parsed.template)) {
-      return null;
-    }
-
-    return {
-      ...defaultSettingsByTemplate[parsed.template],
-      ...parsed,
-      template: parsed.template,
-    };
-  } catch {
-    return null;
-  }
+  return decodeSharedSettings(value, defaultSettingsByTemplate);
 }
 
 function readSharedSettings(): TraySettings | null {
@@ -227,7 +207,8 @@ function readSharedSettings(): TraySettings | null {
 
 function createShareUrl(settings: TraySettings): string {
   const url = new URL(import.meta.env.BASE_URL, window.location.origin);
-  url.searchParams.set(sharedSettingsParam, encodeSettings(settings));
+  // Set VITE_SHARE_LINK_VERSION=1 to roll back new links while retaining the v2 reader.
+  url.searchParams.set(sharedSettingsParam, encodeSettings(settings, import.meta.env.VITE_SHARE_LINK_VERSION === '1' ? 1 : 2));
   return url.toString();
 }
 
